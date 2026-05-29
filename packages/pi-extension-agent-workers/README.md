@@ -4,7 +4,7 @@ pi package for supervising delegated AI agent worker CLI processes such as Claud
 
 ## Status
 
-v0.3.0 is the current local release, focused on workspace-aware worker history/config, original task previews, custom profiles, and a compact refreshing worker widget. Roadmap and milestone docs live in [`../../docs/pi-extension-agent-workers`](../../docs/pi-extension-agent-workers).
+v0.3.1 is the current local release. It keeps the v0.3.0 workspace-aware worker UI/config surface, removes the temporary `/worker-ui-poc` command after its PoC findings were promoted into the default widget, and marks orphaned historical active runs as stale instead of indefinitely running. Roadmap and milestone docs live in [`../../docs/pi-extension-agent-workers`](../../docs/pi-extension-agent-workers).
 
 ## Goal
 
@@ -24,6 +24,7 @@ The first iterations focus on generic worker supervision only:
 - M12 — show compact current/recent worker cards in an interactive pi widget.
 - M13 — allow up to 6 active workers with conservative workspace collision rules.
 - v0.3.0 — workspace-scoped history/config, original task previews, custom profiles, UI capability PoC, and compact refreshing default widget.
+- v0.3.1 — remove the temporary `/worker-ui-poc` command and PoC-only runtime source after the default widget shipped, fix stale historical active runs in history/widget displays, and remove stale `M1 commands` wording.
 
 Cross-extension delegation through LLM tools and recipes is supported while this package remains domain-independent.
 
@@ -52,7 +53,6 @@ Worker commands:
 - `/worker-workspace-pick` — pick and print a workspace path/preflight result without setting a default.
 - `/worker-config` — show workspace-scoped safe preferences.
 - `/worker-config set <key> <value>` — update safe workspace preferences such as `defaultProfile`, `defaultAdapter`, `defaultTimeoutMs`, `historyScope`, `historyLimit`, `widgetPlacement`, or `widgetLimit`.
-- `/worker-ui-poc [widget|wide-widget|card-widget|footer|cockpit|sidepanel|all|clear]` — explicit v0.3.0 M5 capability probe for widget/footer/custom overlay UI; not default behavior.
 - `/worker-run --cwd <path> <task>` — start one worker in an explicit workspace for this run.
 - `/worker-run --pick-cwd <task>` — choose a workspace with native pi UI for this run only.
 - `/worker-run --profile planner <task>` — start the built-in read-only planning profile.
@@ -131,7 +131,7 @@ Interpretation tips:
 - `cwd` is the effective worker workspace; confirm it is the intended product repository before relying on code inspection.
 - `usage.source` may be `reported`, `estimated`, or `unknown`; unknown is not zero.
 - `statusReason`, `timeoutMs`, timestamps, and `elapsedMs` help distinguish completed, failed, cancelled, timed-out, and still-running work.
-- Historical runs from `/worker-history` / `agent_worker_list_runs` are informational when `controllable: false`; they cannot be waited on or cancelled after restart.
+- Historical runs from `/worker-history` / `agent_worker_list_runs` are informational when `controllable: false`; they cannot be waited on or cancelled after restart. Historical active runs left by interrupted/reloaded sessions are shown as stale failed history instead of indefinitely running.
 - `readOnly`, `canModifyWorkspace`, and `workspaceKey` explain concurrency safety decisions.
 - `activity` and `finalText` are compact summaries; raw logs remain local at `logPath` and may contain sensitive context.
 

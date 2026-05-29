@@ -44,7 +44,7 @@ export class RunArtifactIndex {
     const current = await this.readIndex();
     return current.runs
       .filter((entry) => normalized.allScopes || normalized.scopeKey === undefined || historyEntryMatchesScope(entry, normalized.scopeKey))
-      .map((entry) => ({ ...entry, usage: { ...entry.usage }, activity: [...entry.activity], controllable: false, historical: true }))
+      .map((entry) => markStaleHistoricalActiveRun({ ...entry, usage: { ...entry.usage }, activity: [...entry.activity], controllable: false, historical: true }))
       .sort(compareHistoryEntries)
       .slice(0, normalized.limit);
   }
@@ -109,6 +109,18 @@ export function workerRunToHistoryEntry(
     controllable: options.controllable,
     historical: options.historical,
     indexedAt: now,
+  };
+}
+
+function markStaleHistoricalActiveRun(entry: WorkerRunHistoryEntry): WorkerRunHistoryEntry {
+  if (entry.controllable || (entry.status !== "running" && entry.status !== "queued")) return entry;
+  const endedAt = entry.lastActivityAt ?? entry.indexedAt ?? entry.startedAt;
+  return {
+    ...entry,
+    status: "failed",
+    statusReason: "stale_historical",
+    endedAt,
+    elapsedMs: endedAt - entry.startedAt,
   };
 }
 

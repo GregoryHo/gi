@@ -4,7 +4,7 @@ import type { Readable } from "node:stream";
 import type { WorkerEvent, WorkerUsage } from "./worker-events.ts";
 
 export type WorkerStatus = "queued" | "running" | "completed" | "failed" | "cancelled" | "timed_out";
-export type WorkerStatusReason = "exit_zero" | "exit_nonzero" | "cancelled" | "timed_out" | "spawn_error";
+export type WorkerStatusReason = "exit_zero" | "exit_nonzero" | "cancelled" | "timed_out" | "spawn_error" | "stale_historical";
 
 export interface WorkerRun {
   id: string;

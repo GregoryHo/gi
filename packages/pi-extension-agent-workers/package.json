@@ -1,6 +1,6 @@
 {
   "name": "@gregho/pi-extension-agent-workers",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "pi extension package for supervising delegated AI agent worker CLI processes.",
   "type": "module",
   "main": "src/index.ts",
@@ -32,7 +32,6 @@
     "src/run-index.ts",
     "src/service.ts",
     "src/tools.ts",
-    "src/ui-poc.ts",
     "src/worker-events.ts",
     "src/worker-manager.ts",
     "src/widget.ts",

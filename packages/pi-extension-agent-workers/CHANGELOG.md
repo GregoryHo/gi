@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## 0.3.1 - 2026-05-29
+
+### Fixed
+
+- Historical active runs left behind by interrupted/reloaded sessions are now displayed as stale failed history instead of indefinitely running in history/widget views.
+- Updated the `/agent-workers` command description to remove stale `M1 commands` wording.
+
+### Removed
+
+- Removed the temporary `/worker-ui-poc` slash command and PoC-only runtime source now that the accepted compact widget direction ships as the default worker widget.
+
 ## 0.3.0 - 2026-05-27
 
 ### Added

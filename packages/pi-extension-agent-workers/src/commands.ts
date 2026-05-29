@@ -5,18 +5,6 @@ import { readLogTail } from "./logs.ts";
 import type { ResolvedWorkerRequest, WorkerAdapterName } from "./request-types.ts";
 import { AgentWorkerService } from "./service.ts";
 import {
-  createWorkerCardWidget,
-  createWorkerCockpitPocComponent,
-  createWorkerUiPocFooter,
-  createWorkerUiPocWidget,
-  createWorkerWideWidget,
-  formatWorkerUiPocLines,
-  styleWorkerUiPocStatus,
-  WORKER_UI_POC_STATUS_KEY,
-  WORKER_UI_POC_WIDGET_KEY,
-  type WorkerUiPocMode,
-} from "./ui-poc.ts";
-import {
   discoverWorkspaceCandidates,
   formatWorkspacePreflightLines,
   formatWorkspaceStatusLines,
@@ -52,10 +40,6 @@ export type ParsedWorkerWaitArgs =
 
 export type ParsedWorkerHistoryArgs =
   | { ok: true; limit?: number; allScopes?: boolean }
-  | { ok: false; message: string };
-
-export type ParsedWorkerUiPocArgs =
-  | { ok: true; mode: WorkerUiPocMode }
   | { ok: false; message: string };
 
 export function parseWorkerRunArgs(args: string): ParsedWorkerRunArgs {
@@ -167,21 +151,6 @@ export function parseWorkerHistoryArgs(args: string): ParsedWorkerHistoryArgs {
   return { ok: true, ...(limit === undefined ? {} : { limit }), ...(allScopes ? { allScopes } : {}) };
 }
 
-export function parseWorkerUiPocArgs(args: string): ParsedWorkerUiPocArgs {
-  const mode = args.trim() || "all";
-  if (
-    mode === "all" ||
-    mode === "widget" ||
-    mode === "wide-widget" ||
-    mode === "card-widget" ||
-    mode === "footer" ||
-    mode === "cockpit" ||
-    mode === "sidepanel" ||
-    mode === "clear"
-  ) return { ok: true, mode };
-  return { ok: false, message: `Unknown worker-ui-poc mode: ${mode}. Use widget, wide-widget, card-widget, footer, cockpit, sidepanel, all, or clear.` };
-}
-
 export function parseWorkerWaitArgs(args: string): ParsedWorkerWaitArgs {
   const parts = args.trim().split(/\s+/).filter(Boolean);
   const runId = parts[0] ?? "";
@@ -224,7 +193,6 @@ export function getAgentWorkersHelpLines(): string[] {
     "  /worker-run --adapter codex-cli <task>",
     "  /worker-status [id]",
     "  /worker-history [--all] [--limit <n>]",
-    "  /worker-ui-poc [widget|wide-widget|card-widget|footer|cockpit|sidepanel|all|clear]",
     "  /worker-wait <id> [--wait-ms <ms>]",
     "  /worker-log <id>",
     "  /worker-kill <id>",
@@ -313,7 +281,7 @@ export function registerAgentWorkerCommands(
   options: { configDir?: string } = {},
 ): void {
   pi.registerCommand("agent-workers", {
-    description: "Show agent worker extension status and M1 commands",
+    description: "Show agent worker extension status and commands",
     handler: async (_args, ctx) => {
       const runs = service.listRuns();
       const lines = getAgentWorkersHelpLines();
@@ -322,42 +290,6 @@ export function registerAgentWorkerCommands(
         for (const run of runs) lines.push(`  ${run.id} — ${run.status} — ${run.taskPreview}`);
       }
       emitLines(pi, ctx, lines, "Agent workers status");
-    },
-  });
-
-  pi.registerCommand("worker-ui-poc", {
-    description: "Run explicit worker widget/TUI capability probes for v0.3.0 M5",
-    handler: async (args, ctx) => {
-      const parsed = parseWorkerUiPocArgs(args);
-      if (!parsed.ok) {
-        emitLines(pi, ctx, [parsed.message], "Worker UI PoC usage", "warning");
-        return;
-      }
-      if (!ctx.hasUI) {
-        emitLines(pi, ctx, ["/worker-ui-poc requires interactive UI."], "Worker UI PoC", "warning");
-        return;
-      }
-
-      const ui = ctx.ui as WorkerUiPocUi;
-      try {
-        if (parsed.mode === "clear") {
-          clearWorkerUiPoc(ui);
-          emitLines(pi, ctx, ["Worker UI PoC surfaces cleared."], "Worker UI PoC");
-          return;
-        }
-
-        const entries = await service.listRunHistory({ limit: 8, cwd: ctx.cwd });
-        clearWorkerUiPoc(ui);
-        if (parsed.mode === "widget" || parsed.mode === "all") installWorkerUiPocWidget(ui, entries);
-        if (parsed.mode === "wide-widget") installWorkerUiPocWideWidget(ui, entries);
-        if (parsed.mode === "card-widget") installWorkerUiPocCardWidget(ui, service, ctx.cwd, entries);
-        if (parsed.mode === "footer" || parsed.mode === "all") installWorkerUiPocFooter(ui, entries);
-        if (parsed.mode === "cockpit" || parsed.mode === "all") await openWorkerUiPocCockpit(ui, entries);
-        if (parsed.mode === "sidepanel") await openWorkerUiPocSidepanel(ui, entries);
-        emitLines(pi, ctx, formatWorkerUiPocLines(parsed.mode, entries), "Worker UI PoC");
-      } catch (error) {
-        emitLines(pi, ctx, [errorMessage(error)], "Worker UI PoC failed", "error");
-      }
     },
   });
 
@@ -644,78 +576,6 @@ function formatWorkerConfigLines(config: WorkspaceAgentWorkerConfig): string[] {
     `widgetLimit: ${config.widgetLimit ?? "unset"}`,
     `profiles: ${config.profiles?.length ?? 0}`,
   ];
-}
-
-interface WorkerUiPocUi {
-  setWidget?(key: string, widget?: unknown, options?: { placement?: "aboveEditor" | "belowEditor" }): void;
-  setFooter?(footer?: unknown): void;
-  setStatus?(key: string, value?: string): void;
-  custom?<T>(factory: unknown, options?: unknown): Promise<T> | T;
-  notify?(message: string, level?: "info" | "warning" | "error"): void;
-}
-
-function installWorkerUiPocWidget(ui: WorkerUiPocUi, entries: WorkerRunHistoryEntry[]): void {
-  ui.setWidget?.(WORKER_UI_POC_WIDGET_KEY, () => createWorkerUiPocWidget(entries), { placement: "belowEditor" });
-}
-
-function installWorkerUiPocWideWidget(ui: WorkerUiPocUi, entries: WorkerRunHistoryEntry[]): void {
-  ui.setWidget?.(WORKER_UI_POC_WIDGET_KEY, () => createWorkerWideWidget(entries), { placement: "belowEditor" });
-}
-
-function installWorkerUiPocCardWidget(ui: WorkerUiPocUi, service: AgentWorkerService, cwd: string, entries: WorkerRunHistoryEntry[]): void {
-  ui.setWidget?.(
-    WORKER_UI_POC_WIDGET_KEY,
-    (tui: { requestRender?(): void } | undefined) =>
-      createWorkerCardWidget({
-        entries,
-        loadEntries: () => service.listRunHistory({ limit: 8, cwd }),
-        requestRender: () => tui?.requestRender?.(),
-      }),
-    { placement: "belowEditor" },
-  );
-}
-
-function installWorkerUiPocFooter(ui: WorkerUiPocUi, entries: WorkerRunHistoryEntry[]): void {
-  ui.setStatus?.(WORKER_UI_POC_STATUS_KEY, styleWorkerUiPocStatus());
-  ui.setFooter?.((_tui: unknown, theme: unknown) => createWorkerUiPocFooter(entries));
-}
-
-async function openWorkerUiPocCockpit(ui: WorkerUiPocUi, entries: WorkerRunHistoryEntry[]): Promise<void> {
-  if (!ui.custom) return;
-  const result = await ui.custom<string>(
-    (_tui: unknown, _theme: unknown, _keybindings: unknown, done: (action: string) => void) => createWorkerCockpitPocComponent(entries, done),
-    {
-      overlay: true,
-      overlayOptions: { width: "70%", minWidth: 56, maxHeight: "80%", anchor: "right-center", margin: 1 },
-    },
-  );
-  ui.notify?.(`Worker UI PoC cockpit result: ${result ?? "closed"}`, "info");
-}
-
-async function openWorkerUiPocSidepanel(ui: WorkerUiPocUi, entries: WorkerRunHistoryEntry[]): Promise<void> {
-  if (!ui.custom) return;
-  const result = await ui.custom<string>(
-    (_tui: unknown, _theme: unknown, _keybindings: unknown, done: (action: string) => void) =>
-      createWorkerCockpitPocComponent(entries, done, { title: "Agent workers sidepanel PoC", maxEntries: 20 }),
-    {
-      overlay: true,
-      overlayOptions: {
-        anchor: "right-center",
-        width: "38%",
-        minWidth: 56,
-        maxHeight: "85%",
-        margin: { right: 1 },
-        visible: (termWidth: number) => termWidth >= 100,
-      },
-    },
-  );
-  ui.notify?.(`Worker UI PoC sidepanel result: ${result ?? "closed"}`, "info");
-}
-
-function clearWorkerUiPoc(ui: WorkerUiPocUi): void {
-  ui.setWidget?.(WORKER_UI_POC_WIDGET_KEY, undefined);
-  ui.setFooter?.(undefined);
-  ui.setStatus?.(WORKER_UI_POC_STATUS_KEY, undefined);
 }
 
 function isWorkerAdapterName(adapter: string): adapter is WorkerAdapterName {
