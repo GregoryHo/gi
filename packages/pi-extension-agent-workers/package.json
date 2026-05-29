@@ -1,0 +1,62 @@
+{
+  "name": "@gregho/pi-extension-agent-workers",
+  "version": "0.3.0",
+  "description": "pi extension package for supervising delegated AI agent worker CLI processes.",
+  "type": "module",
+  "main": "src/index.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    }
+  },
+  "keywords": [
+    "pi-package",
+    "pi-extension",
+    "agent-workers",
+    "worker-supervision",
+    "claude-code",
+    "codex-cli"
+  ],
+  "files": [
+    "src/adapters/claude-code.ts",
+    "src/adapters/cli-utils.ts",
+    "src/adapters/codex-cli.ts",
+    "src/adapters/demo.ts",
+    "src/commands.ts",
+    "src/config.ts",
+    "src/index.ts",
+    "src/logs.ts",
+    "src/profiles.ts",
+    "src/request-types.ts",
+    "src/run-index.ts",
+    "src/service.ts",
+    "src/tools.ts",
+    "src/ui-poc.ts",
+    "src/worker-events.ts",
+    "src/worker-manager.ts",
+    "src/widget.ts",
+    "src/workspaces.ts",
+    "src/worker-types.ts",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "pi": {
+    "extensions": [
+      "./src/index.ts"
+    ]
+  },
+  "scripts": {
+    "test": "node --test --experimental-strip-types \"src/**/*.test.ts\"",
+    "typecheck": "tsc --noEmit",
+    "pack:dry-run": "npm pack --dry-run"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "typebox": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.8.3"
+  }
+}

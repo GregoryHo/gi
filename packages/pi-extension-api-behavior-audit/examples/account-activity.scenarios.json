@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "scenarios": [
+    {
+      "id": "account-activity-basic",
+      "feature": "Account activity",
+      "description": "查詢Account activity列表",
+      "type": "read-only",
+      "page": {
+        "oldPath": "/account/activity",
+        "newPath": "/account/activity"
+      },
+      "browserApiAllowlist": {
+        "old": ["/apis/account/activity"],
+        "new": ["/gateway/apis/account/activity"]
+      },
+      "upstreamApiCandidates": {
+        "old": ["/v1/account/activity"],
+        "new": ["/apis/account/activity"]
+      },
+      "evidence": {
+        "comparisons": [
+          {
+            "comparisonRunId": "comparison-2026-05-26T06-53-01-380Z",
+            "targets": {
+              "old": "2026-05-26T06-54-31-301Z",
+              "new": "2026-05-26T06-55-18-846Z"
+            },
+            "notes": ["Accepted from M12 scenario suggestion review."]
+          }
+        ]
+      },
+      "notes": [
+        "Layer B endpoint mapping is observed from reviewed comparison evidence.",
+        "Do not claim full parity from this scenario alone."
+      ]
+    }
+  ]
+}

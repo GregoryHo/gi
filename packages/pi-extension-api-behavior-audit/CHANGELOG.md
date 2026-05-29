@@ -1,0 +1,52 @@
+# Changelog
+
+## Unreleased
+
+No changes yet.
+
+## 0.1.1 - 2026-05-29
+
+### Fixed
+
+- Resolve mutable API audit paths from the active pi workspace (`ctx.cwd` with Git-root preference) instead of the installed extension package directory.
+- Remove package scenario fallback from runtime flows; scenario dictionaries are workspace/repo-owned and package scenarios are examples only.
+- Keep bundled schemas package-relative while making artifact/profile/scenario/custom path overrides workspace-root-relative.
+
+## 0.1.0 - 2026-05-26
+
+### Added
+
+- Initial package scaffold for the API behavior audit pi extension.
+- Layer-neutral API exchange and capture manifest types.
+- Default redaction helpers for headers, query parameters, and JSON-like bodies.
+- Run artifact helpers for `manifest.json` and `exchanges.ndjson`.
+- M2 `/api-audit account-activity` command for local Layer A browser-visible capture POC.
+- Built-in scenario manifest and optional `--manifest` loading for account-activity capture.
+- M4 local Layer B recording proxy spike via `/api-audit proxy`.
+- Redaction for sensitive query parameters embedded inside URL-like and JSON-like body strings.
+- M5 `/api-audit account-activity-upstream` command for Layer B account-activity integrated capture.
+- Artifact schema and scenario dictionary documentation plus account-activity scenario example.
+- Versioned JSON Schema files, default scenario dictionary SOT, and deterministic runtime loaders/validators.
+- Natural-language-callable pi tools for scenario listing, run validation, account-activity capture preparation, and account-activity upstream capture.
+- Generic scenario-id-driven upstream capture preparation and run tools.
+- Gitignored local environment profiles with shared command/tool support.
+- Initial target-based capture plan resolver and target list/prepare tools.
+- Widget-friendly `/api-audit setup` and `/api-audit capture` preparation commands.
+- N-target capture execution helper with injectable recorder/page-action dependencies.
+- V1-compatible optional `targetId` / `variant` metadata on recording proxy manifests and exchanges.
+- `api_audit_run_target_capture` and `/api-audit capture --run` target-based capture execution entrypoints.
+- `/api-audit` dashboard widget summarizing profiles, scenarios, recent runs, and next actions.
+- Persistent scenario discovery proxy lifecycle commands: `/api-audit discover start/status/stop`.
+- Scenario discovery capture windows can create isolated run artifacts without stopping the persistent proxy session.
+- Browser-assisted scenario discovery capture (`/api-audit discover capture --browser`) records candidate page URL/path context and captures multi-target sessions sequentially.
+- MVP top-level discovery commands for lower-cognitive-load evidence collection: `/api-discovery-create/status/scenario/open/record/finish/stop`.
+- Browser-visible API observations are captured during top-level discovery recording windows and persisted to discovery manifests.
+- Discovery recordings now include `comparisonRunId` and write comparison grouping artifacts under `.pi-api-audit-runs/comparisons/`.
+- Comparison artifacts now include first-class browser context per target for report provenance.
+- Added `/api-discovery-analyze --comparison <path>` to write deterministic comparison analysis artifacts.
+- Added `/api-discovery-suggest --analysis <path>` to write reviewable scenario suggestion artifacts.
+- Added `/api-discovery-validate-suggestion --suggestion <path>` for deterministic suggestion validation.
+- Updated scenario dictionary evidence to reviewed `evidence.comparisons[]` entries keyed by `comparisonRunId`.
+- Added local report/review viewer builder under `tools/` for self-contained `.pi-api-audit-runs/index.html` and `review.html` artifacts.
+- Manual-assisted scenario discovery MVP with `/api-audit discover`, `api_audit_prepare_scenario_discovery`, and `api_audit_run_scenario_discovery`.
+- Paused passthrough discovery sessions so setup/login traffic is forwarded but not recorded until `/api-audit discover --run --session <id>`.

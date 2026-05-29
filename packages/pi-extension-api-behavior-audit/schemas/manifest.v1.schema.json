@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gregho.local/pi-extension-api-behavior-audit/manifest.v1.schema.json",
+  "title": "API behavior audit CaptureManifest v1",
+  "type": "object",
+  "required": ["runId", "createdAt", "artifactVersion", "redaction", "scenarios"],
+  "additionalProperties": true,
+  "properties": {
+    "runId": { "type": "string", "minLength": 1 },
+    "createdAt": { "type": "string", "minLength": 1 },
+    "artifactVersion": { "const": 1 },
+    "redaction": {
+      "type": "object",
+      "required": ["marker", "policy"],
+      "additionalProperties": true,
+      "properties": {
+        "marker": { "type": "string", "minLength": 1 },
+        "policy": { "type": "string", "minLength": 1 }
+      }
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "layer": { "enum": ["browser-visible", "upstream"] },
+    "purpose": { "type": "string", "minLength": 1 },
+    "candidateScenarioId": { "type": "string", "minLength": 1 },
+    "discoverySessionId": { "type": "string", "minLength": 1 },
+    "comparisonRunId": { "type": "string", "minLength": 1 },
+    "recordingWindow": {
+      "type": "object",
+      "required": ["startedAt"],
+      "additionalProperties": true,
+      "properties": {
+        "startedAt": { "type": "string", "minLength": 1 },
+        "finishedAt": { "type": "string", "minLength": 1 }
+      }
+    },
+    "candidatePage": {
+      "type": "object",
+      "required": ["url", "path", "source"],
+      "additionalProperties": true,
+      "properties": {
+        "url": { "type": "string", "minLength": 1 },
+        "path": { "type": "string", "minLength": 1 },
+        "source": { "type": "string", "minLength": 1 }
+      }
+    },
+    "browserVisibleRequests": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["method", "url", "path", "status", "source"],
+        "additionalProperties": true,
+        "properties": {
+          "method": { "type": "string", "minLength": 1 },
+          "url": { "type": "string", "minLength": 1 },
+          "path": { "type": "string", "minLength": 1 },
+          "status": { "type": "number" },
+          "source": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "startedAt": { "type": "string", "minLength": 1 },
+    "finishedAt": { "type": "string", "minLength": 1 },
+    "exchangeCount": { "type": "number" },
+    "recording": { "type": "boolean" },
+    "notes": { "type": "array", "items": { "type": "string" } },
+    "targets": {
+      "type": "object",
+      "required": ["oldBaseUrl", "newBaseUrl"],
+      "additionalProperties": true,
+      "properties": {
+        "oldBaseUrl": { "type": "string", "minLength": 1 },
+        "newBaseUrl": { "type": "string", "minLength": 1 }
+      }
+    },
+    "recordingProxy": {
+      "type": "object",
+      "required": ["side", "listenUrl", "targetBaseUrl", "scenarioId"],
+      "additionalProperties": true,
+      "properties": {
+        "side": { "enum": ["old", "new"] },
+        "listenUrl": { "type": "string", "minLength": 1 },
+        "targetBaseUrl": { "type": "string", "minLength": 1 },
+        "scenarioId": { "type": "string", "minLength": 1 },
+        "targetId": { "type": "string", "minLength": 1 },
+        "variant": { "type": "string", "minLength": 1 }
+      }
+    },
+    "scenarioSnapshots": { "type": "array" }
+  }
+}

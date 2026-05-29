@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gregho.local/pi-extension-api-behavior-audit/comparison-run.v1.schema.json",
+  "title": "API behavior audit ComparisonRun v1",
+  "type": "object",
+  "required": ["version", "kind", "comparisonRunId", "candidateScenarioId", "createdAt", "targets"],
+  "additionalProperties": true,
+  "properties": {
+    "version": { "const": 1 },
+    "kind": { "const": "api-behavior-comparison-run" },
+    "comparisonRunId": { "type": "string", "minLength": 1 },
+    "candidateScenarioId": { "type": "string", "minLength": 1 },
+    "discoverySessionId": { "type": "string", "minLength": 1 },
+    "createdAt": { "type": "string", "minLength": 1 },
+    "updatedAt": { "type": "string", "minLength": 1 },
+    "targets": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["targetId", "side", "runId", "manifestPath"],
+        "additionalProperties": true,
+        "properties": {
+          "targetId": { "type": "string", "minLength": 1 },
+          "side": { "enum": ["old", "new"] },
+          "variant": { "type": "string", "minLength": 1 },
+          "runId": { "type": "string", "minLength": 1 },
+          "manifestPath": { "type": "string", "minLength": 1 },
+          "exchangesPath": { "type": "string", "minLength": 1 },
+          "browserContext": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+              "page": {
+                "type": "object",
+                "required": ["url", "path", "source"],
+                "additionalProperties": true,
+                "properties": {
+                  "url": { "type": "string", "minLength": 1 },
+                  "path": { "type": "string", "minLength": 1 },
+                  "source": { "type": "string", "minLength": 1 }
+                }
+              },
+              "browserVisibleRequests": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["method", "url", "path", "status", "source"],
+                  "additionalProperties": true,
+                  "properties": {
+                    "method": { "type": "string", "minLength": 1 },
+                    "url": { "type": "string", "minLength": 1 },
+                    "path": { "type": "string", "minLength": 1 },
+                    "status": { "type": "number" },
+                    "source": { "type": "string", "minLength": 1 }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

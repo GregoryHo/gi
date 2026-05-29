@@ -1,0 +1,77 @@
+{
+  "name": "@gregho/pi-extension-api-behavior-audit",
+  "version": "0.1.1",
+  "description": "pi extension package for collecting and auditing baseline versus candidate backend API behavior.",
+  "type": "module",
+  "main": "src/index.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    }
+  },
+  "keywords": [
+    "pi-package",
+    "pi-extension",
+    "api-audit",
+    "api-behavior",
+    "playwright"
+  ],
+  "files": [
+    "examples/account-activity.scenarios.json",
+    "schemas/manifest.v1.schema.json",
+    "schemas/exchange.v1.schema.json",
+    "schemas/comparison-run.v1.schema.json",
+    "schemas/scenario-dictionary.v1.schema.json",
+    "src/artifact-schema.ts",
+    "src/artifacts.ts",
+    "src/browser-capture.ts",
+    "src/comparison-analysis.ts",
+    "src/commands.ts",
+    "src/config.ts",
+    "src/dashboard.ts",
+    "src/discovery.ts",
+    "src/environment-profiles.ts",
+    "src/index.ts",
+    "src/package-info.ts",
+    "src/proxy-config.ts",
+    "src/recording-proxy.ts",
+    "src/redaction.ts",
+    "src/scenario-dictionary.ts",
+    "src/scenario-suggestion.ts",
+    "src/scenarios.ts",
+    "src/schema-validation.ts",
+    "src/target-capture.ts",
+    "src/tools.ts",
+    "src/types.ts",
+    "src/upstream-account-activity.ts",
+    "src/workspace-paths.ts",
+    "tools/**/*.py",
+    "tools/*.html",
+    "tools/*.js",
+    "README.md",
+    "CHANGELOG.md",
+    ".env.example"
+  ],
+  "pi": {
+    "extensions": [
+      "./src/index.ts"
+    ]
+  },
+  "scripts": {
+    "test": "node --test --experimental-strip-types \"src/**/*.test.ts\"",
+    "typecheck": "tsc --noEmit",
+    "pack:dry-run": "npm pack --dry-run"
+  },
+  "dependencies": {
+    "playwright": "^1.60.0"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "typebox": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.8.3"
+  }
+}

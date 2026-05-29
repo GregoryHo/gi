@@ -1,0 +1,13 @@
+{
+  "name": "gregho-pi-extensions",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Personal pi extensions and packages.",
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  }
+}
