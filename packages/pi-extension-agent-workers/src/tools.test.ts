@@ -15,6 +15,7 @@ interface RegisteredTool {
   name: string;
   description?: string;
   promptGuidelines?: string[];
+  parameters?: Record<string, unknown>;
   execute: (...args: unknown[]) => Promise<{ content: Array<{ type: string; text: string }>; details: Record<string, unknown> }>;
 }
 
@@ -33,6 +34,16 @@ test("registerAgentWorkerTools registers the M5 tool facade", () => {
   ]);
   assert.match(tools.get("agent_worker_start")?.description ?? "", /Start one agent worker/);
   assert.ok(tools.get("agent_worker_start")?.promptGuidelines?.some((line) => line.includes("Jira")));
+});
+
+test("registerAgentWorkerTools uses Google-compatible string enum schemas", () => {
+  const { pi, tools } = createToolRegistry();
+
+  registerAgentWorkerTools(pi, createFakeService());
+
+  assert.deepEqual(getToolStringEnum(tools.get("agent_worker_start"), "adapter"), ["demo", "claude-code", "codex-cli"]);
+  assert.deepEqual(getToolStringEnum(tools.get("agent_worker_start"), "mode"), ["plan", "review", "implement", "custom"]);
+  assert.deepEqual(getToolStringEnum(tools.get("agent_worker_list_runs"), "scope"), ["current", "all"]);
 });
 
 test("agent_worker_start starts a demo worker and returns compact details", async () => {
@@ -265,6 +276,16 @@ function createFakeService(options: { requireConfirmation?: boolean; history?: A
     waitCalls: Array<{ id: string; waitMs?: number }>;
     historyCalls: unknown[];
   };
+}
+
+function getToolStringEnum(tool: RegisteredTool | undefined, propertyName: string): string[] {
+  assert.ok(tool, "tool should be registered");
+  const properties = (tool.parameters?.properties ?? {}) as Record<string, Record<string, unknown>>;
+  const property = properties[propertyName];
+  assert.ok(property, `${propertyName} schema should exist`);
+  assert.equal(property.type, "string");
+  assert.equal("anyOf" in property, false);
+  return property.enum as string[];
 }
 
 async function executeTool(tool: RegisteredTool | undefined, params: Record<string, unknown>, ctx: unknown = { hasUI: false, ui: {} }) {

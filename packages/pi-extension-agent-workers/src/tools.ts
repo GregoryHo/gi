@@ -1,3 +1,4 @@
+import { StringEnum } from "@earendil-works/pi-ai";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 
@@ -59,17 +60,11 @@ export function registerAgentWorkerTools(pi: ExtensionAPI, service = new AgentWo
     parameters: Type.Object({
       profile: Type.Optional(Type.String({ description: "Optional worker profile, for example planner or reviewer." })),
       adapter: Type.Optional(
-        Type.Union([
-          Type.Literal("demo"),
-          Type.Literal("claude-code"),
-          Type.Literal("codex-cli"),
-        ], { description: "Optional explicit worker adapter." }),
+        StringEnum(["demo", "claude-code", "codex-cli"] as const, { description: "Optional explicit worker adapter." }),
       ),
       task: Type.String({ description: "Task or prompt to delegate to the worker." }),
       systemPrompt: Type.Optional(Type.String({ description: "Optional system prompt to wrap around the task." })),
-      mode: Type.Optional(
-        Type.Union([Type.Literal("plan"), Type.Literal("review"), Type.Literal("implement"), Type.Literal("custom")]),
-      ),
+      mode: Type.Optional(StringEnum(["plan", "review", "implement", "custom"] as const)),
       cwd: Type.Optional(Type.String({ description: "Optional working directory. Defaults to the current pi cwd." })),
       model: Type.Optional(Type.String({ description: "Optional model hint for future adapter support." })),
       timeoutMs: Type.Optional(Type.Number({ description: "Optional timeout hint for future adapter support." })),
@@ -152,7 +147,7 @@ export function registerAgentWorkerTools(pi: ExtensionAPI, service = new AgentWo
     parameters: Type.Object({
       limit: Type.Optional(Type.Number({ description: "Optional maximum number of recent runs to return." })),
       scope: Type.Optional(
-        Type.Union([Type.Literal("current"), Type.Literal("all")], {
+        StringEnum(["current", "all"] as const, {
           description: "History scope. Defaults to current workspace; use all for all workspaces.",
         }),
       ),

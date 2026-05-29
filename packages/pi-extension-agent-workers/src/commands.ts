@@ -2,7 +2,9 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
 import { readWorkspaceConfig, updateWorkspaceConfig, validateWorkspaceConfigPatch, type WorkspaceAgentWorkerConfig } from "./config.ts";
 import { readLogTail } from "./logs.ts";
-import type { ResolvedWorkerRequest, WorkerAdapterName } from "./request-types.ts";
+import { parseWorkerHistoryArgs, parseWorkerRunArgs, parseWorkerWaitArgs } from "./commands/args.ts";
+import { formatWorkerHistoryEntryLines, formatWorkerKillLines, formatWorkerRunLines, getAgentWorkersHelpLines } from "./commands/format.ts";
+import type { ResolvedWorkerRequest } from "./request-types.ts";
 import { AgentWorkerService } from "./service.ts";
 import {
   discoverWorkspaceCandidates,
@@ -12,268 +14,25 @@ import {
   resolveWorkspaceScope,
   validateWorkerWorkspace,
 } from "./workspaces.ts";
-import type { WorkerRun, WorkerRunHistoryEntry } from "./worker-types.ts";
 
 const PACKAGE_KEY = "agent-workers";
 const DEFAULT_LOG_TAIL_LINES = 40;
-const MAX_DEMO_DURATION_MS = 60_000;
-const MAX_WORKER_TIMEOUT_MS = 24 * 60 * 60 * 1000;
-const MAX_WAIT_MS = 24 * 60 * 60 * 1000;
 
-export type ParsedWorkerRunArgs =
-  | {
-      ok: true;
-      adapter?: WorkerAdapterName;
-      profile?: string;
-      task: string;
-      durationMs?: number;
-      timeoutMs?: number;
-      cwd?: string;
-      pickCwd?: boolean;
-      confirmedRealWorker?: boolean;
-    }
-  | { ok: false; message: string };
+export {
+  parseWorkerHistoryArgs,
+  parseWorkerRunArgs,
+  parseWorkerWaitArgs,
+  type ParsedWorkerHistoryArgs,
+  type ParsedWorkerRunArgs,
+  type ParsedWorkerWaitArgs,
+} from "./commands/args.ts";
+export {
+  formatWorkerHistoryEntryLines,
+  formatWorkerKillLines,
+  formatWorkerRunLines,
+  getAgentWorkersHelpLines,
+} from "./commands/format.ts";
 
-export type ParsedWorkerWaitArgs =
-  | { ok: true; runId: string; waitMs?: number }
-  | { ok: false; message: string };
-
-export type ParsedWorkerHistoryArgs =
-  | { ok: true; limit?: number; allScopes?: boolean }
-  | { ok: false; message: string };
-
-export function parseWorkerRunArgs(args: string): ParsedWorkerRunArgs {
-  const trimmed = args.trim();
-  if (!trimmed) return workerRunUsage();
-
-  const parts = trimmed.split(/\s+/);
-  let adapter: string | undefined;
-  let profile: string | undefined;
-  let durationMs: number | undefined;
-  let timeoutMs: number | undefined;
-  let cwd: string | undefined;
-  let pickCwd = false;
-  let confirmedRealWorker = false;
-  let index = 0;
-
-  while (index < parts.length) {
-    const flag = parts[index];
-    if (flag === "--adapter") {
-      adapter = parts[index + 1] ?? "";
-      index += 2;
-      continue;
-    }
-    if (flag === "--profile") {
-      profile = parts[index + 1] ?? "";
-      index += 2;
-      continue;
-    }
-    if (flag === "--yes") {
-      confirmedRealWorker = true;
-      index += 1;
-      continue;
-    }
-    if (flag === "--cwd") {
-      cwd = parts[index + 1] ?? "";
-      if (!cwd) return { ok: false, message: "--cwd requires a path." };
-      index += 2;
-      continue;
-    }
-    if (flag === "--pick-cwd") {
-      pickCwd = true;
-      index += 1;
-      continue;
-    }
-    if (flag === "--duration-ms") {
-      const rawDuration = parts[index + 1] ?? "";
-      durationMs = Number(rawDuration);
-      if (!Number.isInteger(durationMs) || durationMs < 1 || durationMs > MAX_DEMO_DURATION_MS) {
-        return { ok: false, message: `--duration-ms must be between 1 and ${MAX_DEMO_DURATION_MS}.` };
-      }
-      index += 2;
-      continue;
-    }
-    if (flag === "--timeout-ms") {
-      const rawTimeout = parts[index + 1] ?? "";
-      timeoutMs = Number(rawTimeout);
-      if (!Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > MAX_WORKER_TIMEOUT_MS) {
-        return { ok: false, message: `--timeout-ms must be between 1 and ${MAX_WORKER_TIMEOUT_MS}.` };
-      }
-      index += 2;
-      continue;
-    }
-    break;
-  }
-
-  if (adapter !== undefined && !isWorkerAdapterName(adapter)) {
-    return { ok: false, message: `Unknown adapter: ${adapter}. Available adapters: demo, claude-code, codex-cli.` };
-  }
-
-  const task = parts.slice(index).join(" ").trim();
-  if (!task) return workerRunUsage();
-  return {
-    ok: true,
-    ...(adapter === undefined && profile === undefined ? { adapter: "demo" as const } : {}),
-    ...(adapter === undefined ? {} : { adapter }),
-    ...(profile === undefined ? {} : { profile }),
-    task,
-    ...(durationMs === undefined ? {} : { durationMs }),
-    ...(timeoutMs === undefined ? {} : { timeoutMs }),
-    ...(cwd === undefined ? {} : { cwd }),
-    ...(pickCwd ? { pickCwd } : {}),
-    ...(confirmedRealWorker ? { confirmedRealWorker } : {}),
-  };
-}
-
-export function parseWorkerHistoryArgs(args: string): ParsedWorkerHistoryArgs {
-  const parts = args.trim().split(/\s+/).filter(Boolean);
-  let limit: number | undefined;
-  let allScopes = false;
-  let index = 0;
-  while (index < parts.length) {
-    const flag = parts[index];
-    if (flag === "--all") {
-      allScopes = true;
-      index += 1;
-      continue;
-    }
-    if (flag === "--limit") {
-      const rawLimit = parts[index + 1] ?? "";
-      limit = Number(rawLimit);
-      if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
-        return { ok: false, message: "--limit must be between 1 and 100." };
-      }
-      index += 2;
-      continue;
-    }
-    return { ok: false, message: `Unknown worker-history option: ${flag}` };
-  }
-  return { ok: true, ...(limit === undefined ? {} : { limit }), ...(allScopes ? { allScopes } : {}) };
-}
-
-export function parseWorkerWaitArgs(args: string): ParsedWorkerWaitArgs {
-  const parts = args.trim().split(/\s+/).filter(Boolean);
-  const runId = parts[0] ?? "";
-  if (!runId || runId.startsWith("--")) return workerWaitUsage();
-
-  let waitMs: number | undefined;
-  let index = 1;
-  while (index < parts.length) {
-    const flag = parts[index];
-    if (flag === "--wait-ms") {
-      const rawWait = parts[index + 1] ?? "";
-      waitMs = Number(rawWait);
-      if (!Number.isInteger(waitMs) || waitMs < 1 || waitMs > MAX_WAIT_MS) {
-        return { ok: false, message: `--wait-ms must be between 1 and ${MAX_WAIT_MS}.` };
-      }
-      index += 2;
-      continue;
-    }
-    return { ok: false, message: `Unknown worker-wait option: ${flag}` };
-  }
-
-  return { ok: true, runId, ...(waitMs === undefined ? {} : { waitMs }) };
-}
-
-export function getAgentWorkersHelpLines(): string[] {
-  return [
-    "Agent workers extension is loaded.",
-    "Worker commands:",
-    "  /worker-workspace",
-    "  /worker-workspace-pick",
-    "  /worker-run --cwd <path> [--adapter demo|claude-code|codex-cli] <task>",
-    "  /worker-run --pick-cwd [--adapter demo|claude-code|codex-cli] <task>",
-    "  /worker-run --timeout-ms <ms> [--adapter demo|claude-code|codex-cli] <task>",
-    "  /worker-run --profile planner <task>",
-    "  /worker-run --profile reviewer <task>",
-    "  /worker-run --profile implementer <task>",
-    "  /worker-run --profile verifier <task>",
-    "  /worker-run [--adapter demo] [--duration-ms 10000] <task>",
-    "  /worker-run --adapter claude-code <task>",
-    "  /worker-run --adapter codex-cli <task>",
-    "  /worker-status [id]",
-    "  /worker-history [--all] [--limit <n>]",
-    "  /worker-wait <id> [--wait-ms <ms>]",
-    "  /worker-log <id>",
-    "  /worker-kill <id>",
-    "Real worker adapters require explicit confirmation in UI or --yes in non-UI mode.",
-    "Safety: no arbitrary shell command execution; real adapters use shell: false and no bypass flags.",
-    "Missing usage remains usage.source = unknown",
-  ];
-}
-
-export function formatWorkerRunLines(run: WorkerRun, now = Date.now()): string[] {
-  const elapsedSeconds = Math.max(0, Math.round(((run.endedAt ?? now) - run.startedAt) / 1000));
-  const lines = [
-    `${run.id} — ${run.status}`,
-    `adapter: ${run.adapter}`,
-    ...(run.profile ? [`profile: ${run.profile}`] : []),
-    ...(run.mode ? [`mode: ${run.mode}`] : []),
-    ...(run.slot === undefined ? [] : [`slot: ${run.slot}`]),
-    ...(run.readOnly === undefined ? [] : [`readOnly: ${run.readOnly}`]),
-    ...(run.canModifyWorkspace === undefined ? [] : [`canModifyWorkspace: ${run.canModifyWorkspace}`]),
-    ...(run.workspaceKey === undefined ? [] : [`workspaceKey: ${run.workspaceKey}`]),
-    ...(run.scopeKey === undefined ? [] : [`scopeKey: ${run.scopeKey}`]),
-    ...(run.scopeLabel === undefined ? [] : [`scopeLabel: ${run.scopeLabel}`]),
-    ...(run.gitRoot === undefined ? [] : [`gitRoot: ${run.gitRoot}`]),
-    `task: ${run.taskPreview}`,
-    `cwd: ${run.cwd}`,
-    `pid: ${run.pid ?? "unknown"}`,
-    `startedAt: ${run.startedAt}`,
-    ...(run.endedAt === undefined ? [] : [`endedAt: ${run.endedAt}`]),
-    ...(run.lastActivityAt === undefined ? [] : [`lastActivityAt: ${run.lastActivityAt}`]),
-    `elapsed: ${elapsedSeconds}s`,
-    ...(run.timeoutMs === undefined ? [] : [`timeoutMs: ${run.timeoutMs}`]),
-    ...(run.statusReason ? [`statusReason: ${run.statusReason}`] : []),
-    `exitCode: ${run.exitCode ?? "n/a"}`,
-    `log: ${run.logPath}`,
-    `usage.source: ${run.usage.source}`,
-  ];
-  if (run.usage.inputTokens !== undefined) lines.push(`usage.inputTokens: ${run.usage.inputTokens}`);
-  if (run.usage.outputTokens !== undefined) lines.push(`usage.outputTokens: ${run.usage.outputTokens}`);
-  if (run.usage.cacheReadTokens !== undefined) lines.push(`usage.cacheReadTokens: ${run.usage.cacheReadTokens}`);
-  if (run.usage.cacheWriteTokens !== undefined) lines.push(`usage.cacheWriteTokens: ${run.usage.cacheWriteTokens}`);
-  if (run.usage.reasoningOutputTokens !== undefined) {
-    lines.push(`usage.reasoningOutputTokens: ${run.usage.reasoningOutputTokens}`);
-  }
-  if (run.usage.costUsd !== undefined) lines.push(`usage.costUsd: ${run.usage.costUsd}`);
-  if (run.activity && run.activity.length > 0) lines.push(`activity: ${run.activity.join(" | ")}`);
-  if (run.finalTextPreview) lines.push(`final: ${run.finalTextPreview}`);
-  return lines;
-}
-
-export function formatWorkerHistoryEntryLines(entry: WorkerRunHistoryEntry): string[] {
-  const elapsedSeconds = Math.max(0, Math.round(entry.elapsedMs / 1000));
-  const lines = [
-    `${entry.runId} — ${entry.status}${entry.controllable ? "" : " — historical"}`,
-    `adapter: ${entry.adapter}`,
-    ...(entry.profile ? [`profile: ${entry.profile}`] : []),
-    ...(entry.mode ? [`mode: ${entry.mode}`] : []),
-    ...(entry.slot === undefined ? [] : [`slot: ${entry.slot}`]),
-    ...(entry.readOnly === undefined ? [] : [`readOnly: ${entry.readOnly}`]),
-    ...(entry.canModifyWorkspace === undefined ? [] : [`canModifyWorkspace: ${entry.canModifyWorkspace}`]),
-    ...(entry.workspaceKey === undefined ? [] : [`workspaceKey: ${entry.workspaceKey}`]),
-    ...(entry.scopeKey === undefined ? [] : [`scopeKey: ${entry.scopeKey}`]),
-    ...(entry.scopeLabel === undefined ? [] : [`scopeLabel: ${entry.scopeLabel}`]),
-    ...(entry.gitRoot === undefined ? [] : [`gitRoot: ${entry.gitRoot}`]),
-    `task: ${entry.taskPreview}`,
-    `cwd: ${entry.cwd}`,
-    ...(entry.pid === undefined ? [] : [`pid: ${entry.pid}`]),
-    `startedAt: ${entry.startedAt}`,
-    ...(entry.endedAt === undefined ? [] : [`endedAt: ${entry.endedAt}`]),
-    ...(entry.lastActivityAt === undefined ? [] : [`lastActivityAt: ${entry.lastActivityAt}`]),
-    `elapsed: ${elapsedSeconds}s`,
-    ...(entry.timeoutMs === undefined ? [] : [`timeoutMs: ${entry.timeoutMs}`]),
-    ...(entry.statusReason ? [`statusReason: ${entry.statusReason}`] : []),
-    `exitCode: ${entry.exitCode ?? "n/a"}`,
-    `controllable: ${entry.controllable}`,
-    `log: ${entry.logPath}`,
-    `usage.source: ${entry.usage.source}`,
-  ];
-  if (entry.activity.length > 0) lines.push(`activity: ${entry.activity.join(" | ")}`);
-  if (entry.finalText) lines.push(`final: ${entry.finalText}`);
-  return lines;
-}
 
 export function registerAgentWorkerCommands(
   pi: ExtensionAPI,
@@ -557,11 +316,6 @@ export function registerAgentWorkerCommands(
   });
 }
 
-export function formatWorkerKillLines(run: WorkerRun): string[] {
-  const prefix = run.status === "cancelled" ? "Cancellation requested." : `Worker is already ${run.status}.`;
-  return [prefix, ...formatWorkerRunLines(run)];
-}
-
 function formatWorkerConfigLines(config: WorkspaceAgentWorkerConfig): string[] {
   return [
     "Agent worker workspace config",
@@ -576,10 +330,6 @@ function formatWorkerConfigLines(config: WorkspaceAgentWorkerConfig): string[] {
     `widgetLimit: ${config.widgetLimit ?? "unset"}`,
     `profiles: ${config.profiles?.length ?? 0}`,
   ];
-}
-
-function isWorkerAdapterName(adapter: string): adapter is WorkerAdapterName {
-  return adapter === "demo" || adapter === "claude-code" || adapter === "codex-cli";
 }
 
 async function pickWorkerCwd(ctx: {
@@ -621,20 +371,6 @@ async function confirmRealWorkerRun(
       "Continue?",
     ].join("\n"),
   );
-}
-
-function workerRunUsage(): ParsedWorkerRunArgs {
-  return {
-    ok: false,
-    message: "Usage: /worker-run [--cwd <path>] [--pick-cwd] [--adapter demo|claude-code|codex-cli] [--profile planner|reviewer|implementer|verifier] [--duration-ms 10000] [--timeout-ms <ms>] [--yes] <task>",
-  };
-}
-
-function workerWaitUsage(): ParsedWorkerWaitArgs {
-  return {
-    ok: false,
-    message: "Usage: /worker-wait <id> [--wait-ms <ms>]",
-  };
 }
 
 function emitLines(

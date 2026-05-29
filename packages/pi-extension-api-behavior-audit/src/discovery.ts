@@ -6,161 +6,48 @@ import { getEnvironmentProfileConfigPath } from "./environment-profiles.ts";
 import { isAllowedProxyTarget } from "./proxy-config.ts";
 import { startRecordingProxy } from "./recording-proxy.ts";
 import { redactUrl } from "./redaction.ts";
+import type {
+  NormalizedProfile,
+  PreparedScenarioDiscoverySession,
+  ProfileConfigV1,
+  ProfileConfigV2,
+  ProfileTargetV2,
+  ProfileV1,
+  ProfileV2,
+  ScenarioDiscoveryBrowserHandle,
+  ScenarioDiscoveryCaptureWindowDeps,
+  ScenarioDiscoveryCaptureWindowInput,
+  ScenarioDiscoveryDeps,
+  ScenarioDiscoveryPlan,
+  ScenarioDiscoveryPlanInput,
+  ScenarioDiscoveryPrompts,
+  ScenarioDiscoveryRecordedArtifact,
+  ScenarioDiscoveryRecorderHandle,
+  ScenarioDiscoveryResult,
+  ScenarioDiscoveryTarget,
+} from "./discovery-types.ts";
 import type { ApiSide, BrowserVisibleApiObservation, CandidatePageContext } from "./types.ts";
+
+export type {
+  PreparedScenarioDiscoverySession,
+  ScenarioDiscoveryBrowserHandle,
+  ScenarioDiscoveryCaptureWindowDeps,
+  ScenarioDiscoveryCaptureWindowInput,
+  ScenarioDiscoveryDeps,
+  ScenarioDiscoveryPlan,
+  ScenarioDiscoveryPlanInput,
+  ScenarioDiscoveryPrompts,
+  ScenarioDiscoveryRecordedArtifact,
+  ScenarioDiscoveryRecorderHandle,
+  ScenarioDiscoveryResult,
+  ScenarioDiscoveryTarget,
+} from "./discovery-types.ts";
 
 export class ScenarioDiscoveryError extends Error {
   constructor(message: string) {
     super(message);
     this.name = "ScenarioDiscoveryError";
   }
-}
-
-export interface ScenarioDiscoveryPlanInput {
-  artifactDir?: string;
-  profileName?: string;
-  candidateScenarioId: string;
-  targetIds?: string[];
-  groupName?: string;
-  candidatePagePath?: string;
-}
-
-export interface ScenarioDiscoveryTarget {
-  targetId: string;
-  variant: string;
-  side: ApiSide;
-  frontendUrl: string;
-  upstreamTargetUrl: string;
-  recorderPort: number;
-  recorderUrl: string;
-  allowHosts: string[];
-  candidatePagePath?: string;
-}
-
-export interface ScenarioDiscoveryPlan {
-  artifactDir: string;
-  profileName: string;
-  candidateScenarioId: string;
-  candidatePagePath?: string;
-  targets: ScenarioDiscoveryTarget[];
-}
-
-export interface FinishScenarioDiscoveryRecordingOptions {
-  candidatePage?: CandidatePageContext;
-  browserVisibleRequests?: BrowserVisibleApiObservation[];
-}
-
-export interface ScenarioDiscoveryRecordedArtifact {
-  runId: string;
-  listenUrl?: string;
-  manifestPath: string;
-  exchangesPath: string;
-  exchangeCount: number;
-  candidatePage?: CandidatePageContext;
-  finish?(options?: FinishScenarioDiscoveryRecordingOptions): Promise<void>;
-}
-
-export interface ScenarioDiscoveryRecorderHandle extends ScenarioDiscoveryRecordedArtifact {
-  listenUrl: string;
-  recording?: boolean;
-  setRecording?(recording: boolean): Promise<void>;
-  beginRecordingWindow?(options: {
-    scenarioId: string;
-    purpose?: string;
-    candidateScenarioId?: string;
-    discoverySessionId?: string;
-    comparisonRunId?: string;
-  }): Promise<ScenarioDiscoveryRecordedArtifact>;
-  stop(): Promise<void>;
-}
-
-export interface ScenarioDiscoveryPrompts {
-  confirm(message: string): Promise<boolean>;
-  notify?(message: string): void;
-}
-
-export interface ScenarioDiscoveryDeps {
-  startRecorder?: (target: ScenarioDiscoveryTarget, plan: ScenarioDiscoveryPlan) => Promise<ScenarioDiscoveryRecorderHandle>;
-  runManualPageAction?: (
-    target: ScenarioDiscoveryTarget,
-    plan: ScenarioDiscoveryPlan,
-    prompts: ScenarioDiscoveryPrompts,
-  ) => Promise<void>;
-}
-
-export interface ScenarioDiscoveryCaptureWindowDeps {
-  captureBrowserPageContext?: (
-    target: ScenarioDiscoveryTarget,
-    input: ScenarioDiscoveryCaptureWindowInput,
-    prompts: ScenarioDiscoveryPrompts,
-  ) => Promise<CandidatePageContext>;
-}
-
-export interface ScenarioDiscoveryBrowserHandle {
-  target: ScenarioDiscoveryTarget;
-  page: Page;
-  getCandidatePageContext(): CandidatePageContext;
-  startBrowserVisibleApiCapture(): { observations: BrowserVisibleApiObservation[]; stop(): void };
-  close(): Promise<void>;
-}
-
-export interface ScenarioDiscoveryResult {
-  recorders: Array<{ target: ScenarioDiscoveryTarget; recorder: ScenarioDiscoveryRecordedArtifact }>;
-  warnings: string[];
-}
-
-export interface ScenarioDiscoveryCaptureWindowInput {
-  candidateScenarioId: string;
-  candidatePagePath?: string;
-  comparisonRunId?: string;
-  browser?: boolean;
-}
-
-export interface PreparedScenarioDiscoverySession {
-  sessionId: string;
-  plan: ScenarioDiscoveryPlan;
-  recorders: Array<{ target: ScenarioDiscoveryTarget; recorder: ScenarioDiscoveryRecorderHandle }>;
-}
-
-interface ProfileConfigV1 {
-  version: 1;
-  profiles: Record<string, ProfileV1>;
-  defaultProfile?: string;
-}
-
-interface ProfileV1 {
-  oldUrl: string;
-  newUrl: string;
-  oldTargetUrl: string;
-  newTargetUrl: string;
-  oldProxyPort?: number;
-  newProxyPort?: number;
-  allowHosts?: string[];
-}
-
-interface ProfileConfigV2 {
-  version: 2;
-  profiles: Record<string, ProfileV2>;
-  defaultProfile?: string;
-}
-
-interface ProfileV2 {
-  targets: Record<string, ProfileTargetV2>;
-  groups?: Record<string, string[]>;
-}
-
-interface ProfileTargetV2 {
-  variant: string;
-  side?: ApiSide;
-  frontendUrl: string;
-  upstreamTargetUrl: string;
-  recorderPort: number;
-  allowHosts?: string[];
-}
-
-interface NormalizedProfile {
-  profileName: string;
-  targets: Record<string, ProfileTargetV2>;
-  groups: Record<string, string[]>;
 }
 
 const DEFAULT_ARTIFACT_DIR = ".pi-api-audit-runs";

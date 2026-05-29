@@ -8,6 +8,8 @@
     "packages/*"
   ],
   "scripts": {
-    "typecheck": "npm run typecheck --workspaces --if-present"
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "style:audit": "node tools/extension-style-audit.mjs",
+    "test:tools": "node --test tools/*.test.mjs"
   }
 }

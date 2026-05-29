@@ -16,31 +16,118 @@ The goal is simple testable code, not a heavy framework:
 - External systems are isolated behind small clients/adapters.
 - UI/rendering code is kept separate from core behavior once it grows beyond a trivial inline status or notification.
 
-## Default package layout
+## Scope-based package layout
 
-Prefer this layout for new non-trivial extension packages:
+Pi's official docs define loadable extension shapes rather than a strict internal architecture: single-file extensions, a directory with `index.ts`, or a package with a `pi.extensions` manifest. Official examples are intentionally varied; small examples are often single files, while larger examples use a directory and split obvious helpers such as `utils.ts`, `agents.ts`, `agents/`, or `prompts/`.
+
+This repository uses a stricter convention for maintainability: choose the smallest layout that fits the package's current scope, then promote mechanically when the package grows.
+
+### Small packages
+
+A package is small when most of these are true:
+
+- `src/` has about 5 or fewer production `.ts` files,
+- the package exposes 2-3 or fewer main runtime surfaces such as commands, tools, event handlers, widgets, or autocomplete providers,
+- there is at most one thin external adapter,
+- there is little or no persisted state, artifact IO, custom UI, or schema evolution,
+- `src/index.ts` is short and only registers behavior.
+
+Prefer a flat layout:
 
 ```text
-packages/<package-name>/
-  AGENTS.md
-  README.md
-  CHANGELOG.md
-  package.json
-  tsconfig.json
-  src/
-    index.ts
-    commands.ts
-    tools.ts
-    config.ts
-    types.ts
-    <domain>-client.ts
-    <domain>-mapper.ts
-    <domain>-state.ts
-    <domain>-ui.ts
-    *.test.ts
+src/
+  index.ts
+  commands.ts
+  tools.ts
+  config.ts
+  types.ts
+  *.test.ts
 ```
 
-Use only the files needed by the current milestone. Do not create empty abstraction files just to match the layout.
+Use only files needed by the current milestone. Do not create empty abstraction files just to match the layout.
+
+### Medium packages
+
+A package is medium when any of these are true:
+
+- `src/` has about 6-15 production `.ts` files,
+- there are 3+ commands/tools or one clear domain helper family,
+- there is an external system client such as HTTP, Jira, browser capture, subprocess, or filesystem artifacts,
+- state, artifact, config, parsing, mapping, or validation logic needs direct tests,
+- `commands.ts` or `tools.ts` starts mixing multiple responsibilities.
+
+Prefer clear domain filenames before introducing folders:
+
+```text
+src/
+  index.ts
+  commands.ts
+  tools.ts
+  config.ts
+  types.ts
+  <domain>-client.ts
+  <domain>-mapper.ts
+  <domain>-state.ts
+  <domain>-ui.ts
+  *.test.ts
+```
+
+### Large packages
+
+A package is large when any of these are true:
+
+- `src/` has more than about 15 production `.ts` files,
+- command or tool code spans multiple feature families,
+- there are multiple external adapters, for example browser + proxy + artifact IO + HTTP,
+- there is custom UI/widget/autocomplete/rendering code,
+- there are multiple domain flows that need independent ownership,
+- a single production file grows beyond about 300-500 lines while containing multiple responsibilities.
+
+Prefer folders by responsibility, with registration barrels for stable imports:
+
+```text
+src/
+  index.ts
+  commands/
+    index.ts
+    <feature>.ts
+  tools/
+    index.ts
+    <feature>.ts
+  core/
+    <domain>.ts
+    <domain>-mapper.ts
+    <domain>-validation.ts
+  adapters/
+    <system>-client.ts
+    <system>-capture.ts
+    <system>-artifacts.ts
+  ui/
+    <domain>-widget.ts
+    <domain>-autocomplete.ts
+    <domain>-render.ts
+  config/
+    index.ts
+    local-config.ts
+    secret-store.ts
+  types.ts
+  *.test.ts
+```
+
+Do not use every folder by default. Add a folder only when it has a real cluster of related files.
+
+### Promotion rules
+
+Promote layout gradually as a refactor, not while adding unrelated product behavior:
+
+- When the third file of the same responsibility appears, consider promoting that responsibility into a folder.
+- Before adding a feature that would push a package across a small/medium/large threshold, do a no-behavior-change refactor slice first.
+- Preserve stable public imports by keeping `commands/index.ts`, `tools/index.ts`, or `config/index.ts` barrels when introducing folders.
+- Keep tests colocated with the source they exercise.
+- Promote one responsibility per slice, run package verification, then stop for review.
+- Do not create empty folders or speculative abstractions.
+
+Mechanical audit or promotion utilities that apply across packages should live at the repository root, for example under `tools/` with root `package.json` scripts. They must be deterministic and read-only by default; any auto-move or rewrite mode should be explicit and reviewed separately. Because tools cannot judge responsibility boundaries as well as a reviewer, use hard mechanical file-size signals (for example >500 lines) as prompts for review, and use the 300-500 line range as a human judgment zone when a file mixes responsibilities.
 
 ## Module responsibilities
 

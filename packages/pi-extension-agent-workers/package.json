@@ -24,6 +24,7 @@
     "src/adapters/codex-cli.ts",
     "src/adapters/demo.ts",
     "src/commands.ts",
+    "src/commands/*.ts",
     "src/config.ts",
     "src/index.ts",
     "src/logs.ts",
@@ -51,6 +52,7 @@
     "pack:dry-run": "npm pack --dry-run"
   },
   "peerDependencies": {
+    "@earendil-works/pi-ai": "*",
     "@earendil-works/pi-coding-agent": "*",
     "typebox": "*"
   },
