@@ -99,6 +99,21 @@ test("RunArtifactIndex stores compact summaries without raw task or event payloa
   });
 });
 
+test("RunArtifactIndex marks historical active runs as stale instead of running", async () => {
+  await withTempDir(async (artifactRoot) => {
+    const index = new RunArtifactIndex(artifactRoot);
+    await index.upsertRun(makeRun({ status: "running", startedAt: 1000, lastActivityAt: 1000 }));
+
+    const entries = await index.listRuns({ allScopes: true });
+
+    assert.equal(entries[0]?.status, "failed");
+    assert.equal(entries[0]?.statusReason, "stale_historical");
+    assert.equal(entries[0]?.controllable, false);
+    assert.equal(entries[0]?.historical, true);
+    assert.equal(entries[0]?.endedAt, 1000);
+  });
+});
+
 test("workerRunToHistoryEntry marks in-memory runs as controllable", () => {
   const entry = workerRunToHistoryEntry(makeRun({ status: "running" }), { controllable: true, historical: false });
 

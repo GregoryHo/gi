@@ -2,6 +2,15 @@
 
 Completed or superseded planning docs are indexed here for traceability.
 
+## v0.3.1 patch planning era
+
+Sealed version docs:
+
+- `versions/0.3.1/index.md`
+- `versions/0.3.1/milestones.md`
+- `versions/0.3.1/log.md`
+- `versions/0.3.1/m1-remove-worker-ui-poc-command.md`
+
 ## v0.3.0 versioned planning era
 
 Sealed version docs:

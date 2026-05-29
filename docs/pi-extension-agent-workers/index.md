@@ -2,15 +2,17 @@
 
 ## Current stable version
 
-- Version: `0.3.0`
+- Version: `0.3.1`
 - Package: `packages/pi-extension-agent-workers`
-- Status: Release prep complete; local package release sealed in docs.
-- Version docs: `versions/0.3.0/` is indexed in `archive.md`.
-- Current package version: `0.3.0`
+- Status: Patch release sealed in docs.
+- Version docs: `versions/0.3.1/` is indexed in `archive.md`.
+- Current package version: `0.3.1`
 
 ## Active planning version
 
 None. Start future product iterations under `versions/<semver>/` before implementation.
+
+v0.3.1 removed the temporary `/worker-ui-poc` runtime command after v0.3.0 promoted the accepted compact card widget direction into the default worker widget, fixed stale `M1 commands` wording, and normalizes orphaned historical active runs as stale failed history so widgets do not show them as indefinitely running.
 
 v0.3.0 delivered a workspace-aware worker control surface:
 
@@ -37,6 +39,9 @@ Future product iterations should use versioned docs under `versions/<semver>/` b
 - `milestones.md` — historical milestone tracker through `v0.2.0`.
 - `archive.md` — completed/superseded docs index, including root-level milestone plans through `v0.2.0`.
 - `versions/README.md` — convention for future versioned planning docs.
+- `versions/0.3.1/index.md` — sealed v0.3.1 patch planning/release index.
+- `versions/0.3.1/milestones.md` — sealed v0.3.1 milestone tracker.
+- `versions/0.3.1/log.md` — v0.3.1 planning/change log.
 - `versions/0.3.0/index.md` — sealed v0.3.0 planning/release index.
 - `versions/0.3.0/milestones.md` — sealed v0.3.0 milestone tracker.
 - `versions/0.3.0/log.md` — v0.3.0 planning/change log.
@@ -55,7 +60,7 @@ Rationale:
 - The name describes delegated AI agent CLI processes supervised by pi.
 - It follows the repo convention where `docs/<package-name>/` exactly matches `packages/<package-name>/`.
 
-## 0.1.0 through 0.3.0 contents
+## 0.1.0 through 0.3.1 contents
 
 Implemented package capabilities:
 
@@ -65,11 +70,13 @@ Implemented package capabilities:
 - M8 — v0.1.0 release preparation.
 - M9-M13 — reliable multi-worker delegation loop improvements.
 - M14 — v0.2.0 release preparation.
+- v0.3.0 — workspace-scoped history/config, original task previews, custom profiles, UI capability PoC, and compact refreshing default widget.
+- v0.3.1 — removed the temporary `/worker-ui-poc` runtime command and PoC-only source, fixed stale command description wording, and normalized stale historical active runs.
 
-## Release checklist for 0.3.0
+## Release checklist for 0.3.1
 
-- [x] v0.3.0 M1-M8 complete.
-- [x] Package version set to `0.3.0`.
-- [x] `CHANGELOG.md` documents `0.3.0`.
+- [x] v0.3.1 M1 complete.
+- [x] Package version set to `0.3.1`.
+- [x] `CHANGELOG.md` documents `0.3.1`.
 - [x] Full verification passed.
-- [x] Release docs mark `0.3.0` as sealed.
+- [x] Release docs mark `0.3.1` as sealed.

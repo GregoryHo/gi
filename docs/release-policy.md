@@ -13,7 +13,7 @@ Current package versions:
 | Package | Current version | Notes |
 | --- | ---: | --- |
 | `@gregho/pi-extension-jira-board` | `0.2.0` | Jira board/context extension |
-| `@gregho/pi-extension-agent-workers` | `0.3.0` | Workspace-aware worker control surface local release |
+| `@gregho/pi-extension-agent-workers` | `0.3.1` | Patch release removing temporary worker UI PoC command |
 | `@gregho/pi-extension-api-behavior-audit` | `0.1.1` | API behavior audit MVP plus workspace path fix local release |
 
 ## Tag naming

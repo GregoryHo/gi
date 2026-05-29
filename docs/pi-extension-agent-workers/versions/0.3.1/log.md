@@ -1,0 +1,7 @@
+# Agent workers v0.3.1 log
+
+## 2026-05-29
+
+- Planned v0.3.1 as a small maintenance patch: remove the temporary `/worker-ui-poc` runtime command and PoC-only source after v0.3.0 promoted the accepted compact card widget into the default worker widget.
+- Expanded v0.3.1 after investigating `run_1779953300387_538cb808`: the index contained a historical, non-controllable `running` entry with a dead pid and missing log file, so the widget kept showing it as running. Added artifact-index normalization so historical active runs from interrupted/reloaded sessions are shown as stale failed history instead.
+- Completed v0.3.1 patch implementation. Removed `/worker-ui-poc` command registration/help/docs, deleted `src/ui-poc.ts` from packaged source, added tests asserting the command is absent, fixed the stale `/agent-workers` command description that mentioned `M1 commands`, added stale historical active-run normalization, bumped package metadata to `0.3.1`, and updated changelog/docs. Verification passed: `npm test --workspace @gregho/pi-extension-agent-workers` (119 tests), `npm run typecheck --workspace @gregho/pi-extension-agent-workers`, `npm run pack:dry-run --workspace @gregho/pi-extension-agent-workers` (reported `@gregho/pi-extension-agent-workers@0.3.1` and no `src/ui-poc.ts` tarball entry), `npm run typecheck`, and `pi -e ./packages/pi-extension-agent-workers --no-session -p "/agent-workers"`.

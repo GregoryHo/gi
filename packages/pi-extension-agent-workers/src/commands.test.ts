@@ -12,12 +12,10 @@ import {
   getAgentWorkersHelpLines,
   parseWorkerHistoryArgs,
   parseWorkerRunArgs,
-  parseWorkerUiPocArgs,
   parseWorkerWaitArgs,
   registerAgentWorkerCommands,
 } from "./commands.ts";
 import { AgentWorkerService } from "./service.ts";
-import { createWorkerCardWidget, WORKER_UI_POC_CARD_REFRESH_MS } from "./ui-poc.ts";
 import type { WorkerRunHistoryEntry } from "./worker-types.ts";
 
 test("parseWorkerRunArgs defaults to demo adapter and keeps task text", () => {
@@ -132,6 +130,15 @@ test("getAgentWorkersHelpLines lists M3 commands and real worker safety", () => 
   assert.ok(lines.some((line) => line.includes("codex-cli")));
   assert.ok(lines.some((line) => line.includes("confirmation")));
   assert.ok(lines.some((line) => line.includes("usage.source = unknown")));
+  assert.equal(lines.some((line) => line.includes("worker-ui-poc")), false);
+});
+
+test("registerAgentWorkerCommands keeps agent-workers as current status/help command", () => {
+  const { pi, commands } = createCommandRegistry();
+  registerAgentWorkerCommands(pi, new AgentWorkerService());
+
+  assert.equal(commands.has("worker-ui-poc"), false);
+  assert.equal(commands.get("agent-workers")?.description, "Show agent worker extension status and commands");
 });
 
 test("formatWorkerRunLines shows reported usage and activity summaries", () => {
@@ -200,113 +207,6 @@ test("parseWorkerHistoryArgs accepts optional limit and all-scope flag", () => {
 
 test("parseWorkerHistoryArgs defaults without arguments", () => {
   assert.deepEqual(parseWorkerHistoryArgs(""), { ok: true });
-});
-
-test("parseWorkerUiPocArgs accepts explicit safe PoC modes", () => {
-  assert.deepEqual(parseWorkerUiPocArgs(""), { ok: true, mode: "all" });
-  assert.deepEqual(parseWorkerUiPocArgs("widget"), { ok: true, mode: "widget" });
-  assert.deepEqual(parseWorkerUiPocArgs("wide-widget"), { ok: true, mode: "wide-widget" });
-  assert.deepEqual(parseWorkerUiPocArgs("card-widget"), { ok: true, mode: "card-widget" });
-  assert.deepEqual(parseWorkerUiPocArgs("footer"), { ok: true, mode: "footer" });
-  assert.deepEqual(parseWorkerUiPocArgs("cockpit"), { ok: true, mode: "cockpit" });
-  assert.deepEqual(parseWorkerUiPocArgs("clear"), { ok: true, mode: "clear" });
-});
-
-test("createWorkerCardWidget renders original-style compact cards with useful metadata", () => {
-  const widget = createWorkerCardWidget({
-    entries: [
-      makeHistoryEntry({
-        runId: "run_card",
-        adapter: "claude-code",
-        profile: "reviewer",
-        taskPreview: "review a compact widget layout",
-        statusReason: "exit_zero",
-        startedAt: 1000,
-        endedAt: 6500,
-        elapsedMs: 5500,
-      }),
-    ],
-  });
-
-  const lines = widget.render(100);
-  const text = lines.join("\n");
-  assert.ok(lines.some((line) => line.startsWith("┌─ run_card ✓ completed")));
-  assert.ok(lines.some((line) => line.startsWith("│ adapter: claude-code")));
-  assert.ok(lines.some((line) => line.includes("profile: reviewer")));
-  assert.ok(lines.some((line) => line.includes("duration: 5s")));
-  assert.ok(lines.some((line) => line.includes("task: review a compact widget layout")));
-  assert.ok(lines.some((line) => line.includes("reason: exit_zero")));
-  assert.ok(lines.some((line) => line.startsWith("└")));
-  assert.match(text, /run_card/);
-});
-
-test("createWorkerCardWidget uses compact columns without a middle divider on wide terminals", () => {
-  const widget = createWorkerCardWidget({
-    entries: [
-      makeHistoryEntry({ runId: "run_left", adapter: "demo", profile: "planner" }),
-      makeHistoryEntry({ runId: "run_right", adapter: "codex-cli", profile: "reviewer" }),
-    ],
-  });
-
-  const lines = widget.render(140);
-  assert.ok(lines.some((line) => line.includes("run_left") && line.includes("┌─ run_right")));
-  assert.equal(lines.some((line) => line.includes("│ ┌─ run_right")), false);
-  assert.ok(lines.some((line) => line.includes("adapter: demo") && line.includes("adapter: codex-cli")));
-  assert.ok(lines.some((line) => line.length < 120));
-});
-
-test("createWorkerCardWidget truncates long task and reason fields", () => {
-  const widget = createWorkerCardWidget({
-    entries: [
-      makeHistoryEntry({
-        taskPreview: "task ".repeat(40),
-        statusReason: "reason ".repeat(40) as WorkerRunHistoryEntry["statusReason"],
-      }),
-    ],
-  });
-
-  const lines = widget.render(52);
-  assert.ok(lines.every((line) => line.length <= 52));
-  assert.ok(lines.some((line) => line.includes("task:") && line.includes("…")));
-  assert.ok(lines.some((line) => line.includes("reason:") && line.includes("…")));
-});
-
-test("createWorkerCardWidget refreshes entries on an interval", async () => {
-  let intervalMs = 0;
-  let refresh: (() => void) | undefined;
-  let cleared = false;
-  let rendered = 0;
-  const widget = createWorkerCardWidget({
-    entries: [makeHistoryEntry({ runId: "run_before" })],
-    refreshIntervalMs: WORKER_UI_POC_CARD_REFRESH_MS,
-    loadEntries: async () => [makeHistoryEntry({ runId: "run_after" })],
-    requestRender: () => {
-      rendered += 1;
-    },
-    setIntervalFn: (callback, ms) => {
-      intervalMs = ms;
-      refresh = callback;
-      return "timer";
-    },
-    clearIntervalFn: (timer) => {
-      assert.equal(timer, "timer");
-      cleared = true;
-    },
-  });
-
-  assert.equal(intervalMs, WORKER_UI_POC_CARD_REFRESH_MS);
-  refresh?.();
-  await new Promise((resolve) => setTimeout(resolve, 0));
-  assert.match(widget.render(80).join("\n"), /run_after/);
-  assert.equal(rendered, 1);
-  widget.dispose?.();
-  assert.equal(cleared, true);
-});
-
-test("parseWorkerUiPocArgs rejects unknown modes", () => {
-  const parsed = parseWorkerUiPocArgs("side-panel");
-  assert.equal(parsed.ok, false);
-  assert.match(parsed.message, /Unknown worker-ui-poc mode/);
 });
 
 test("parseWorkerWaitArgs accepts run id and wait limit", () => {
@@ -508,140 +408,6 @@ test("/worker-run uses workspace config defaults for confirmation planning", asy
   assert.deepEqual(calls, ["resolve:check via config"]);
 });
 
-test("/worker-ui-poc exercises widget component footer and custom overlay APIs", async () => {
-  const { pi, commands, messages } = createCommandRegistry();
-  const entries = [makeHistoryEntry({ runId: "run_poc" })];
-  const service = { listRunHistory: async () => entries } as unknown as AgentWorkerService;
-  registerAgentWorkerCommands(pi, service);
-  const calls: string[] = [];
-
-  await commands.get("worker-ui-poc")?.handler("all", {
-    cwd: "/tmp/project",
-    hasUI: true,
-    ui: {
-      setWidget: (_key: string, widget: unknown, options: unknown) => {
-        calls.push(`widget:${typeof widget}:${JSON.stringify(options)}`);
-      },
-      setFooter: (footer: unknown) => {
-        calls.push(`footer:${typeof footer}`);
-      },
-      custom: async (factory: unknown, options: unknown) => {
-        calls.push(`custom:${typeof factory}:${JSON.stringify(options)}`);
-        return "closed";
-      },
-      notify: (message: string) => messages.push(message),
-    },
-  });
-
-  assert.ok(calls.some((call) => call.startsWith("widget:function")));
-  assert.ok(calls.some((call) => call.startsWith("footer:function")));
-  assert.ok(calls.some((call) => call.includes('"overlay":true')));
-  assert.match(messages.join("\n"), /Worker UI PoC cockpit result: closed/);
-  assert.match(messages.join("\n"), /mode: all/);
-  assert.match(messages.join("\n"), /stress test/);
-});
-
-test("/worker-ui-poc wide-widget installs a width-aware component widget", async () => {
-  const { pi, commands } = createCommandRegistry();
-  const entries = [makeHistoryEntry({ runId: "run_wide_1" }), makeHistoryEntry({ runId: "run_wide_2" })];
-  const service = { listRunHistory: async () => entries } as unknown as AgentWorkerService;
-  registerAgentWorkerCommands(pi, service);
-  const calls: string[] = [];
-
-  await commands.get("worker-ui-poc")?.handler("wide-widget", {
-    cwd: "/tmp/project",
-    hasUI: true,
-    ui: {
-      setWidget: (_key: string, widget: unknown, options: unknown) => calls.push(`widget:${widget === undefined ? "true" : typeof widget}:${JSON.stringify(options)}`),
-      notify: () => undefined,
-    },
-  });
-
-  assert.deepEqual(calls, ["widget:true:undefined", 'widget:function:{"placement":"belowEditor"}']);
-});
-
-test("/worker-ui-poc card-widget installs interval-refreshing card widget", async () => {
-  const { pi, commands, messages } = createCommandRegistry();
-  const entries = [makeHistoryEntry({ runId: "run_card_cmd", adapter: "codex-cli", profile: "planner", elapsedMs: 10_000 })];
-  const service = { listRunHistory: async () => entries } as unknown as AgentWorkerService;
-  registerAgentWorkerCommands(pi, service);
-  let factory: ((tui?: unknown) => { render(width: number): string[]; dispose?(): void }) | undefined;
-  const calls: string[] = [];
-
-  await commands.get("worker-ui-poc")?.handler("card-widget", {
-    cwd: "/tmp/project",
-    hasUI: true,
-    ui: {
-      setWidget: (_key: string, widget: unknown, options: unknown) => {
-        calls.push(`widget:${widget === undefined ? "clear" : typeof widget}:${JSON.stringify(options)}`);
-        if (typeof widget === "function") factory = widget as typeof factory;
-      },
-      setFooter: () => undefined,
-      setStatus: () => undefined,
-      notify: () => undefined,
-    },
-  });
-
-  assert.deepEqual(calls, ["widget:clear:undefined", 'widget:function:{"placement":"belowEditor"}']);
-  const component = factory?.({ requestRender: () => undefined });
-  const text = component?.render(100).join("\n") ?? "";
-  component?.dispose?.();
-  assert.match(text, /run_card_cmd/);
-  assert.match(text, /adapter: codex-cli/);
-  assert.match(text, /profile: planner/);
-  assert.match(messages.join("\n"), /refresh: 5s/);
-});
-
-test("/worker-ui-poc sidepanel uses right anchored overlay sizing options", async () => {
-  const { pi, commands, messages } = createCommandRegistry();
-  const entries = [makeHistoryEntry({ runId: "run_sidepanel" })];
-  const service = { listRunHistory: async () => entries } as unknown as AgentWorkerService;
-  registerAgentWorkerCommands(pi, service);
-  const calls: string[] = [];
-
-  await commands.get("worker-ui-poc")?.handler("sidepanel", {
-    cwd: "/tmp/project",
-    hasUI: true,
-    ui: {
-      setWidget: (_key: string, widget: unknown) => calls.push(`widget:${widget === undefined}`),
-      setFooter: (footer: unknown) => calls.push(`footer:${footer === undefined}`),
-      setStatus: (_key: string, value: unknown) => calls.push(`status:${value === undefined}`),
-      custom: async (_factory: unknown, options: unknown) => {
-        calls.push(JSON.stringify(options));
-        return "closed";
-      },
-      notify: (message: string) => messages.push(message),
-    },
-  });
-
-  assert.deepEqual(calls.slice(0, 3), ["widget:true", "footer:true", "status:true"]);
-  assert.ok(calls[3]?.includes('"anchor":"right-center"'));
-  assert.ok(calls[3]?.includes('"width":"38%"'));
-  assert.ok(calls[3]?.includes('"maxHeight":"85%"'));
-  assert.match(messages.join("\n"), /Worker UI PoC sidepanel result: closed/);
-  assert.match(messages.join("\n"), /mode: sidepanel/);
-});
-
-test("/worker-ui-poc clear removes PoC surfaces", async () => {
-  const { pi, commands } = createCommandRegistry();
-  const service = { listRunHistory: async () => [] } as unknown as AgentWorkerService;
-  registerAgentWorkerCommands(pi, service);
-  const calls: string[] = [];
-
-  await commands.get("worker-ui-poc")?.handler("clear", {
-    cwd: "/tmp/project",
-    hasUI: true,
-    ui: {
-      setWidget: (_key: string, widget: unknown) => calls.push(`widget:${widget === undefined}`),
-      setFooter: (footer: unknown) => calls.push(`footer:${footer === undefined}`),
-      setStatus: (_key: string, value: unknown) => calls.push(`status:${value === undefined}`),
-      notify: () => undefined,
-    },
-  });
-
-  assert.deepEqual(calls, ["widget:true", "footer:true", "status:true"]);
-});
-
 test("/worker-workspace-pick uses native select without setting sticky workspace", async () => {
   const { pi, commands, messages } = createCommandRegistry();
   const service = new AgentWorkerService();
@@ -665,16 +431,16 @@ test("/worker-workspace-pick uses native select without setting sticky workspace
 
 function createCommandRegistry(): {
   pi: ExtensionAPI;
-  commands: Map<string, { handler: (args: string, ctx: any) => Promise<void> }>;
+  commands: Map<string, { description?: string; handler: (args: string, ctx: any) => Promise<void> }>;
   messages: string[];
 } {
-  const commands = new Map<string, { handler: (args: string, ctx: any) => Promise<void> }>();
+  const commands = new Map<string, { description?: string; handler: (args: string, ctx: any) => Promise<void> }>();
   const messages: string[] = [];
   return {
     commands,
     messages,
     pi: {
-      registerCommand(name: string, command: { handler: (args: string, ctx: any) => Promise<void> }) {
+      registerCommand(name: string, command: { description?: string; handler: (args: string, ctx: any) => Promise<void> }) {
         commands.set(name, command);
       },
       on() {},
