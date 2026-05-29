@@ -18,5 +18,6 @@ This repo is for developing personal pi extensions and pi packages.
 - Keep extensions safe by default: read-only integrations first; write actions require explicit user confirmation.
 - Do not commit secrets. Credentials should be read from environment variables or local config/artifact files that are ignored by git.
 - Do not create bare repo-global semver tags (`0.1.0`, `v0.1.0`) for package releases.
+- For shared pi extension architecture and coding style, follow `docs/extension-development-style.md`.
 - For pi extension APIs, follow the installed pi docs in `docs/extensions.md`, `docs/packages.md`, and `docs/tui.md` from the local pi installation.
 

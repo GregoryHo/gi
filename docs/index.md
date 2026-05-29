@@ -10,6 +10,7 @@ This directory contains product/spec planning areas for pi extension packages in
 
 ## Repo-wide docs
 
+- `extension-development-style.md` — shared architecture and coding style for pi extension packages.
 - `release-policy.md` — package version ownership and tag naming policy for this monorepo.
 
 ## Convention
