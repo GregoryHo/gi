@@ -1,14 +1,14 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
-import { registerJiraClearCommand } from "./jira-clear.ts";
-import { registerJiraAutocomplete } from "./jira-autocomplete.ts";
-import { registerJiraBoardCommands } from "./jira-boards.ts";
-import { registerJiraBrowserCommands } from "./jira-browser.ts";
-import { registerJiraCommands } from "./jira-commands.ts";
-import { registerJiraOnboardingCommand } from "./jira-onboarding.ts";
-import { registerJiraRuntimeCommands } from "./jira-runtime.ts";
-import { registerJiraTools } from "./jira-tools.ts";
-import { registerJiraWriteCommands } from "./jira-writes.ts";
+import { registerJiraClearCommand } from "./commands/clear.ts";
+import { registerJiraAutocomplete } from "./ui/autocomplete.ts";
+import { registerJiraBoardCommands } from "./commands/boards.ts";
+import { registerJiraBrowserCommands } from "./commands/browser.ts";
+import { registerJiraCommands } from "./commands/index.ts";
+import { registerJiraOnboardingCommand } from "./commands/onboarding.ts";
+import { registerJiraRuntimeCommands } from "./commands/runtime.ts";
+import { registerJiraTools } from "./tools/index.ts";
+import { registerJiraWriteCommands } from "./commands/writes.ts";
 
 const PACKAGE_NAME = "jira-board";
 

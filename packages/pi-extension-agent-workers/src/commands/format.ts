@@ -1,4 +1,4 @@
-import type { WorkerRun, WorkerRunHistoryEntry } from "../worker-types.ts";
+import type { WorkerRun, WorkerRunHistoryEntry } from "../core/worker-types.ts";
 
 export function getAgentWorkersHelpLines(): string[] {
   return [

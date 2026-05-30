@@ -1,5 +1,5 @@
-import type { WorkerAdapter } from "../worker-types.ts";
-import { textPreview, toNumber, type WorkerEvent, type WorkerUsage } from "../worker-events.ts";
+import type { WorkerAdapter } from "../core/worker-types.ts";
+import { textPreview, toNumber, type WorkerEvent, type WorkerUsage } from "../core/worker-events.ts";
 import { isCommandAvailable, type CommandAvailabilityCheck } from "./cli-utils.ts";
 
 interface CodexCliAdapterOptions {

@@ -2,15 +2,15 @@ import {
   buildScenarioDiscoveryPreparation,
   resolveScenarioDiscoveryPlan,
   runScenarioDiscovery,
-} from "../discovery.ts";
+} from "../core/discovery.ts";
 import {
   clearEnvironmentProfile,
   formatEnvironmentProfiles,
   loadEnvironmentProfiles,
   saveEnvironmentProfile,
-} from "../environment-profiles.ts";
-import { buildTargetCapturePreparation, resolveTargetCapturePlan, runTargetCapture } from "../target-capture.ts";
-import { DEFAULT_ARTIFACT_DIR } from "../workspace-paths.ts";
+} from "../config/environment-profiles.ts";
+import { buildTargetCapturePreparation, resolveTargetCapturePlan, runTargetCapture } from "../adapters/target-capture.ts";
+import { DEFAULT_ARTIFACT_DIR } from "../config/workspace-paths.ts";
 import type {
   ClearEnvironmentProfileToolParams,
   EnvironmentProfileToolParams,

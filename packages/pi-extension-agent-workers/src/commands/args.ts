@@ -1,4 +1,4 @@
-import type { WorkerAdapterName } from "../request-types.ts";
+import type { WorkerAdapterName } from "../core/request-types.ts";
 
 const MAX_DEMO_DURATION_MS = 60_000;
 const MAX_WORKER_TIMEOUT_MS = 24 * 60 * 60 * 1000;

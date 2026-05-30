@@ -1,9 +1,9 @@
-import type { ScenarioDiscoveryDeps } from "../discovery.ts";
-import type { EnvironmentProfile } from "../environment-profiles.ts";
-import type { TargetCaptureDeps } from "../target-capture.ts";
-import type { runAccountActivityUpstreamCapture } from "../upstream-account-activity.ts";
-import type { runTargetCapture } from "../target-capture.ts";
-import type { runScenarioDiscovery } from "../discovery.ts";
+import type { ScenarioDiscoveryDeps } from "../core/discovery.ts";
+import type { EnvironmentProfile } from "../config/environment-profiles.ts";
+import type { TargetCaptureDeps } from "../adapters/target-capture.ts";
+import type { runAccountActivityUpstreamCapture } from "../adapters/upstream-account-activity.ts";
+import type { runTargetCapture } from "../adapters/target-capture.ts";
+import type { runScenarioDiscovery } from "../core/discovery.ts";
 
 export interface ToolTextResult<TDetails extends Record<string, unknown>> {
   content: Array<{ type: "text"; text: string }>;

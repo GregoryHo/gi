@@ -1,17 +1,17 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
-import { registerAgentWorkerCommands } from "./commands.ts";
-import { AgentWorkerService } from "./service.ts";
-import { registerAgentWorkerTools } from "./tools.ts";
-import { registerAgentWorkerWidget } from "./widget.ts";
+import { registerAgentWorkerCommands } from "./commands/index.ts";
+import { AgentWorkerService } from "./core/service.ts";
+import { registerAgentWorkerTools } from "./tools/index.ts";
+import { registerAgentWorkerWidget } from "./ui/widget.ts";
 
-export { getDefaultAgentWorkerConfigDir, readWorkspaceConfig, updateWorkspaceConfig } from "./config.ts";
-export type { WorkspaceAgentWorkerConfig } from "./config.ts";
-export { getBuiltInWorkerProfiles, getWorkerProfiles, resolveWorkerProfile, validateCustomWorkerProfiles } from "./profiles.ts";
-export type { ResolvedWorkerRequest, WorkerMode, WorkerProfile, WorkerRequest, WorkerResult } from "./request-types.ts";
-export { AgentWorkerService, workerResultFromRun } from "./service.ts";
-export { registerAgentWorkerTools, workerRunSummary } from "./tools.ts";
-export { registerAgentWorkerWidget, renderWorkerWidget } from "./widget.ts";
+export { getDefaultAgentWorkerConfigDir, readWorkspaceConfig, updateWorkspaceConfig } from "./config/index.ts";
+export type { WorkspaceAgentWorkerConfig } from "./config/index.ts";
+export { getBuiltInWorkerProfiles, getWorkerProfiles, resolveWorkerProfile, validateCustomWorkerProfiles } from "./config/profiles.ts";
+export type { ResolvedWorkerRequest, WorkerMode, WorkerProfile, WorkerRequest, WorkerResult } from "./core/request-types.ts";
+export { AgentWorkerService, workerResultFromRun } from "./core/service.ts";
+export { registerAgentWorkerTools, workerRunSummary } from "./tools/index.ts";
+export { registerAgentWorkerWidget, renderWorkerWidget } from "./ui/widget.ts";
 
 export default function agentWorkersExtension(pi: ExtensionAPI): void {
   const service = new AgentWorkerService();

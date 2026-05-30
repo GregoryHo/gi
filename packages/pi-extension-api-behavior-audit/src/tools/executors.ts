@@ -1,12 +1,12 @@
-import { createWorkspacePathContext, DEFAULT_ARTIFACT_DIR, DEFAULT_WORKSPACE_SCENARIO_DICTIONARY_PATH, resolveWorkspacePath, type WorkspacePathContext } from "../workspace-paths.ts";
+import { createWorkspacePathContext, DEFAULT_ARTIFACT_DIR, DEFAULT_WORKSPACE_SCENARIO_DICTIONARY_PATH, resolveWorkspacePath, type WorkspacePathContext } from "../config/workspace-paths.ts";
 
-import { loadValidatedRun } from "../artifact-schema.ts";
-import { ACCOUNT_ACTIVITY_SCENARIO_ID } from "../browser-capture.ts";
+import { loadValidatedRun } from "../schemas/artifact-schema.ts";
+import { ACCOUNT_ACTIVITY_SCENARIO_ID } from "../adapters/browser-capture.ts";
 import {
   buildScenarioDiscoveryPreparation,
   resolveScenarioDiscoveryPlan,
   runScenarioDiscovery,
-} from "../discovery.ts";
+} from "../core/discovery.ts";
 import {
   clearEnvironmentProfile,
   formatEnvironmentProfiles,
@@ -14,25 +14,25 @@ import {
   resolveEnvironmentProfile,
   saveEnvironmentProfile,
   type EnvironmentProfile,
-} from "../environment-profiles.ts";
+} from "../config/environment-profiles.ts";
 import {
   getDictionaryScenario,
   loadScenarioDictionary,
   ScenarioDictionaryError,
   toCaptureScenario,
-} from "../scenario-dictionary.ts";
-import { getScenario, loadScenarioManifest } from "../scenarios.ts";
+} from "../core/scenario-dictionary.ts";
+import { getScenario, loadScenarioManifest } from "../core/scenarios.ts";
 import {
   buildTargetCapturePreparation,
   resolveTargetCapturePlan,
   runTargetCapture,
-} from "../target-capture.ts";
+} from "../adapters/target-capture.ts";
 import {
   buildAccountActivityUpstreamInstructions,
   parseAccountActivityUpstreamArgs,
   runAccountActivityUpstreamCapture,
   type AccountActivityUpstreamResult,
-} from "../upstream-account-activity.ts";
+} from "../adapters/upstream-account-activity.ts";
 import type {
   AccountActivityToolParams,
   ClearEnvironmentProfileToolParams,

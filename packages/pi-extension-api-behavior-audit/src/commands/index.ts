@@ -2,13 +2,13 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
 import { registerApiAuditPackageCommand } from "./package-command.ts";
 
-import { createWorkspacePathContext } from "../workspace-paths.ts";
+import { createWorkspacePathContext } from "../config/workspace-paths.ts";
 
-import { createComparisonRunId, writeComparisonRun } from "../artifacts.ts";
-import { runAccountActivityLayerACapture, ACCOUNT_ACTIVITY_SCENARIO_ID } from "../browser-capture.ts";
-import { analyzeComparisonRun, ComparisonAnalysisError } from "../comparison-analysis.ts";
-import { buildApiAuditDashboardLines } from "../dashboard.ts";
-import { ApiAuditConfigError, parseAccountActivityCaptureArgs } from "../config.ts";
+import { createComparisonRunId, writeComparisonRun } from "../adapters/artifacts.ts";
+import { runAccountActivityLayerACapture, ACCOUNT_ACTIVITY_SCENARIO_ID } from "../adapters/browser-capture.ts";
+import { analyzeComparisonRun, ComparisonAnalysisError } from "../core/comparison-analysis.ts";
+import { buildApiAuditDashboardLines } from "../ui/dashboard.ts";
+import { ApiAuditConfigError, parseAccountActivityCaptureArgs } from "../config/index.ts";
 import {
   buildScenarioDiscoveryPreparation,
   capturePreparedScenarioDiscoveryWindow,
@@ -23,12 +23,12 @@ import {
   type ScenarioDiscoveryBrowserHandle,
   type ScenarioDiscoveryRecordedArtifact,
   type ScenarioDiscoveryTarget,
-} from "../discovery.ts";
-import { EnvironmentProfileError, executeProfileCommand } from "../environment-profiles.ts";
-import { parseRecordingProxyArgs, ProxyConfigError } from "../proxy-config.ts";
-import { generateScenarioSuggestion, ScenarioSuggestionError, validateScenarioSuggestion } from "../scenario-suggestion.ts";
-import { startRecordingProxy, type RecordingProxyHandle } from "../recording-proxy.ts";
-import { getScenario, loadScenarioManifest } from "../scenarios.ts";
+} from "../core/discovery.ts";
+import { EnvironmentProfileError, executeProfileCommand } from "../config/environment-profiles.ts";
+import { parseRecordingProxyArgs, ProxyConfigError } from "../config/proxy-config.ts";
+import { generateScenarioSuggestion, ScenarioSuggestionError, validateScenarioSuggestion } from "../core/scenario-suggestion.ts";
+import { startRecordingProxy, type RecordingProxyHandle } from "../adapters/recording-proxy.ts";
+import { getScenario, loadScenarioManifest } from "../core/scenarios.ts";
 import {
   API_DISCOVERY_ANALYZE_COMMAND,
   API_DISCOVERY_CREATE_COMMAND,
@@ -42,13 +42,13 @@ import {
   API_DISCOVERY_VALIDATE_SUGGESTION_COMMAND,
   PACKAGE_COMMAND,
   PACKAGE_KEY,
-} from "../package-info.ts";
-import { buildTargetCapturePreparation, resolveTargetCapturePlan, runTargetCapture, TargetCaptureError } from "../target-capture.ts";
+} from "../core/package-info.ts";
+import { buildTargetCapturePreparation, resolveTargetCapturePlan, runTargetCapture, TargetCaptureError } from "../adapters/target-capture.ts";
 import {
   parseAccountActivityUpstreamArgs,
   runAccountActivityUpstreamCapture,
   AccountActivityUpstreamConfigError,
-} from "../upstream-account-activity.ts";
+} from "../adapters/upstream-account-activity.ts";
 import type { ComparisonRunArtifact, ComparisonRunTargetArtifact } from "../types.ts";
 
 export * from "./args.ts";

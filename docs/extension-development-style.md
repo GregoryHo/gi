@@ -83,38 +83,63 @@ A package is large when any of these are true:
 - there are multiple domain flows that need independent ownership,
 - a single production file grows beyond about 300-500 lines while containing multiple responsibilities.
 
-Prefer folders by responsibility, with registration barrels for stable imports:
+Prefer a generic role-based structure rather than package-domain prefixes. The package name already supplies the domain; folders should describe the module's role in the extension architecture:
 
 ```text
 src/
-  index.ts
-  commands/
+  index.ts              # extension shell / composition root
+
+  commands/             # pi.registerCommand adapters
     index.ts
     <feature>.ts
-  tools/
+    args.ts             # command argument parsing when shared or large
+
+  tools/                # pi.registerTool adapters
     index.ts
     <feature>.ts
-  core/
+    schemas.ts          # TypeBox schemas when numerous
+
+  events/               # pi.on(...) handlers when non-trivial
+    index.ts
+    <event>.ts
+
+  ui/                   # widgets, TUI components, renderers, autocomplete
+    <feature>-widget.ts
+    <feature>-picker.ts
+    <feature>-render.ts
+    autocomplete.ts
+
+  core/                 # pure or mostly pure domain logic
     <domain>.ts
     <domain>-mapper.ts
     <domain>-validation.ts
-  adapters/
+    <domain>-planning.ts
+
+  adapters/             # external IO boundaries
     <system>-client.ts
-    <system>-capture.ts
+    <system>-browser.ts
+    <system>-proxy.ts
+    <system>-cli.ts
     <system>-artifacts.ts
-  ui/
-    <domain>-widget.ts
-    <domain>-autocomplete.ts
-    <domain>-render.ts
-  config/
+
+  config/               # env/local config/secrets
     index.ts
-    local-config.ts
-    secret-store.ts
-  types.ts
-  *.test.ts
+    local.ts
+    secrets.ts
+
+  state/                # persisted/session/runtime state
+    runtime-context.ts
+    store.ts
+    indexes.ts
+
+  schemas/              # JSON/schema contracts and artifact validators
+    <artifact>.ts
+
+  types.ts              # shared package-level types only
+  *.test.ts             # colocated with the source they exercise
 ```
 
-Do not use every folder by default. Add a folder only when it has a real cluster of related files.
+Do not use every folder by default. Add a folder only when it has a real cluster of related files. Avoid folders named after the package domain (`jira/`, `api-audit/`, `agent-workers/`) inside the package; prefer the generic roles above. Domain-specific subfolders are acceptable under a role folder when a single role has multiple feature families, for example `ui/browser/` or `commands/discovery/`.
 
 ### Promotion rules
 

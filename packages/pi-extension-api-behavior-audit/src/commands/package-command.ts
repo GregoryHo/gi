@@ -5,11 +5,11 @@ import {
   DEFAULT_ARTIFACT_DIR,
   DEFAULT_WORKSPACE_SCENARIO_DICTIONARY_PATH,
   resolveWorkspacePath,
-} from "../workspace-paths.ts";
+} from "../config/workspace-paths.ts";
 
-import { runAccountActivityLayerACapture, ACCOUNT_ACTIVITY_SCENARIO_ID } from "../browser-capture.ts";
-import { buildApiAuditDashboardLines } from "../dashboard.ts";
-import { ApiAuditConfigError, parseAccountActivityCaptureArgs } from "../config.ts";
+import { runAccountActivityLayerACapture, ACCOUNT_ACTIVITY_SCENARIO_ID } from "../adapters/browser-capture.ts";
+import { buildApiAuditDashboardLines } from "../ui/dashboard.ts";
+import { ApiAuditConfigError, parseAccountActivityCaptureArgs } from "../config/index.ts";
 import {
   buildScenarioDiscoveryPreparation,
   capturePreparedScenarioDiscoveryWindow,
@@ -20,18 +20,18 @@ import {
   ScenarioDiscoveryError,
   stopPreparedScenarioDiscoverySession,
   type PreparedScenarioDiscoverySession,
-} from "../discovery.ts";
-import { EnvironmentProfileError, executeProfileCommand } from "../environment-profiles.ts";
-import { PACKAGE_COMMAND, PACKAGE_KEY } from "../package-info.ts";
-import { parseRecordingProxyArgs, ProxyConfigError } from "../proxy-config.ts";
-import { startRecordingProxy, type RecordingProxyHandle } from "../recording-proxy.ts";
-import { getScenario, loadScenarioManifest } from "../scenarios.ts";
-import { buildTargetCapturePreparation, resolveTargetCapturePlan, runTargetCapture, TargetCaptureError } from "../target-capture.ts";
+} from "../core/discovery.ts";
+import { EnvironmentProfileError, executeProfileCommand } from "../config/environment-profiles.ts";
+import { PACKAGE_COMMAND, PACKAGE_KEY } from "../core/package-info.ts";
+import { parseRecordingProxyArgs, ProxyConfigError } from "../config/proxy-config.ts";
+import { startRecordingProxy, type RecordingProxyHandle } from "../adapters/recording-proxy.ts";
+import { getScenario, loadScenarioManifest } from "../core/scenarios.ts";
+import { buildTargetCapturePreparation, resolveTargetCapturePlan, runTargetCapture, TargetCaptureError } from "../adapters/target-capture.ts";
 import {
   AccountActivityUpstreamConfigError,
   parseAccountActivityUpstreamArgs,
   runAccountActivityUpstreamCapture,
-} from "../upstream-account-activity.ts";
+} from "../adapters/upstream-account-activity.ts";
 import {
   getApiAuditSetupLines,
   parseApiAuditCaptureArgs,

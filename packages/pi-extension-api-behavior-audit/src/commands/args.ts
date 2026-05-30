@@ -3,7 +3,7 @@ import {
   DEFAULT_WORKSPACE_SCENARIO_DICTIONARY_PATH,
   resolveWorkspacePath,
   type WorkspacePathContext,
-} from "../workspace-paths.ts";
+} from "../config/workspace-paths.ts";
 
 export type ApiAuditParsedCommand =
   | { kind: "status" }

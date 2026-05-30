@@ -37,15 +37,15 @@ import {
   DEFAULT_WORKSPACE_SCENARIO_DICTIONARY_PATH,
   resolveWorkspacePath,
   type WorkspacePathContext,
-} from "../workspace-paths.ts";
+} from "../config/workspace-paths.ts";
 
-import { loadValidatedRun } from "../artifact-schema.ts";
+import { loadValidatedRun } from "../schemas/artifact-schema.ts";
 import {
   buildScenarioDiscoveryPreparation,
   resolveScenarioDiscoveryPlan,
   runScenarioDiscovery,
   type ScenarioDiscoveryDeps,
-} from "../discovery.ts";
+} from "../core/discovery.ts";
 import {
   clearEnvironmentProfile,
   formatEnvironmentProfiles,
@@ -53,27 +53,27 @@ import {
   resolveEnvironmentProfile,
   saveEnvironmentProfile,
   type EnvironmentProfile,
-} from "../environment-profiles.ts";
+} from "../config/environment-profiles.ts";
 import {
   getDictionaryScenario,
   ScenarioDictionaryError,
   loadScenarioDictionary,
   toCaptureScenario,
-} from "../scenario-dictionary.ts";
-import { getScenario, loadScenarioManifest } from "../scenarios.ts";
-import { ACCOUNT_ACTIVITY_SCENARIO_ID } from "../browser-capture.ts";
+} from "../core/scenario-dictionary.ts";
+import { getScenario, loadScenarioManifest } from "../core/scenarios.ts";
+import { ACCOUNT_ACTIVITY_SCENARIO_ID } from "../adapters/browser-capture.ts";
 import {
   buildTargetCapturePreparation,
   resolveTargetCapturePlan,
   runTargetCapture,
   type TargetCaptureDeps,
-} from "../target-capture.ts";
+} from "../adapters/target-capture.ts";
 import {
   buildAccountActivityUpstreamInstructions,
   parseAccountActivityUpstreamArgs,
   runAccountActivityUpstreamCapture,
   type AccountActivityUpstreamResult,
-} from "../upstream-account-activity.ts";
+} from "../adapters/upstream-account-activity.ts";
 
 const ListScenariosParams = Type.Object({
   scenarioDictionaryPath: Type.Optional(Type.String({ description: "Optional workspace scenario dictionary JSON path. Defaults to .pi-api-audit-runs/scenarios.local.json; package examples are not used as fallback." })),

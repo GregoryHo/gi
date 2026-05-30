@@ -1,4 +1,4 @@
-import type { WorkerAdapter } from "../worker-types.ts";
+import type { WorkerAdapter } from "../core/worker-types.ts";
 
 const DEFAULT_DURATION_MS = 250;
 
