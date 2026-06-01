@@ -2,10 +2,19 @@
 
 ## Unreleased
 
+No changes yet.
+
+## 0.2.1 - 2026-06-01
+
 ### Added
 
 - Persistent proxy/window lifecycle tools so agents can keep recorder proxy sockets alive while starting and stopping clean recording windows independently.
 - Recording window finalization now writes comparison artifacts and returns `comparisonPath` for analyze/suggest/review follow-up.
+
+### Notes
+
+- Existing one-shot capture tools remain available for compatibility.
+- No npm publish or git tag was created by this local release prep.
 
 ## 0.2.0 - 2026-06-01
 

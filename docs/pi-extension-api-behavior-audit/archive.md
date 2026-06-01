@@ -2,6 +2,17 @@
 
 Completed or superseded planning docs are indexed here for traceability.
 
+## v0.2.1 versioned planning era
+
+Sealed version docs:
+
+- `versions/0.2.1/index.md`
+- `versions/0.2.1/milestones.md`
+- `versions/0.2.1/log.md`
+- `versions/0.2.1/m1-persistent-proxy-window-lifecycle.md`
+- `versions/0.2.1/m2-window-comparison-review-integration.md`
+- `versions/0.2.1/m3-release-prep.md`
+
 ## v0.2.0 versioned planning era
 
 Sealed version docs:

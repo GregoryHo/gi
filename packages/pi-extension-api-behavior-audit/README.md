@@ -4,7 +4,7 @@ pi package for collecting and auditing baseline versus candidate backend API beh
 
 ## Status
 
-v0.2.0 is in development. The current milestones add programmatic capture lifecycle and bounded automation tools so agents can start upstream recorders, run a workspace script, and stop/finalize artifacts without mandatory HITL browser/manual-done flow. Roadmap and milestone docs live in [`../../docs/pi-extension-api-behavior-audit`](../../docs/pi-extension-api-behavior-audit).
+v0.2.1 is the current local release. It adds programmatic capture lifecycle, bounded automation, review guidance, and persistent proxy/window tools so agents can keep upstream recorder proxies alive while finalizing clean recording artifacts without mandatory HITL browser/manual-done flow. Roadmap and milestone docs live in [`../../docs/pi-extension-api-behavior-audit`](../../docs/pi-extension-api-behavior-audit).
 
 ## Goal
 

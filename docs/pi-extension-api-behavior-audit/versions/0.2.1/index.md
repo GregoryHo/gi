@@ -4,7 +4,7 @@
 
 - Version: `0.2.1`
 - Package: `packages/pi-extension-api-behavior-audit`
-- Status: In progress
+- Status: Released / sealed local package release
 - Branch: `feature/api-behavior-audit-0.2.1-persistent-proxy-windows`
 
 ## Theme
