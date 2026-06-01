@@ -13,6 +13,11 @@ import { buildTargetCapturePreparation, resolveTargetCapturePlan, runTargetCaptu
 import { DEFAULT_ARTIFACT_DIR } from "../config/workspace-paths.ts";
 import { CaptureSessionRegistry, type CaptureSessionSummary } from "../core/capture-lifecycle.ts";
 import { runAutomatedCapture, type AutomatedCaptureResult } from "../core/capture-automation.ts";
+import {
+  ProxySessionRegistry,
+  type ProxySessionSummary,
+  type RecordingWindowSummary,
+} from "../core/proxy-session-lifecycle.ts";
 import type {
   AutomatedCaptureToolDeps,
   AutomatedCaptureToolParams,
@@ -20,12 +25,17 @@ import type {
   ClearEnvironmentProfileToolParams,
   EnvironmentProfileToolParams,
   ListActiveCapturesToolParams,
+  ListProxySessionsToolParams,
+  ProxySessionLifecycleToolDeps,
   RunScenarioDiscoveryToolDeps,
   RunTargetCaptureToolDeps,
   ScenarioDiscoveryToolParams,
   ShowEnvironmentProfilesToolParams,
   StartCaptureToolParams,
+  StartRecordingWindowToolParams,
   StopCaptureToolParams,
+  StopProxySessionToolParams,
+  StopRecordingWindowToolParams,
   TargetCaptureToolParams,
   ToolTextResult,
   ToolUiAdapter,
@@ -33,6 +43,7 @@ import type {
 import { requiredToolString } from "./executors.ts";
 
 export const defaultCaptureSessionRegistry = new CaptureSessionRegistry();
+export const defaultProxySessionRegistry = new ProxySessionRegistry();
 
 export async function executeListTargetsTool(
   params: TargetCaptureToolParams,
@@ -157,6 +168,72 @@ export async function executeListActiveCapturesTool(
   };
 }
 
+export async function executeStartProxySessionTool(
+  params: TargetCaptureToolParams,
+  deps: ProxySessionLifecycleToolDeps = {},
+): Promise<ToolTextResult<ProxySessionSummary>> {
+  const plan = await resolveTargetCapturePlan(params);
+  const registry = deps.registry ?? defaultProxySessionRegistry;
+  const summary = await registry.startProxySession(plan, { startRecorder: deps.startRecorder });
+  return {
+    content: [{ type: "text", text: formatProxySessionSummary("Proxy session started", summary).join("\n") }],
+    details: summary,
+  };
+}
+
+export async function executeStartRecordingWindowTool(
+  params: StartRecordingWindowToolParams,
+  deps: Pick<ProxySessionLifecycleToolDeps, "registry"> = {},
+): Promise<ToolTextResult<RecordingWindowSummary>> {
+  const registry = deps.registry ?? defaultProxySessionRegistry;
+  const summary = await registry.startRecordingWindow(params.proxySessionId, {
+    ...(params.comparisonRunId ? { comparisonRunId: params.comparisonRunId } : {}),
+  });
+  return {
+    content: [{ type: "text", text: formatRecordingWindowSummary("Recording window started", summary).join("\n") }],
+    details: summary,
+  };
+}
+
+export async function executeStopRecordingWindowTool(
+  params: StopRecordingWindowToolParams,
+  deps: Pick<ProxySessionLifecycleToolDeps, "registry"> = {},
+): Promise<ToolTextResult<RecordingWindowSummary>> {
+  const registry = deps.registry ?? defaultProxySessionRegistry;
+  const summary = await registry.stopRecordingWindow(params.recordingWindowId);
+  return {
+    content: [{ type: "text", text: formatRecordingWindowSummary("Recording window stopped", summary).join("\n") }],
+    details: summary,
+  };
+}
+
+export async function executeStopProxySessionTool(
+  params: StopProxySessionToolParams,
+  deps: Pick<ProxySessionLifecycleToolDeps, "registry"> = {},
+): Promise<ToolTextResult<ProxySessionSummary>> {
+  const registry = deps.registry ?? defaultProxySessionRegistry;
+  const summary = await registry.stopProxySession(params.proxySessionId);
+  return {
+    content: [{ type: "text", text: formatProxySessionSummary("Proxy session stopped", summary).join("\n") }],
+    details: summary,
+  };
+}
+
+export async function executeListProxySessionsTool(
+  _params: ListProxySessionsToolParams,
+  deps: Pick<ProxySessionLifecycleToolDeps, "registry"> = {},
+): Promise<ToolTextResult<Record<string, unknown>>> {
+  const registry = deps.registry ?? defaultProxySessionRegistry;
+  const sessions = registry.listProxySessions();
+  const lines = sessions.length === 0
+    ? ["API audit proxy sessions: none"]
+    : ["API audit proxy sessions:", ...sessions.flatMap((session) => formatProxySessionSummary("", session))];
+  return {
+    content: [{ type: "text", text: lines.join("\n") }],
+    details: { sessions },
+  };
+}
+
 export async function executeRunAutomatedCaptureTool(
   params: AutomatedCaptureToolParams,
   deps: AutomatedCaptureToolDeps = {},
@@ -181,6 +258,10 @@ export async function executeRunAutomatedCaptureTool(
 
 export async function stopAllActiveApiAuditCaptures(): Promise<CaptureSessionSummary[]> {
   return defaultCaptureSessionRegistry.stopAllActive();
+}
+
+export async function stopAllActiveApiAuditProxySessions(): Promise<ProxySessionSummary[]> {
+  return defaultProxySessionRegistry.stopAllActiveProxySessions();
 }
 
 export async function executePrepareScenarioDiscoveryTool(
@@ -294,6 +375,33 @@ function formatAutomatedCaptureResult(result: AutomatedCaptureResult): string[] 
     `Automation status: ${result.automation.status}`,
     ...(result.automation.error ? [`Automation error: ${result.automation.error}`] : []),
     ...formatCaptureSessionSummary("Capture session stopped", result.capture),
+  ];
+}
+
+function formatProxySessionSummary(prefix: string, summary: ProxySessionSummary): string[] {
+  return [
+    ...(prefix ? [`${prefix}: ${summary.proxySessionId}`] : [`${summary.proxySessionId} (${summary.status})`]),
+    `Scenario: ${summary.scenarioId}`,
+    `Profile: ${summary.profileName}`,
+    `Artifact dir: ${summary.artifactDir}`,
+    ...(summary.activeRecordingWindowId ? [`Active recording window: ${summary.activeRecordingWindowId}`] : []),
+    ...summary.targets.map((target) => `Target ${target.targetId}: ${target.proxyUrl} (${target.side}/${target.variant})`),
+  ];
+}
+
+function formatRecordingWindowSummary(prefix: string, summary: RecordingWindowSummary): string[] {
+  return [
+    ...(prefix ? [`${prefix}: ${summary.recordingWindowId}`] : [`${summary.recordingWindowId} (${summary.status})`]),
+    `Proxy session: ${summary.proxySessionId}`,
+    `Scenario: ${summary.scenarioId}`,
+    `Comparison: ${summary.comparisonRunId}`,
+    ...summary.targets.flatMap((target) => [
+      `Target ${target.targetId}: ${target.proxyUrl}`,
+      `  run: ${target.runId}`,
+      `  exchanges: ${target.exchangeCount}`,
+      `  manifest: ${target.manifestPath}`,
+    ]),
+    ...summary.warnings.map((warning) => `Warning: ${warning}`),
   ];
 }
 

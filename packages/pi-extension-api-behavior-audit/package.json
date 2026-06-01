@@ -41,6 +41,7 @@
     "src/core/discovery.ts",
     "src/core/discovery-types.ts",
     "src/core/package-info.ts",
+    "src/core/proxy-session-lifecycle.ts",
     "src/core/redaction.ts",
     "src/core/scenario-dictionary.ts",
     "src/core/scenario-suggestion.ts",

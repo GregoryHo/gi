@@ -3,6 +3,7 @@ import type { EnvironmentProfile } from "../config/environment-profiles.ts";
 import type { TargetCaptureDeps } from "../adapters/target-capture.ts";
 import type { CaptureSessionRegistry, StartCaptureSessionDeps } from "../core/capture-lifecycle.ts";
 import type { AutomatedCaptureDeps } from "../core/capture-automation.ts";
+import type { ProxySessionRegistry, StartProxySessionDeps } from "../core/proxy-session-lifecycle.ts";
 import type { runAccountActivityUpstreamCapture } from "../adapters/upstream-account-activity.ts";
 import type { runTargetCapture } from "../adapters/target-capture.ts";
 import type { runScenarioDiscovery } from "../core/discovery.ts";
@@ -92,7 +93,22 @@ export interface StopCaptureToolParams {
   captureSessionId: string;
 }
 
+export interface StartRecordingWindowToolParams {
+  proxySessionId: string;
+  comparisonRunId?: string;
+}
+
+export interface StopRecordingWindowToolParams {
+  recordingWindowId: string;
+}
+
+export interface StopProxySessionToolParams {
+  proxySessionId: string;
+}
+
 export interface ListActiveCapturesToolParams {}
+
+export interface ListProxySessionsToolParams {}
 
 export interface AccountActivityToolParams {
   oldUrl?: string;
@@ -126,6 +142,10 @@ export interface RunScenarioDiscoveryToolDeps extends ScenarioDiscoveryDeps {
 
 export interface CaptureLifecycleToolDeps extends StartCaptureSessionDeps {
   registry?: CaptureSessionRegistry;
+}
+
+export interface ProxySessionLifecycleToolDeps extends StartProxySessionDeps {
+  registry?: ProxySessionRegistry;
 }
 
 export type AutomatedCaptureToolDeps = AutomatedCaptureDeps;

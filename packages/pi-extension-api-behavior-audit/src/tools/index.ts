@@ -11,6 +11,7 @@ import {
 import {
   executeClearEnvironmentProfileTool,
   executeListActiveCapturesTool,
+  executeListProxySessionsTool,
   executeListTargetsTool,
   executePrepareScenarioDiscoveryTool,
   executePrepareTargetCaptureTool,
@@ -18,7 +19,11 @@ import {
   executeRunScenarioDiscoveryTool,
   executeRunTargetCaptureTool,
   executeStartCaptureTool,
+  executeStartProxySessionTool,
+  executeStartRecordingWindowTool,
   executeStopCaptureTool,
+  executeStopProxySessionTool,
+  executeStopRecordingWindowTool,
   executeSaveEnvironmentProfileTool,
   executeShowEnvironmentProfilesTool,
 } from "./target-profile-executors.ts";
@@ -29,12 +34,16 @@ import type {
   EnvironmentProfileToolParams,
   AutomatedCaptureToolParams,
   ListActiveCapturesToolParams,
+  ListProxySessionsToolParams,
   ListScenariosParams,
   ReviewCaptureToolParams,
   ScenarioDiscoveryToolParams,
   ShowEnvironmentProfilesToolParams,
   StartCaptureToolParams,
+  StartRecordingWindowToolParams,
   StopCaptureToolParams,
+  StopProxySessionToolParams,
+  StopRecordingWindowToolParams,
   TargetCaptureToolParams,
   UpstreamCaptureToolParams,
   ValidateRunParams,
@@ -176,7 +185,21 @@ const StopCaptureParams = Type.Object({
   captureSessionId: Type.String({ description: "Capture session id returned by api_audit_start_capture." }),
 });
 
+const StartRecordingWindowParams = Type.Object({
+  proxySessionId: Type.String({ description: "Persistent proxy session id returned by api_audit_start_proxy_session." }),
+  comparisonRunId: Type.Optional(Type.String({ description: "Optional comparison run id to stamp onto window manifests." })),
+});
+
+const StopRecordingWindowParams = Type.Object({
+  recordingWindowId: Type.String({ description: "Recording window id returned by api_audit_start_recording_window." }),
+});
+
+const StopProxySessionParams = Type.Object({
+  proxySessionId: Type.String({ description: "Persistent proxy session id returned by api_audit_start_proxy_session." }),
+});
+
 const ListActiveCapturesParams = Type.Object({});
+const ListProxySessionsParams = Type.Object({});
 
 const AccountActivityCaptureParams = Type.Object({
   oldUrl: Type.Optional(Type.String({ description: "Old local page base URL. Defaults to http://localhost:8080." })),
@@ -450,6 +473,79 @@ export function registerApiAuditTools(pi: ExtensionAPI): void {
     parameters: ListActiveCapturesParams,
     async execute(_toolCallId, params) {
       return executeListActiveCapturesTool(params as ListActiveCapturesToolParams);
+    },
+  });
+
+  pi.registerTool({
+    name: "api_audit_start_proxy_session",
+    label: "Start persistent API audit proxy session",
+    description: "Start long-lived recorder proxy sockets in paused passthrough mode without opening a recording window.",
+    promptSnippet: "Start persistent old/new API audit proxy sockets without recording yet",
+    promptGuidelines: [
+      "Use api_audit_start_proxy_session when the target app needs stable proxy URLs across multiple clean recording windows.",
+      "api_audit_start_proxy_session does not modify app config and does not open browsers.",
+    ],
+    parameters: TargetCaptureParams,
+    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+      return executeStartProxySessionTool(
+        await resolveToolPathParams(params as StartCaptureToolParams, ctx.cwd, ["artifactDir", "scenarioDictionaryPath"]),
+      );
+    },
+  });
+
+  pi.registerTool({
+    name: "api_audit_start_recording_window",
+    label: "Start API audit recording window",
+    description: "Start a clean recording artifact window on an active persistent proxy session.",
+    promptSnippet: "Start a clean recording window while keeping existing proxy sockets alive",
+    promptGuidelines: [
+      "Use api_audit_start_recording_window after api_audit_start_proxy_session when the app is ready to perform the audited action.",
+    ],
+    parameters: StartRecordingWindowParams,
+    async execute(_toolCallId, params) {
+      return executeStartRecordingWindowTool(params as StartRecordingWindowToolParams);
+    },
+  });
+
+  pi.registerTool({
+    name: "api_audit_stop_recording_window",
+    label: "Stop API audit recording window",
+    description: "Finalize a recording window without stopping the persistent proxy sockets.",
+    promptSnippet: "Stop/finalize the current recording window but keep proxies listening",
+    promptGuidelines: [
+      "Use api_audit_stop_recording_window to finalize clean run artifacts while leaving old/new proxy sockets available for the app.",
+    ],
+    parameters: StopRecordingWindowParams,
+    async execute(_toolCallId, params) {
+      return executeStopRecordingWindowTool(params as StopRecordingWindowToolParams);
+    },
+  });
+
+  pi.registerTool({
+    name: "api_audit_stop_proxy_session",
+    label: "Stop persistent API audit proxy session",
+    description: "Stop a persistent proxy session and close its recorder proxy sockets.",
+    promptSnippet: "Stop persistent API audit proxy sockets when no more windows are needed",
+    promptGuidelines: [
+      "Use api_audit_stop_proxy_session only after all needed recording windows are finalized.",
+    ],
+    parameters: StopProxySessionParams,
+    async execute(_toolCallId, params) {
+      return executeStopProxySessionTool(params as StopProxySessionToolParams);
+    },
+  });
+
+  pi.registerTool({
+    name: "api_audit_list_proxy_sessions",
+    label: "List persistent API audit proxy sessions",
+    description: "List persistent proxy sessions and stable proxy URLs in this extension runtime.",
+    promptSnippet: "List persistent API audit proxy sessions and active recording windows",
+    promptGuidelines: [
+      "Use api_audit_list_proxy_sessions when the user asks which long-lived API audit proxies are currently running.",
+    ],
+    parameters: ListProxySessionsParams,
+    async execute(_toolCallId, params) {
+      return executeListProxySessionsTool(params as ListProxySessionsToolParams);
     },
   });
 

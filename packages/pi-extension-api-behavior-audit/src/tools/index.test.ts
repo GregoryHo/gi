@@ -15,11 +15,16 @@ import {
   executePrepareTargetCaptureTool,
   executePrepareUpstreamCaptureTool,
   executeListActiveCapturesTool,
+  executeListProxySessionsTool,
   executeRunScenarioDiscoveryTool,
   executeRunTargetCaptureTool,
   executeRunUpstreamCaptureTool,
   executeStartCaptureTool,
+  executeStartProxySessionTool,
+  executeStartRecordingWindowTool,
   executeStopCaptureTool,
+  executeStopProxySessionTool,
+  executeStopRecordingWindowTool,
   executeReviewCaptureTool,
   executeRunAccountActivityUpstreamCaptureTool,
   executeRunAutomatedCaptureTool,
@@ -29,6 +34,7 @@ import {
   registerApiAuditTools,
 } from "./index.ts";
 import { CaptureSessionRegistry } from "../core/capture-lifecycle.ts";
+import { ProxySessionRegistry } from "../core/proxy-session-lifecycle.ts";
 import type { TargetRecorderHandle } from "../adapters/target-capture.ts";
 import type { ApiExchange, CaptureManifest } from "../types.ts";
 
@@ -80,6 +86,11 @@ test("registerApiAuditTools registers natural-language tool entrypoints", () => 
       "api_audit_start_capture",
       "api_audit_stop_capture",
       "api_audit_list_active_captures",
+      "api_audit_start_proxy_session",
+      "api_audit_start_recording_window",
+      "api_audit_stop_recording_window",
+      "api_audit_stop_proxy_session",
+      "api_audit_list_proxy_sessions",
       "api_audit_run_automated_capture",
       "api_audit_prepare_scenario_discovery",
       "api_audit_run_scenario_discovery",
@@ -307,6 +318,43 @@ test("programmatic capture lifecycle tools start list and stop recorders without
   assert.equal(stopped.details.status, "stopped");
   assert.deepEqual(stopped.details.warnings, ["No upstream exchanges were recorded for target new; confirm the app points to http://127.0.0.1:18081."]);
   assert.match(listedAfterStop.content[0].text, /none/);
+});
+
+test("persistent proxy tools finalize recording windows without stopping proxies", async () => {
+  const scenarioDictionaryPath = await writeScenarioDictionaryFixture();
+  const artifactDir = await mkdtemp(join(tmpdir(), "api-audit-proxy-session-tool-"));
+  await saveEnvironmentProfile(artifactDir, "uat", {
+    oldUrl: "http://localhost:8080",
+    newUrl: "http://localhost:8008",
+    oldTargetUrl: "http://127.0.0.1:19080",
+    newTargetUrl: "http://127.0.0.1:19081",
+    oldProxyPort: 18080,
+    newProxyPort: 18081,
+  });
+  const registry = new ProxySessionRegistry({
+    createProxySessionId: () => "proxy-tool",
+    createRecordingWindowId: () => "window-tool",
+    createComparisonRunId: () => "comparison-tool",
+  });
+  const events: string[] = [];
+
+  const started = await executeStartProxySessionTool(
+    { artifactDir, scenarioDictionaryPath, profileName: "uat", scenarioId: "account-activity-basic" },
+    { registry, startRecorder: async (target) => fakePersistentProxyRecorder(target.targetId, target.recorderUrl, target.targetId === "old" ? 1 : 0, events) },
+  );
+  const window = await executeStartRecordingWindowTool({ proxySessionId: "proxy-tool" }, { registry });
+  const stoppedWindow = await executeStopRecordingWindowTool({ recordingWindowId: "window-tool" }, { registry });
+  const listed = await executeListProxySessionsTool({}, { registry });
+  const stoppedProxy = await executeStopProxySessionTool({ proxySessionId: "proxy-tool" }, { registry });
+
+  assert.match(started.content[0].text, /Proxy session started: proxy-tool/);
+  assert.equal(started.details.oldProxyUrl, "http://127.0.0.1:18080");
+  assert.equal(window.details.comparisonRunId, "comparison-tool");
+  assert.equal(stoppedWindow.details.status, "stopped");
+  const listedSessions = listed.details.sessions as Array<{ status: string }>;
+  assert.equal(listedSessions[0].status, "active");
+  assert.equal(stoppedProxy.details.status, "stopped");
+  assert.deepEqual(events, ["start-proxy:old", "start-proxy:new", "begin:old", "begin:new", "finish:old", "finish:new", "stop-proxy:old", "stop-proxy:new"]);
 });
 
 test("executeReviewCaptureTool builds slash command and local review viewer guidance", async () => {
@@ -578,6 +626,32 @@ test("executeRunUpstreamCaptureTool uses scenarioId and scenario paths for captu
   const oldDetails = result.details.old as { exchangeCount: number };
   assert.equal(oldDetails.exchangeCount, 2);
 });
+
+function fakePersistentProxyRecorder(targetId: string, listenUrl: string, exchangeCount: number, events: string[]): TargetRecorderHandle {
+  events.push(`start-proxy:${targetId}`);
+  return {
+    runId: `bootstrap-${targetId}`,
+    listenUrl,
+    manifestPath: `/runs/bootstrap-${targetId}/manifest.json`,
+    exchangesPath: `/runs/bootstrap-${targetId}/exchanges.ndjson`,
+    exchangeCount: 0,
+    beginRecordingWindow: async () => {
+      events.push(`begin:${targetId}`);
+      return {
+        runId: `${targetId}-window-run`,
+        manifestPath: `/runs/${targetId}-window-run/manifest.json`,
+        exchangesPath: `/runs/${targetId}-window-run/exchanges.ndjson`,
+        exchangeCount,
+        finish: async () => {
+          events.push(`finish:${targetId}`);
+        },
+      };
+    },
+    stop: async () => {
+      events.push(`stop-proxy:${targetId}`);
+    },
+  } as TargetRecorderHandle;
+}
 
 function fakeLifecycleRecorder(targetId: string, listenUrl: string, exchangeCount: number, events: string[]): TargetRecorderHandle {
   events.push(`start:${targetId}`);

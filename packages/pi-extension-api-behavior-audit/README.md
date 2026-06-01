@@ -52,6 +52,7 @@ The extension registers natural-language-callable pi tools:
 - `api_audit_stop_capture` — stop/finalize a live capture session and report final exchange counts/manifest paths.
 - `api_audit_list_active_captures` — list live programmatic capture sessions in the current pi extension runtime.
 - `api_audit_run_automated_capture` — start recorders, run a bounded workspace `automationScript`, then stop/finalize artifacts automatically.
+- `api_audit_start_proxy_session` / `api_audit_start_recording_window` / `api_audit_stop_recording_window` / `api_audit_stop_proxy_session` / `api_audit_list_proxy_sessions` — keep proxy sockets alive while rotating clean recording windows.
 
 It also keeps slash commands for precise manual invocation:
 
@@ -71,6 +72,8 @@ It also keeps slash commands for precise manual invocation:
 The account-activity command opens a headed Playwright browser and asks for manual-auth confirmation for old and new local sites. Layer A artifacts are validation-only and are not final backend behavior evidence.
 
 The programmatic lifecycle tools manage recorder processes only. They do not open browsers, wait for manual done, modify app config, or mutate the scenario dictionary. Use `api_audit_stop_capture` after the agent or a separate script finishes sending traffic through the returned proxy URLs.
+
+For legacy apps that need stable proxy URLs, use persistent proxy sessions: start `api_audit_start_proxy_session` once, then call `api_audit_start_recording_window` and `api_audit_stop_recording_window` around each audited action. Stopping a recording window finalizes run artifacts without closing the proxy sockets; call `api_audit_stop_proxy_session` only when finished.
 
 For review, `api_audit_review_capture` can queue existing slash-command review steps for the agent, including `/api-discovery-analyze`, `/api-discovery-suggest`, and `/api-discovery-validate-suggestion`. It also reminds the agent/user that the local human review viewer is `.pi-api-audit-runs/review.html` after running `tools/build-viewer.py`. The viewer build guidance uses `python3`, an absolute path to the package's bundled `tools/build-viewer.py`, and the workspace SOT path (`--sot .pi-api-audit-runs/scenarios.local.json`), so it works when pi is launched from a target workspace rather than this extension repo.
 

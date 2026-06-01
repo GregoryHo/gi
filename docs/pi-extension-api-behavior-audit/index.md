@@ -10,13 +10,17 @@
 
 ## Active planning version
 
-None. Start future product iterations under `versions/<semver>/` before implementation.
+- Version: `0.2.1`
+- Status: In progress
+- Version docs: `versions/0.2.1/index.md`
 
 ## Navigation
 
 - `roadmap.md` — broad product direction and Layer A/B framing.
 - `milestones.md` — sealed MVP milestone tracker for v0.1.0.
 - `versions/README.md` — versioned planning convention.
+- `versions/0.2.1/index.md` — active v0.2.1 persistent proxy/window lifecycle planning index.
+- `versions/0.2.1/milestones.md` — active v0.2.1 milestone tracker.
 - `versions/0.2.0/index.md` — sealed v0.2.0 programmatic capture lifecycle and automation release index.
 - `versions/0.2.0/milestones.md` — sealed v0.2.0 milestone tracker.
 - `versions/0.1.1/index.md` — sealed v0.1.1 path-fix planning/release index.
@@ -58,4 +62,6 @@ M10 completed the target-based capture model, N-target planning/run, target meta
 
 v0.1.1 delivered a patch-level workspace path fix: mutable API audit paths resolve from the user's active pi workspace root (`ctx.cwd` → Git root fallback model), not from the extension development repo.
 
-v0.2.0 delivered programmatic capture lifecycle tools, bounded automation-script capture, and an agent-facing review helper so agents can start/stop/finalize safe read-only recorder flows and queue review slash-command steps without mandatory HITL done confirmation. Future product iterations should use versioned docs under `versions/<semver>/` before implementation starts.
+v0.2.0 delivered programmatic capture lifecycle tools, bounded automation-script capture, and an agent-facing review helper so agents can start/stop/finalize safe read-only recorder flows and queue review slash-command steps without mandatory HITL done confirmation.
+
+v0.2.1 is active and separates persistent proxy sockets from clean recording windows so legacy apps can keep stable local proxy URLs while agents finalize run artifacts independently.

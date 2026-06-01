@@ -2,7 +2,9 @@
 
 ## Unreleased
 
-No changes yet.
+### Added
+
+- Persistent proxy/window lifecycle tools so agents can keep recorder proxy sockets alive while starting and stopping clean recording windows independently.
 
 ## 0.2.0 - 2026-06-01
 
