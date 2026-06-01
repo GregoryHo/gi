@@ -2,6 +2,16 @@
 
 Completed or superseded planning docs are indexed here for traceability.
 
+## v0.2.2 versioned planning era
+
+Sealed version docs:
+
+- `versions/0.2.2/index.md`
+- `versions/0.2.2/milestones.md`
+- `versions/0.2.2/log.md`
+- `versions/0.2.2/m1-path-based-passthrough-routes.md`
+- `versions/0.2.2/m2-release-prep.md`
+
 ## v0.2.1 versioned planning era
 
 Sealed version docs:

@@ -4,6 +4,11 @@ import { appendExchange, createRunId, getRunPaths, writeManifest } from "./artif
 import { REDACTED, REDACTION_POLICY, sanitizeExchange } from "../core/redaction.ts";
 import type { ApiExchange, ApiSide, BrowserVisibleApiObservation, CandidatePageContext, CaptureManifest } from "../types.ts";
 
+export interface RecordingProxyPassthroughRoute {
+  pathPrefix: string;
+  targetBaseUrl: string;
+}
+
 export interface StartRecordingProxyOptions {
   side: ApiSide;
   listenHost: string;
@@ -18,6 +23,7 @@ export interface StartRecordingProxyOptions {
   discoverySessionId?: string;
   comparisonRunId?: string;
   record?: boolean;
+  passthroughRoutes?: RecordingProxyPassthroughRoute[];
 }
 
 export interface RecordingWindowOptions {
@@ -255,7 +261,8 @@ async function handleProxyRequest(
 ): Promise<void> {
   const startedAt = new Date();
   const requestBodyBuffer = await readRequestBody(request);
-  const targetUrl = new URL(request.url ?? "/", `${options.targetBaseUrl}/`);
+  const route = selectProxyRoute(request.url ?? "/", options);
+  const targetUrl = new URL(request.url ?? "/", `${route.targetBaseUrl}/`);
   const requestHeaders = normalizeIncomingHeaders(request.headers);
 
   const requestBody = shouldForwardBody(request.method) ? (requestBodyBuffer as unknown as BodyInit) : undefined;
@@ -295,12 +302,26 @@ async function handleProxyRequest(
     },
   };
 
-  if (shouldRecord()) {
+  if (route.record && shouldRecord()) {
     await appendExchange(options.artifactDir, sanitizeExchange(exchange));
     await recordCapture();
   }
   response.writeHead(upstreamResponse.status, filterClientResponseHeaders(responseHeaders));
   response.end(responseBodyBuffer);
+}
+
+interface SelectedProxyRoute {
+  targetBaseUrl: string;
+  record: boolean;
+}
+
+function selectProxyRoute(requestUrl: string, options: StartRecordingProxyOptions): SelectedProxyRoute {
+  const requestPath = new URL(requestUrl, `${options.targetBaseUrl}/`).pathname;
+  const passthrough = [...(options.passthroughRoutes ?? [])]
+    .sort((left, right) => right.pathPrefix.length - left.pathPrefix.length)
+    .find((route) => requestPath.startsWith(route.pathPrefix));
+  if (passthrough) return { targetBaseUrl: passthrough.targetBaseUrl, record: false };
+  return { targetBaseUrl: options.targetBaseUrl, record: true };
 }
 
 function readRequestBody(request: IncomingMessage): Promise<Buffer> {

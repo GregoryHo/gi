@@ -4,6 +4,18 @@
 
 No changes yet.
 
+## 0.2.2 - 2026-06-01
+
+### Fixed
+
+- Added path-based passthrough routes for the Node recording proxy so frontend/static paths such as `/includes/js/...` can be forwarded to their real frontend service instead of the API upstream.
+- Target profile v2 entries can now declare `passthroughRoutes` for local or explicitly allowlisted auxiliary frontend/static services; passthrough responses are not recorded as upstream API exchanges.
+
+### Notes
+
+- This patch supports local legacy server-side services where routing the whole service through the recorder caused static assets to return API 404/text responses.
+- No npm publish or git tag was created by this local release prep.
+
 ## 0.2.1 - 2026-06-01
 
 ### Added

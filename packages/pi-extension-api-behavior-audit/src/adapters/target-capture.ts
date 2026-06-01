@@ -4,7 +4,7 @@ import type { Browser } from "playwright";
 import { getEnvironmentProfileConfigPath } from "../config/environment-profiles.ts";
 import { isLocalHttpUrl } from "../config/index.ts";
 import { isAllowedProxyTarget } from "../config/proxy-config.ts";
-import { startRecordingProxy } from "./recording-proxy.ts";
+import { startRecordingProxy, type RecordingProxyPassthroughRoute } from "./recording-proxy.ts";
 import { getDictionaryScenario, loadScenarioDictionary } from "../core/scenario-dictionary.ts";
 import type { ApiSide } from "../types.ts";
 
@@ -36,6 +36,7 @@ export interface ResolvedTargetCaptureTarget {
   pagePath: string;
   browserApiAllowlist: string[];
   upstreamApiCandidates: string[];
+  passthroughRoutes?: TargetPassthroughRoute[];
 }
 
 export interface TargetCapturePlan {
@@ -98,6 +99,10 @@ interface TargetEnvironmentProfileV2 {
   groups?: Record<string, string[]>;
 }
 
+export interface TargetPassthroughRoute extends RecordingProxyPassthroughRoute {
+  allowHosts?: string[];
+}
+
 interface TargetEnvironmentProfileTargetV2 {
   variant: string;
   side?: ApiSide;
@@ -105,6 +110,7 @@ interface TargetEnvironmentProfileTargetV2 {
   upstreamTargetUrl: string;
   recorderPort: number;
   allowHosts?: string[];
+  passthroughRoutes?: TargetPassthroughRoute[];
 }
 
 interface NormalizedTargetProfile {
@@ -161,6 +167,7 @@ export async function resolveTargetCapturePlan(input: TargetCapturePlanInput): P
       pagePath: variant.pagePath,
       browserApiAllowlist: [...variant.browserApiAllowlist],
       upstreamApiCandidates: [...variant.upstreamApiCandidates],
+      ...(target.passthroughRoutes ? { passthroughRoutes: normalizePassthroughRoutes(target.passthroughRoutes) } : {}),
     };
   });
 
@@ -228,6 +235,7 @@ export async function startTargetRecordingProxy(
     scenarioId: plan.scenarioId,
     targetId: target.targetId,
     variant: target.variant,
+    ...(target.passthroughRoutes ? { passthroughRoutes: target.passthroughRoutes } : {}),
   });
 }
 
@@ -256,6 +264,7 @@ export function buildTargetCapturePreparation(plan: TargetCapturePlan): string[]
       `  frontend: ${target.frontendUrl}${target.pagePath}`,
       `  recorder: ${target.recorderUrl}`,
       `  upstream target: ${target.upstreamTargetUrl}`,
+      ...formatPassthroughRoutes(target.passthroughRoutes),
       `  expected upstream candidates: ${target.upstreamApiCandidates.join(", ")}`,
       `  configure this app/API proxy to point to ${target.recorderUrl}`,
     ]),
@@ -389,6 +398,26 @@ function validateTarget(targetId: string, target: TargetEnvironmentProfileTarget
   if (!isAllowedProxyTarget(upstreamTargetUrl, target.allowHosts ?? [])) {
     throw new TargetCaptureError(`Target ${targetId} upstreamTargetUrl must be local or explicitly allowlisted`);
   }
+  for (const route of target.passthroughRoutes ?? []) {
+    const routeTargetUrl = normalizeUrl(route.targetBaseUrl);
+    if (!route.pathPrefix.startsWith("/")) throw new TargetCaptureError(`Target ${targetId} passthrough route pathPrefix must start with /`);
+    if (!isAllowedProxyTarget(routeTargetUrl, [...(target.allowHosts ?? []), ...(route.allowHosts ?? [])])) {
+      throw new TargetCaptureError(`Target ${targetId} passthrough route targetBaseUrl must be local or explicitly allowlisted`);
+    }
+  }
+}
+
+function normalizePassthroughRoutes(routes: TargetPassthroughRoute[]): TargetPassthroughRoute[] {
+  return routes.map((route) => ({
+    pathPrefix: route.pathPrefix,
+    targetBaseUrl: normalizeUrl(route.targetBaseUrl),
+    ...(route.allowHosts ? { allowHosts: [...route.allowHosts] } : {}),
+  }));
+}
+
+function formatPassthroughRoutes(routes: TargetPassthroughRoute[] | undefined): string[] {
+  if (!routes?.length) return [];
+  return routes.map((route) => `  passthrough ${route.pathPrefix} -> ${route.targetBaseUrl}`);
 }
 
 function inferCompatSide(targetId: string, variant: string): ApiSide {

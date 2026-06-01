@@ -2,11 +2,11 @@
 
 ## Current stable version
 
-- Version: `0.2.1`
+- Version: `0.2.2`
 - Package: `packages/pi-extension-api-behavior-audit`
 - Status: Release prep complete; local package release sealed in docs.
-- Version docs: `versions/0.2.1/` is indexed in `archive.md`.
-- Current package version: `0.2.1`
+- Version docs: `versions/0.2.2/` is indexed in `archive.md`.
+- Current package version: `0.2.2`
 
 ## Active planning version
 
@@ -17,6 +17,8 @@ None. Start future product iterations under `versions/<semver>/` before implemen
 - `roadmap.md` — broad product direction and Layer A/B framing.
 - `milestones.md` — sealed MVP milestone tracker for v0.1.0.
 - `versions/README.md` — versioned planning convention.
+- `versions/0.2.2/index.md` — sealed v0.2.2 path-based passthrough routing patch index.
+- `versions/0.2.2/milestones.md` — sealed v0.2.2 milestone tracker.
 - `versions/0.2.1/index.md` — sealed v0.2.1 persistent proxy/window lifecycle release index.
 - `versions/0.2.1/milestones.md` — sealed v0.2.1 milestone tracker.
 - `versions/0.2.0/index.md` — sealed v0.2.0 programmatic capture lifecycle and automation release index.
@@ -63,3 +65,5 @@ v0.1.1 delivered a patch-level workspace path fix: mutable API audit paths resol
 v0.2.0 delivered programmatic capture lifecycle tools, bounded automation-script capture, and an agent-facing review helper so agents can start/stop/finalize safe read-only recorder flows and queue review slash-command steps without mandatory HITL done confirmation.
 
 v0.2.1 delivered persistent proxy sockets separated from clean recording windows so legacy apps can keep stable local proxy URLs while agents finalize run artifacts independently. Recording window finalization now also writes comparison artifacts for the existing analyze/suggest/review pipeline.
+
+v0.2.2 delivered path-based passthrough routing for local legacy services so frontend/static paths such as `/includes/js/...` can be forwarded to their real service while API paths continue through the recording proxy.

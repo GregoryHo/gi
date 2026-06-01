@@ -96,6 +96,69 @@ test("recording proxy can create isolated recording windows without stopping ser
   }
 });
 
+test("recording proxy forwards configured passthrough paths without recording them", async () => {
+  const apiRequests: string[] = [];
+  const staticRequests: string[] = [];
+  const api = createServer((request, response) => {
+    apiRequests.push(request.url ?? "");
+    response.statusCode = 200;
+    response.setHeader("content-type", "application/json");
+    response.end(JSON.stringify({ api: true }));
+  });
+  const staticService = createServer((request, response) => {
+    staticRequests.push(request.url ?? "");
+    response.statusCode = 200;
+    response.setHeader("content-type", "application/javascript");
+    response.end("window.transferPopup = true;");
+  });
+  await Promise.all([
+    new Promise<void>((resolve) => api.listen(0, "127.0.0.1", resolve)),
+    new Promise<void>((resolve) => staticService.listen(0, "127.0.0.1", resolve)),
+  ]);
+  const apiAddress = api.address();
+  const staticAddress = staticService.address();
+  assert.ok(apiAddress && typeof apiAddress === "object");
+  assert.ok(staticAddress && typeof staticAddress === "object");
+
+  const artifactDir = await mkdtemp(join(tmpdir(), "api-audit-proxy-routes-"));
+  const proxy = await startRecordingProxy({
+    side: "old",
+    listenHost: "127.0.0.1",
+    listenPort: 0,
+    targetBaseUrl: `http://127.0.0.1:${apiAddress.port}`,
+    artifactDir,
+    scenarioId: "transaction-history",
+    passthroughRoutes: [
+      { pathPrefix: "/includes/js/", targetBaseUrl: `http://127.0.0.1:${staticAddress.port}` },
+    ],
+  });
+
+  try {
+    const staticResponse = await fetch(`${proxy.listenUrl}/includes/js/transfer-popup/index.js`);
+    assert.equal(staticResponse.status, 200);
+    assert.equal(staticResponse.headers.get("content-type"), "application/javascript");
+    assert.equal(await staticResponse.text(), "window.transferPopup = true;");
+
+    const apiResponse = await fetch(`${proxy.listenUrl}/v1/transactions`);
+    assert.equal(apiResponse.status, 200);
+    assert.deepEqual(await apiResponse.json(), { api: true });
+
+    await proxy.stop();
+    const exchanges = (await readFile(proxy.exchangesPath, "utf8")).trim().split("\n").map((line) => JSON.parse(line) as ApiExchange);
+    assert.deepEqual(staticRequests, ["/includes/js/transfer-popup/index.js"]);
+    assert.deepEqual(apiRequests, ["/v1/transactions"]);
+    assert.equal(exchanges.length, 1);
+    assert.match(exchanges[0].request.url, /\/v1\/transactions$/);
+    assert.equal(proxy.exchangeCount, 1);
+  } finally {
+    await proxy.stop();
+    await Promise.all([
+      new Promise<void>((resolve) => api.close(() => resolve())),
+      new Promise<void>((resolve) => staticService.close(() => resolve())),
+    ]);
+  }
+});
+
 test("recording proxy can forward while paused and record after being armed", async () => {
   const upstream = createServer((_request, response) => {
     response.statusCode = 200;

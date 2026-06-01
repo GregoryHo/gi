@@ -92,6 +92,44 @@ test("resolveTargetCapturePlan selects target groups from a version 2 profile", 
   assert.deepEqual(plan.targets[0].upstreamApiCandidates, ["/apis/account/activity"]);
 });
 
+test("resolveTargetCapturePlan keeps configured passthrough routes for frontend assets", async () => {
+  const artifactDir = await writeProfileConfig({
+    version: 2,
+    profiles: {
+      local: {
+        targets: {
+          old: {
+            variant: "baseline",
+            frontendUrl: "http://localhost:8080",
+            upstreamTargetUrl: "http://127.0.0.1:19080",
+            recorderPort: 18080,
+            passthroughRoutes: [
+              { pathPrefix: "/includes/js/", targetBaseUrl: "http://localhost:8080" },
+              { pathPrefix: "/assets/", targetBaseUrl: "http://static.example.test", allowHosts: ["static.example.test"] },
+            ],
+          },
+        },
+      },
+    },
+  });
+  const scenarioDictionaryPath = join(artifactDir, "scenarios.json");
+  await writeFile(scenarioDictionaryPath, JSON.stringify(scenarioDictionary), "utf8");
+
+  const plan = await resolveTargetCapturePlan({
+    artifactDir,
+    scenarioDictionaryPath,
+    scenarioId: "account-activity-basic",
+    profileName: "local",
+    targetIds: ["old"],
+  });
+
+  assert.deepEqual(plan.targets[0].passthroughRoutes, [
+    { pathPrefix: "/includes/js/", targetBaseUrl: "http://localhost:8080" },
+    { pathPrefix: "/assets/", targetBaseUrl: "http://static.example.test", allowHosts: ["static.example.test"] },
+  ]);
+  assert.match(buildTargetCapturePreparation(plan).join("\n"), /passthrough \/includes\/js\/ -> http:\/\/localhost:8080/);
+});
+
 test("resolveTargetCapturePlan supports explicit target selection and one target capture", async () => {
   const artifactDir = await writeProfileConfig({
     version: 2,

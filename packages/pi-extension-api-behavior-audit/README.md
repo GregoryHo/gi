@@ -4,7 +4,7 @@ pi package for collecting and auditing baseline versus candidate backend API beh
 
 ## Status
 
-v0.2.1 is the current local release. It adds programmatic capture lifecycle, bounded automation, review guidance, and persistent proxy/window tools so agents can keep upstream recorder proxies alive while finalizing clean recording artifacts without mandatory HITL browser/manual-done flow. Roadmap and milestone docs live in [`../../docs/pi-extension-api-behavior-audit`](../../docs/pi-extension-api-behavior-audit).
+v0.2.2 is the current local release. It adds programmatic capture lifecycle, bounded automation, review guidance, persistent proxy/window tools, and path-based passthrough routes for legacy local services whose frontend/static paths must not be sent to the API upstream recorder. Roadmap and milestone docs live in [`../../docs/pi-extension-api-behavior-audit`](../../docs/pi-extension-api-behavior-audit).
 
 ## Goal
 
@@ -74,6 +74,33 @@ The account-activity command opens a headed Playwright browser and asks for manu
 The programmatic lifecycle tools manage recorder processes only. They do not open browsers, wait for manual done, modify app config, or mutate the scenario dictionary. Use `api_audit_stop_capture` after the agent or a separate script finishes sending traffic through the returned proxy URLs.
 
 For legacy apps that need stable proxy URLs, use persistent proxy sessions: start `api_audit_start_proxy_session` once, then call `api_audit_start_recording_window` and `api_audit_stop_recording_window` around each audited action. Stopping a recording window finalizes run artifacts, writes a comparison artifact under `<artifactDir>/comparisons/<comparisonRunId>.json`, and keeps proxy sockets open; call `api_audit_stop_proxy_session` only when finished.
+
+If routing a legacy local service through the recorder causes frontend/static files like `/includes/js/...` to return API `404 text/plain` responses, add target-profile `passthroughRoutes` for those path prefixes. Passthrough routes forward matching requests to the configured frontend/static service and do not record them as upstream API exchanges.
+
+Example target profile snippet:
+
+```json
+{
+  "version": 2,
+  "profiles": {
+    "local-old": {
+      "targets": {
+        "old": {
+          "variant": "old",
+          "side": "old",
+          "frontendUrl": "http://localhost:8080",
+          "upstreamTargetUrl": "http://127.0.0.1:19080",
+          "recorderPort": 18080,
+          "passthroughRoutes": [
+            { "pathPrefix": "/includes/js/", "targetBaseUrl": "http://localhost:8080" },
+            { "pathPrefix": "/assets/", "targetBaseUrl": "http://localhost:8080" }
+          ]
+        }
+      }
+    }
+  }
+}
+```
 
 For review, `api_audit_review_capture` can queue existing slash-command review steps for the agent, including `/api-discovery-analyze`, `/api-discovery-suggest`, and `/api-discovery-validate-suggestion`. It also reminds the agent/user that the local human review viewer is `.pi-api-audit-runs/review.html` after running `tools/build-viewer.py`. The viewer build guidance uses `python3`, an absolute path to the package's bundled `tools/build-viewer.py`, and the workspace SOT path (`--sot .pi-api-audit-runs/scenarios.local.json`), so it works when pi is launched from a target workspace rather than this extension repo.
 

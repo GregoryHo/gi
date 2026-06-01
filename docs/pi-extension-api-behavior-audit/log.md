@@ -90,3 +90,4 @@ Append-only product/change history.
 - v0.2.0 product goal: add programmatic start/stop/finalize capture lifecycle and bounded automation hooks so a pi agent can operate safe read-only capture flows without mandatory HITL done confirmation.
 - Completed and sealed v0.2.0 local package release. Added programmatic capture lifecycle tools, bounded automation-script capture, an agent-facing review helper tool for slash-command review steps/local viewer guidance, package/changelog/README updates, and verification evidence. No publish or tag was created.
 - Completed and sealed v0.2.1 local package release. Added persistent proxy/window lifecycle tools and comparison artifact generation on recording-window finalization. No publish or tag was created.
+- Completed and sealed v0.2.2 local package release. Added path-based passthrough routes so local legacy frontend/static paths can bypass API upstream recording while API paths remain recorded. No publish or tag was created.
