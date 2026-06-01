@@ -2,12 +2,14 @@
 
 ## Unreleased
 
+No changes yet.
+
+## 0.2.2 - 2026-06-01
+
 ### Changed
 
 - Clarified the local `review.html` viewer as candidate endpoint curation rather than old/new behavior diff.
 - `review.html` now includes all suggestion artifacts under `.pi-api-audit-runs/candidates/`, even before matching comparison evidence is accepted into the scenario dictionary SOT.
-
-## 0.2.2 - 2026-06-01
 
 ### Fixed
 
@@ -17,7 +19,7 @@
 ### Notes
 
 - This patch supports local legacy server-side services where routing the whole service through the recorder caused static assets to return API 404/text responses.
-- No npm publish or git tag was created by this local release prep.
+- No npm publish was created by this local release prep.
 
 ## 0.2.1 - 2026-06-01
 

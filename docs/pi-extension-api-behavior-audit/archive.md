@@ -10,7 +10,8 @@ Sealed version docs:
 - `versions/0.2.2/milestones.md`
 - `versions/0.2.2/log.md`
 - `versions/0.2.2/m1-path-based-passthrough-routes.md`
-- `versions/0.2.2/m2-release-prep.md`
+- `versions/0.2.2/m2-review-viewer-candidate-curation.md`
+- `versions/0.2.2/m3-release-prep.md`
 
 ## v0.2.1 versioned planning era
 

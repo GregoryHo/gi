@@ -1,4 +1,4 @@
-# v0.2.2 M2 — Release prep
+# v0.2.2 M3 — Release prep
 
 ## Status
 
@@ -19,7 +19,7 @@ Scope:
 Non-goals:
 
 - No npm publish.
-- No git tag unless explicitly requested.
+- Git tag may be created only when explicitly requested.
 
 ## Completion notes
 
