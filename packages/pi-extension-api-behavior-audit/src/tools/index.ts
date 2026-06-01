@@ -10,21 +10,31 @@ import {
 } from "./executors.ts";
 import {
   executeClearEnvironmentProfileTool,
+  executeListActiveCapturesTool,
   executeListTargetsTool,
   executePrepareScenarioDiscoveryTool,
   executePrepareTargetCaptureTool,
+  executeRunAutomatedCaptureTool,
   executeRunScenarioDiscoveryTool,
   executeRunTargetCaptureTool,
+  executeStartCaptureTool,
+  executeStopCaptureTool,
   executeSaveEnvironmentProfileTool,
   executeShowEnvironmentProfilesTool,
 } from "./target-profile-executors.ts";
+import { executeReviewCaptureTool } from "./review-executors.ts";
 import type {
   AccountActivityToolParams,
   ClearEnvironmentProfileToolParams,
   EnvironmentProfileToolParams,
+  AutomatedCaptureToolParams,
+  ListActiveCapturesToolParams,
   ListScenariosParams,
+  ReviewCaptureToolParams,
   ScenarioDiscoveryToolParams,
   ShowEnvironmentProfilesToolParams,
+  StartCaptureToolParams,
+  StopCaptureToolParams,
   TargetCaptureToolParams,
   UpstreamCaptureToolParams,
   ValidateRunParams,
@@ -84,6 +94,16 @@ const ValidateRunParams = Type.Object({
   verifyExchangeCount: Type.Optional(Type.Boolean({ description: "Verify manifest.exchangeCount against exchanges.ndjson line count." })),
 });
 
+const ReviewCaptureParams = Type.Object({
+  action: Type.Optional(Type.String({ description: "Review action: analyze-comparison, suggest-scenario, validate-suggestion, or review-viewer-guidance." })),
+  comparisonPath: Type.Optional(Type.String({ description: "Comparison artifact path for analyze-comparison." })),
+  analysisPath: Type.Optional(Type.String({ description: "Analysis artifact path for suggest-scenario." })),
+  suggestionPath: Type.Optional(Type.String({ description: "Suggestion artifact path for validate-suggestion." })),
+  artifactDir: Type.Optional(Type.String({ description: "Artifact root directory. Defaults to .pi-api-audit-runs." })),
+  scenarioDictionaryPath: Type.Optional(Type.String({ description: "Workspace scenario dictionary SOT path." })),
+  queueCommand: Type.Optional(Type.Boolean({ description: "Queue the generated slash command as a pi follow-up message." })),
+});
+
 const UpstreamCaptureParams = Type.Object({
   scenarioId: Type.String({ description: "Scenario id from the scenario dictionary, for example account-activity-basic." }),
   profileName: Type.Optional(Type.String({ description: "Optional saved environment profile name." })),
@@ -138,6 +158,26 @@ const ScenarioDiscoveryParams = Type.Object({
   candidatePagePath: Type.Optional(Type.String({ description: "Optional page path to open before manual operation." })),
 });
 
+const AutomatedCaptureParams = Type.Object({
+  scenarioId: Type.String({ description: "Scenario id from the scenario dictionary." }),
+  artifactDir: Type.Optional(Type.String({ description: "Artifact root directory. Defaults to .pi-api-audit-runs." })),
+  profileName: Type.Optional(Type.String({ description: "Environment profile name. Defaults to config default profile." })),
+  scenarioDictionaryPath: Type.Optional(Type.String({ description: "Optional target-based scenario dictionary JSON path. Defaults to .pi-api-audit-runs/scenarios.local.json; package examples are not used as fallback." })),
+  targetIds: Type.Optional(Type.Array(Type.String(), { description: "Specific target ids to include." })),
+  groupName: Type.Optional(Type.String({ description: "Target group to include, for example default, all, or candidate-only." })),
+  automationScript: Type.Optional(Type.String({ description: "Workspace-local Node/Playwright automation script to run after recorders start." })),
+  headless: Type.Optional(Type.Boolean({ description: "Pass headless preference to automation metadata. Defaults to true." })),
+  openBrowser: Type.Optional(Type.Boolean({ description: "Whether built-in browser automation should open a browser. M2 supports automationScript with openBrowser false." })),
+  stopOnNetworkIdleMs: Type.Optional(Type.Number({ description: "Reserved network-idle stop hint for automation metadata." })),
+  maxDurationMs: Type.Optional(Type.Number({ description: "Maximum automation duration before timeout cleanup. Defaults to 120000." })),
+});
+
+const StopCaptureParams = Type.Object({
+  captureSessionId: Type.String({ description: "Capture session id returned by api_audit_start_capture." }),
+});
+
+const ListActiveCapturesParams = Type.Object({});
+
 const AccountActivityCaptureParams = Type.Object({
   oldUrl: Type.Optional(Type.String({ description: "Old local page base URL. Defaults to http://localhost:8080." })),
   newUrl: Type.Optional(Type.String({ description: "New local page base URL. Defaults to http://localhost:8008." })),
@@ -176,6 +216,34 @@ export function registerApiAuditTools(pi: ExtensionAPI): void {
     parameters: ValidateRunParams,
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
       return executeValidateRunTool(await resolveToolPathParams(params as ValidateRunParams, ctx.cwd, ["runDir"]));
+    },
+  });
+
+  pi.registerTool({
+    name: "api_audit_review_capture",
+    label: "Review API audit capture",
+    description: "Build or queue API discovery review slash commands and point users to the local review viewer.",
+    promptSnippet: "Review API audit captures via slash-command pipeline and local review viewer guidance",
+    promptGuidelines: [
+      "Use api_audit_review_capture after capture artifacts exist and the user wants analysis, scenario suggestion validation, or local review viewer guidance.",
+      "api_audit_review_capture can queue supported /api-discovery-* slash commands when queueCommand is true.",
+      "api_audit_review_capture should mention the local review viewer .pi-api-audit-runs/review.html for human review.",
+    ],
+    parameters: ReviewCaptureParams,
+    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+      const resolved = await resolveToolPathParams(params as ReviewCaptureToolParams, ctx.cwd, [
+        "comparisonPath",
+        "analysisPath",
+        "suggestionPath",
+        "artifactDir",
+        "scenarioDictionaryPath",
+      ]);
+      const result = executeReviewCaptureTool(resolved);
+      const slashCommand = result.details.slashCommand;
+      if (resolved.queueCommand && typeof slashCommand === "string") {
+        pi.sendUserMessage(slashCommand, { deliverAs: "followUp" });
+      }
+      return result;
     },
   });
 
@@ -341,6 +409,68 @@ export function registerApiAuditTools(pi: ExtensionAPI): void {
   });
 
   pi.registerTool({
+    name: "api_audit_start_capture",
+    label: "Start API audit capture",
+    description: "Start selected API audit upstream recorders without opening browsers or waiting for manual completion.",
+    promptSnippet: "Start API audit recorders and return capture session/proxy URLs",
+    promptGuidelines: [
+      "Use api_audit_start_capture when the user wants the agent to start API audit recorders programmatically without browser/manual done flow.",
+      "api_audit_start_capture does not modify app config and returns a captureSessionId for api_audit_stop_capture.",
+    ],
+    parameters: TargetCaptureParams,
+    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+      return executeStartCaptureTool(
+        await resolveToolPathParams(params as StartCaptureToolParams, ctx.cwd, ["artifactDir", "scenarioDictionaryPath"]),
+      );
+    },
+  });
+
+  pi.registerTool({
+    name: "api_audit_stop_capture",
+    label: "Stop API audit capture",
+    description: "Stop and finalize a live programmatic API audit capture session.",
+    promptSnippet: "Stop API audit recorders and finalize manifests/exchange counts",
+    promptGuidelines: [
+      "Use api_audit_stop_capture after api_audit_start_capture when the agent has finished operating the target app or script.",
+    ],
+    parameters: StopCaptureParams,
+    async execute(_toolCallId, params) {
+      return executeStopCaptureTool(params as StopCaptureToolParams);
+    },
+  });
+
+  pi.registerTool({
+    name: "api_audit_list_active_captures",
+    label: "List active API audit captures",
+    description: "List live programmatic API audit capture sessions in this pi extension runtime.",
+    promptSnippet: "List live API audit capture sessions and recorder proxy URLs",
+    promptGuidelines: [
+      "Use api_audit_list_active_captures when the user asks which API audit captures are currently running.",
+    ],
+    parameters: ListActiveCapturesParams,
+    async execute(_toolCallId, params) {
+      return executeListActiveCapturesTool(params as ListActiveCapturesToolParams);
+    },
+  });
+
+  pi.registerTool({
+    name: "api_audit_run_automated_capture",
+    label: "Run automated API audit capture",
+    description: "Start recorders, run a bounded workspace automation script, then stop/finalize capture artifacts.",
+    promptSnippet: "Run API audit capture with automationScript and automatic stop/finalize",
+    promptGuidelines: [
+      "Use api_audit_run_automated_capture when the user wants the agent to run a headless/scripted API audit capture without manual done confirmation.",
+      "api_audit_run_automated_capture requires automationScript in M2 and must not modify app config automatically.",
+    ],
+    parameters: AutomatedCaptureParams,
+    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+      return executeRunAutomatedCaptureTool(
+        await resolveToolPathParams(params as AutomatedCaptureToolParams, ctx.cwd, ["artifactDir", "scenarioDictionaryPath", "automationScript"]),
+      );
+    },
+  });
+
+  pi.registerTool({
     name: "api_audit_prepare_scenario_discovery",
     label: "Prepare API audit scenario discovery",
     description: "Prepare manual-assisted scenario discovery without requiring the scenario dictionary entry to exist.",
@@ -375,4 +505,5 @@ export function registerApiAuditTools(pi: ExtensionAPI): void {
 }
 
 export * from "./executors.ts";
+export * from "./review-executors.ts";
 export * from "./target-profile-executors.ts";

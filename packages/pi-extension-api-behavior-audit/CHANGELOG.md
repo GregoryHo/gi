@@ -4,6 +4,28 @@
 
 No changes yet.
 
+## 0.2.0 - 2026-06-01
+
+### Added
+
+- Programmatic capture lifecycle tools: `api_audit_start_capture`, `api_audit_stop_capture`, and `api_audit_list_active_captures`.
+- In-memory capture session registry for recorder-only start/list/stop workflows with old/new compatibility aliases and final exchange summaries.
+- Best-effort shutdown cleanup for active programmatic capture sessions.
+- Bounded automation runner tool: `api_audit_run_automated_capture` starts recorders, writes metadata, runs a workspace-local `automationScript`, and stops/finalizes artifacts automatically.
+- Automation metadata handoff for capture session id, target frontend/page paths, recorder proxy URLs, run dirs, `headless`, and timeout hints.
+- Review helper tool: `api_audit_review_capture` can queue supported `/api-discovery-*` slash-command review steps and points users to the local `review.html` viewer using `python3`, the package's absolute bundled viewer-builder path, and the workspace scenario dictionary SOT path.
+
+### Changed
+
+- README now documents programmatic capture and automation-script workflows.
+- Package file list now includes the new capture lifecycle and automation runtime modules.
+
+### Notes
+
+- M2 supports `automationScript` with `openBrowser: false`; built-in browser automation remains deferred.
+- `stopOnNetworkIdleMs` is passed through automation metadata for scripts, but internal recorder-idle detection is deferred.
+- No npm publish or git tag was created by this local release prep.
+
 ## 0.1.1 - 2026-05-29
 
 ### Fixed

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { isAbsolute, join } from "node:path";
 import { tmpdir } from "node:os";
 import test from "node:test";
 
@@ -14,15 +14,22 @@ import {
   executePrepareScenarioDiscoveryTool,
   executePrepareTargetCaptureTool,
   executePrepareUpstreamCaptureTool,
+  executeListActiveCapturesTool,
   executeRunScenarioDiscoveryTool,
   executeRunTargetCaptureTool,
   executeRunUpstreamCaptureTool,
+  executeStartCaptureTool,
+  executeStopCaptureTool,
+  executeReviewCaptureTool,
   executeRunAccountActivityUpstreamCaptureTool,
+  executeRunAutomatedCaptureTool,
   executeSaveEnvironmentProfileTool,
   executeShowEnvironmentProfilesTool,
   executeValidateRunTool,
   registerApiAuditTools,
 } from "./index.ts";
+import { CaptureSessionRegistry } from "../core/capture-lifecycle.ts";
+import type { TargetRecorderHandle } from "../adapters/target-capture.ts";
 import type { ApiExchange, CaptureManifest } from "../types.ts";
 
 const validManifest: CaptureManifest = {
@@ -59,6 +66,7 @@ test("registerApiAuditTools registers natural-language tool entrypoints", () => 
     [
       "api_audit_list_scenarios",
       "api_audit_validate_run",
+      "api_audit_review_capture",
       "api_audit_prepare_account_history_upstream_capture",
       "api_audit_run_account_history_upstream_capture",
       "api_audit_prepare_upstream_capture",
@@ -69,6 +77,10 @@ test("registerApiAuditTools registers natural-language tool entrypoints", () => 
       "api_audit_list_targets",
       "api_audit_prepare_target_capture",
       "api_audit_run_target_capture",
+      "api_audit_start_capture",
+      "api_audit_stop_capture",
+      "api_audit_list_active_captures",
+      "api_audit_run_automated_capture",
       "api_audit_prepare_scenario_discovery",
       "api_audit_run_scenario_discovery",
     ],
@@ -256,6 +268,139 @@ test("target-based tools list and prepare selected targets", async () => {
   assert.equal(prepared.details.targetCount, 1);
 });
 
+test("programmatic capture lifecycle tools start list and stop recorders without UI confirmation", async () => {
+  const scenarioDictionaryPath = await writeScenarioDictionaryFixture();
+  const artifactDir = await mkdtemp(join(tmpdir(), "api-audit-programmatic-capture-tool-"));
+  await saveEnvironmentProfile(artifactDir, "uat", {
+    oldUrl: "http://localhost:8080",
+    newUrl: "http://localhost:8008",
+    oldTargetUrl: "http://127.0.0.1:19080",
+    newTargetUrl: "http://127.0.0.1:19081",
+    oldProxyPort: 18080,
+    newProxyPort: 18081,
+  });
+  const registry = new CaptureSessionRegistry({ createSessionId: () => "capture-tool" });
+  const events: string[] = [];
+
+  const started = await executeStartCaptureTool(
+    {
+      artifactDir,
+      scenarioDictionaryPath,
+      profileName: "uat",
+      scenarioId: "account-activity-basic",
+    },
+    {
+      registry,
+      startRecorder: async (target) => fakeLifecycleRecorder(target.targetId, target.recorderUrl, target.targetId === "old" ? 1 : 0, events),
+    },
+  );
+  const listed = await executeListActiveCapturesTool({}, { registry });
+  const stopped = await executeStopCaptureTool({ captureSessionId: "capture-tool" }, { registry });
+  const listedAfterStop = await executeListActiveCapturesTool({}, { registry });
+
+  assert.deepEqual(events, ["start:old", "start:new", "stop:old", "stop:new"]);
+  assert.match(started.content[0].text, /Capture session started: capture-tool/);
+  assert.equal(started.details.captureSessionId, "capture-tool");
+  assert.equal(started.details.oldProxyUrl, "http://127.0.0.1:18080");
+  assert.equal(started.details.newProxyUrl, "http://127.0.0.1:18081");
+  assert.match(listed.content[0].text, /capture-tool/);
+  assert.equal(stopped.details.status, "stopped");
+  assert.deepEqual(stopped.details.warnings, ["No upstream exchanges were recorded for target new; confirm the app points to http://127.0.0.1:18081."]);
+  assert.match(listedAfterStop.content[0].text, /none/);
+});
+
+test("executeReviewCaptureTool builds slash command and local review viewer guidance", async () => {
+  const result = await executeReviewCaptureTool({
+    action: "analyze-comparison",
+    comparisonPath: "/workspace/.pi-api-audit-runs/comparisons/comparison-1.json",
+    artifactDir: "/workspace/.pi-api-audit-runs",
+    scenarioDictionaryPath: "/workspace/.pi-api-audit-runs/scenarios.local.json",
+  });
+
+  assert.equal(result.details.slashCommand, "/api-discovery-analyze --comparison /workspace/.pi-api-audit-runs/comparisons/comparison-1.json --artifact-dir /workspace/.pi-api-audit-runs --scenario-dictionary /workspace/.pi-api-audit-runs/scenarios.local.json");
+  assert.match(result.content[0].text, /review.html/);
+  assert.match(result.content[0].text, /python3 /);
+  assert.doesNotMatch(result.content[0].text, /python packages\/pi-extension-api-behavior-audit\/tools\/build-viewer.py/);
+  const viewer = result.details.localReviewViewer as { buildScriptPath: string; buildCommand: string; sotPath: string; runsDir: string };
+  assert.equal(isAbsolute(viewer.buildScriptPath), true);
+  assert.match(viewer.buildScriptPath, /packages\/pi-extension-api-behavior-audit\/tools\/build-viewer.py$/);
+  assert.equal(viewer.sotPath, "/workspace/.pi-api-audit-runs/scenarios.local.json");
+  assert.equal(viewer.runsDir, "/workspace/.pi-api-audit-runs");
+  assert.match(viewer.buildCommand, new RegExp(`^python3 ${viewer.buildScriptPath.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} --sot /workspace/.pi-api-audit-runs/scenarios.local.json --runs-dir /workspace/.pi-api-audit-runs`));
+  assert.match(result.content[0].text, /Scenario dictionary SOT is not modified automatically/);
+});
+
+test("registered review capture tool can queue supported slash commands", async () => {
+  const queued: Array<{ content: string; options?: { deliverAs?: string } }> = [];
+  let reviewTool: { execute: (...args: never[]) => Promise<{ content: Array<{ text: string }>; details: Record<string, unknown> }> } | undefined;
+  registerApiAuditTools({
+    sendUserMessage(content: string, options?: { deliverAs?: string }) {
+      queued.push({ content, options });
+    },
+    registerTool(definition: { name: string; execute: (...args: never[]) => Promise<{ content: Array<{ text: string }>; details: Record<string, unknown> }> }) {
+      if (definition.name === "api_audit_review_capture") reviewTool = definition;
+    },
+  } as never);
+
+  const result = await reviewTool?.execute("tool-1" as never, {
+    action: "suggest-scenario",
+    analysisPath: "analysis/comparison-1.json",
+    queueCommand: true,
+  } as never, undefined as never, undefined as never, {
+    cwd: "/workspace",
+    hasUI: false,
+    ui: {},
+  } as never);
+
+  assert.ok(result);
+  assert.deepEqual(queued, [{
+    content: "/api-discovery-suggest --analysis /workspace/analysis/comparison-1.json --artifact-dir /workspace/.pi-api-audit-runs --scenario-dictionary /workspace/.pi-api-audit-runs/scenarios.local.json",
+    options: { deliverAs: "followUp" },
+  }]);
+  assert.equal(result.details.queued, true);
+});
+
+test("executeRunAutomatedCaptureTool runs script automation and finalizes capture", async () => {
+  const scenarioDictionaryPath = await writeScenarioDictionaryFixture();
+  const artifactDir = await mkdtemp(join(tmpdir(), "api-audit-automated-capture-tool-"));
+  await saveEnvironmentProfile(artifactDir, "uat", {
+    oldUrl: "http://localhost:8080",
+    newUrl: "http://localhost:8008",
+    oldTargetUrl: "http://127.0.0.1:19080",
+    newTargetUrl: "http://127.0.0.1:19081",
+    oldProxyPort: 18080,
+    newProxyPort: 18081,
+  });
+  const registry = new CaptureSessionRegistry({ createSessionId: () => "capture-automated-tool" });
+  const events: string[] = [];
+
+  const result = await executeRunAutomatedCaptureTool(
+    {
+      artifactDir,
+      scenarioDictionaryPath,
+      profileName: "uat",
+      scenarioId: "account-activity-basic",
+      automationScript: join(artifactDir, "probe.mjs"),
+      openBrowser: false,
+      headless: true,
+      maxDurationMs: 1000,
+    },
+    {
+      registry,
+      startRecorder: async (target) => fakeLifecycleRecorder(target.targetId, target.recorderUrl, 1, events),
+      runScript: async ({ metadata }) => {
+        events.push(`script:${metadata.captureSessionId}`);
+        return { status: "succeeded", exitCode: 0, stdout: "ok", stderr: "" };
+      },
+    },
+  );
+
+  assert.deepEqual(events, ["start:old", "start:new", "script:capture-automated-tool", "stop:old", "stop:new"]);
+  assert.match(result.content[0].text, /Automated capture complete/);
+  assert.equal(result.details.capture.captureSessionId, "capture-automated-tool");
+  assert.equal(result.details.automation.status, "succeeded");
+});
+
 test("executeRunTargetCaptureTool runs selected targets with explicit confirmation", async () => {
   const scenarioDictionaryPath = await writeScenarioDictionaryFixture();
   const artifactDir = await mkdtemp(join(tmpdir(), "api-audit-target-run-tool-"));
@@ -433,6 +578,20 @@ test("executeRunUpstreamCaptureTool uses scenarioId and scenario paths for captu
   const oldDetails = result.details.old as { exchangeCount: number };
   assert.equal(oldDetails.exchangeCount, 2);
 });
+
+function fakeLifecycleRecorder(targetId: string, listenUrl: string, exchangeCount: number, events: string[]): TargetRecorderHandle {
+  events.push(`start:${targetId}`);
+  return {
+    runId: `${targetId}-run`,
+    listenUrl,
+    manifestPath: `/runs/${targetId}-run/manifest.json`,
+    exchangesPath: `/runs/${targetId}-run/exchanges.ndjson`,
+    exchangeCount,
+    stop: async () => {
+      events.push(`stop:${targetId}`);
+    },
+  };
+}
 
 async function writeScenarioDictionaryFixture(): Promise<string> {
   const root = await mkdtemp(join(tmpdir(), "api-audit-scenario-fixture-"));

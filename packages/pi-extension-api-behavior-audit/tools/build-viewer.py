@@ -10,9 +10,9 @@ artifacts, analysis artifacts, suggestion artifacts (review only), and raw
 exchange NDJSON for each referenced run (report only).
 
 Usage:
-    python build-viewer.py
-    python build-viewer.py --scenario account-activity-basic
-    python build-viewer.py --sot custom/dictionary.json --runs-dir ./.audit-runs
+    python3 build-viewer.py
+    python3 build-viewer.py --scenario account-activity-basic
+    python3 build-viewer.py --sot custom/dictionary.json --runs-dir ./.audit-runs
 """
 from __future__ import annotations
 
@@ -33,9 +33,9 @@ from audit_viewer import (  # noqa: E402  (path injection precedes import)
     write_viewer,
 )
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
-DEFAULT_SOT = REPO_ROOT / "packages/pi-extension-api-behavior-audit/scenarios/default.scenarios.json"
-DEFAULT_RUNS_DIR = REPO_ROOT / ".pi-api-audit-runs"
+DEFAULT_WORKSPACE_ROOT = Path.cwd()
+DEFAULT_RUNS_DIR = DEFAULT_WORKSPACE_ROOT / ".pi-api-audit-runs"
+DEFAULT_SOT = DEFAULT_RUNS_DIR / "scenarios.local.json"
 TOOLS_DIR = Path(__file__).resolve().parent
 DEFAULT_REPORT_TEMPLATE = TOOLS_DIR / "viewer-template.html"
 DEFAULT_REVIEW_TEMPLATE = TOOLS_DIR / "review-template.html"

@@ -2,6 +2,17 @@
 
 Completed or superseded planning docs are indexed here for traceability.
 
+## v0.2.0 versioned planning era
+
+Sealed version docs:
+
+- `versions/0.2.0/index.md`
+- `versions/0.2.0/milestones.md`
+- `versions/0.2.0/log.md`
+- `versions/0.2.0/m1-programmatic-capture-lifecycle.md`
+- `versions/0.2.0/m2-headless-automation-runner.md`
+- `versions/0.2.0/m3-release-prep.md`
+
 ## v0.1.1 versioned planning era
 
 Sealed version docs:

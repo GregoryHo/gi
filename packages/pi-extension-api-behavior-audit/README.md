@@ -4,7 +4,7 @@ pi package for collecting and auditing baseline versus candidate backend API beh
 
 ## Status
 
-v0.1.1 is a local patch release of the v0.1.0 MVP baseline. It fixes workspace-aware path defaults so mutable artifacts and profile config resolve from the active pi workspace. Roadmap and milestone docs live in [`../../docs/pi-extension-api-behavior-audit`](../../docs/pi-extension-api-behavior-audit).
+v0.2.0 is in development. The current milestones add programmatic capture lifecycle and bounded automation tools so agents can start upstream recorders, run a workspace script, and stop/finalize artifacts without mandatory HITL browser/manual-done flow. Roadmap and milestone docs live in [`../../docs/pi-extension-api-behavior-audit`](../../docs/pi-extension-api-behavior-audit).
 
 ## Goal
 
@@ -37,6 +37,7 @@ The extension registers natural-language-callable pi tools:
 
 - `api_audit_list_scenarios` — list scenario dictionary entries.
 - `api_audit_validate_run` — validate a run directory with schema-backed loaders.
+- `api_audit_review_capture` — build or queue review slash commands and point users to the local `review.html` viewer.
 - `api_audit_prepare_account_history_upstream_capture` — prepare recorder/app configuration guidance for account-activity.
 - `api_audit_run_account_history_upstream_capture` — run the interactive account-activity upstream capture flow.
 - `api_audit_prepare_upstream_capture` — prepare recorder/app guidance for any known scenario id.
@@ -47,6 +48,10 @@ The extension registers natural-language-callable pi tools:
 - `api_audit_list_targets` — list target-based capture targets for a scenario/profile/group.
 - `api_audit_prepare_target_capture` — prepare target-based capture instructions without starting proxies/browsers.
 - `api_audit_run_target_capture` — run target-based capture with recorders and Playwright manual-auth flow.
+- `api_audit_start_capture` — start selected upstream recorders only and return a `captureSessionId`, run dirs, and proxy URLs.
+- `api_audit_stop_capture` — stop/finalize a live capture session and report final exchange counts/manifest paths.
+- `api_audit_list_active_captures` — list live programmatic capture sessions in the current pi extension runtime.
+- `api_audit_run_automated_capture` — start recorders, run a bounded workspace `automationScript`, then stop/finalize artifacts automatically.
 
 It also keeps slash commands for precise manual invocation:
 
@@ -64,6 +69,25 @@ It also keeps slash commands for precise manual invocation:
 - `/api-audit profile clear uat` — remove a saved profile.
 
 The account-activity command opens a headed Playwright browser and asks for manual-auth confirmation for old and new local sites. Layer A artifacts are validation-only and are not final backend behavior evidence.
+
+The programmatic lifecycle tools manage recorder processes only. They do not open browsers, wait for manual done, modify app config, or mutate the scenario dictionary. Use `api_audit_stop_capture` after the agent or a separate script finishes sending traffic through the returned proxy URLs.
+
+For review, `api_audit_review_capture` can queue existing slash-command review steps for the agent, including `/api-discovery-analyze`, `/api-discovery-suggest`, and `/api-discovery-validate-suggestion`. It also reminds the agent/user that the local human review viewer is `.pi-api-audit-runs/review.html` after running `tools/build-viewer.py`. The viewer build guidance uses `python3`, an absolute path to the package's bundled `tools/build-viewer.py`, and the workspace SOT path (`--sot .pi-api-audit-runs/scenarios.local.json`), so it works when pi is launched from a target workspace rather than this extension repo.
+
+For one-shot automation, use `api_audit_run_automated_capture` with a workspace-local Node/Playwright script:
+
+```json
+{
+  "scenarioId": "account-activity-basic",
+  "profileName": "uat",
+  "automationScript": ".pi-api-audit-runs/probe.mjs",
+  "openBrowser": false,
+  "headless": true,
+  "maxDurationMs": 120000
+}
+```
+
+The script receives a metadata file path as its first CLI argument and in `API_AUDIT_AUTOMATION_METADATA_PATH`. Metadata includes `captureSessionId`, target frontend/page paths, proxy URLs, run dirs, and `headless`. M2 implements script-completion and max-duration cleanup; `stopOnNetworkIdleMs` is preserved as metadata for scripts but is not yet an internal recorder idle detector.
 
 The proxy command listens on loopback, forwards requests to a local or explicitly allowlisted target, and writes sanitized upstream `exchanges.ndjson` artifacts. It does not print raw payloads to the pi UI.
 
@@ -90,6 +114,9 @@ When commands/tools run inside pi, mutable local paths resolve from the active p
 - M11 scenario discovery evidence collection with comparison grouping and browser context.
 - M12 deterministic comparison analysis, scenario suggestions/validation, reviewed comparison evidence, evidence pipeline docs, and local viewers.
 - v0.1.1 workspace-aware command/tool path resolution for mutable local artifacts and profile config.
+- v0.2.0 M1 programmatic capture lifecycle primitives for starting, listing, and stopping recorder-only capture sessions.
+- v0.2.0 M2 bounded `automationScript` runner that composes start → script → stop/finalize with timeout cleanup and metadata handoff.
+- v0.2.0 review helper tool that can queue existing `/api-discovery-*` slash-command review steps and points users to the local `review.html` viewer.
 
 ## Local viewers
 
@@ -99,7 +126,9 @@ a workspace-owned scenario dictionary plus the accompanying artifacts under
 SOT; use a repo-specific dictionary such as `.pi-api-audit-runs/scenarios.local.json`.
 
 ```bash
-python packages/pi-extension-api-behavior-audit/tools/build-viewer.py
+python3 /absolute/path/to/packages/pi-extension-api-behavior-audit/tools/build-viewer.py \
+  --sot .pi-api-audit-runs/scenarios.local.json \
+  --runs-dir .pi-api-audit-runs
 open .pi-api-audit-runs/index.html   # report viewer (macOS)
 open .pi-api-audit-runs/review.html  # suggestion review (macOS)
 ```

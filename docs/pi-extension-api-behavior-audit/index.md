@@ -2,11 +2,11 @@
 
 ## Current stable version
 
-- Version: `0.1.1`
+- Version: `0.2.0`
 - Package: `packages/pi-extension-api-behavior-audit`
 - Status: Release prep complete; local package release sealed in docs.
-- Version docs: `versions/0.1.1/` is indexed in `archive.md`.
-- Current package version: `0.1.1`
+- Version docs: `versions/0.2.0/` is indexed in `archive.md`.
+- Current package version: `0.2.0`
 
 ## Active planning version
 
@@ -17,6 +17,8 @@ None. Start future product iterations under `versions/<semver>/` before implemen
 - `roadmap.md` — broad product direction and Layer A/B framing.
 - `milestones.md` — sealed MVP milestone tracker for v0.1.0.
 - `versions/README.md` — versioned planning convention.
+- `versions/0.2.0/index.md` — sealed v0.2.0 programmatic capture lifecycle and automation release index.
+- `versions/0.2.0/milestones.md` — sealed v0.2.0 milestone tracker.
 - `versions/0.1.1/index.md` — sealed v0.1.1 path-fix planning/release index.
 - `versions/0.1.1/milestones.md` — sealed v0.1.1 milestone tracker.
 - `artifact-schema.md` — artifact layout and schema contract for `manifest.json` and `exchanges.ndjson`.
@@ -56,4 +58,4 @@ M10 completed the target-based capture model, N-target planning/run, target meta
 
 v0.1.1 delivered a patch-level workspace path fix: mutable API audit paths resolve from the user's active pi workspace root (`ctx.cwd` → Git root fallback model), not from the extension development repo.
 
-Future product iterations should use versioned docs under `versions/<semver>/` before implementation starts.
+v0.2.0 delivered programmatic capture lifecycle tools, bounded automation-script capture, and an agent-facing review helper so agents can start/stop/finalize safe read-only recorder flows and queue review slash-command steps without mandatory HITL done confirmation. Future product iterations should use versioned docs under `versions/<semver>/` before implementation starts.

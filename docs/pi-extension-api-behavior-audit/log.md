@@ -83,3 +83,9 @@ Append-only product/change history.
 - Completed v0.1.1 M1 workspace path resolution. Commands/tools now resolve mutable API-audit paths from pi `ctx.cwd` with Git-root preference; package assets remain package-relative. Verification passed: package test/typecheck/pack dry run and root typecheck.
 - Completed and sealed v0.1.1 local package release. Package version/changelog updated to `0.1.1`, version docs archived, release policy updated, and verification passed: package version check, package test/typecheck/pack dry run, and root typecheck. No publish or tag was created.
 - Added a v0.1.1 follow-up to remove package scenario fallback from runtime flows. Scenario dictionaries are workspace/repo-owned; package scenario data is example-only, so using the extension from a business repo no longer lists package `account-activity-basic` by default.
+
+## 2026-06-01
+
+- Started v0.2.0 planning on branch `feature/api-behavior-audit-0.2.0-programmatic-capture`. Active version docs live under `versions/0.2.0/`.
+- v0.2.0 product goal: add programmatic start/stop/finalize capture lifecycle and bounded automation hooks so a pi agent can operate safe read-only capture flows without mandatory HITL done confirmation.
+- Completed and sealed v0.2.0 local package release. Added programmatic capture lifecycle tools, bounded automation-script capture, an agent-facing review helper tool for slash-command review steps/local viewer guidance, package/changelog/README updates, and verification evidence. No publish or tag was created.
