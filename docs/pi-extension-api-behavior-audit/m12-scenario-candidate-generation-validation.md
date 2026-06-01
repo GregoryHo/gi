@@ -283,7 +283,7 @@ It writes self-contained `file://` HTML artifacts under `.pi-api-audit-runs/`:
 
 The report viewer starts from `scenarios/default.scenarios.json`, follows `evidence.comparisons[]`, loads comparison/analysis/raw run artifacts, and renders scenario coverage, browser-visible context, upstream summaries, raw timelines, path catalog, manual old/new pair comparison, and response/header/body diffs.
 
-The review viewer starts from suggestion artifacts under `.pi-api-audit-runs/candidates/`, lets a reviewer toggle observed endpoints for inclusion/exclusion, and exports Markdown or a field-named `scenario-dictionary-patch` v1 handback. It does not mutate the scenario dictionary SOT.
+The review viewer starts from all suggestion artifacts under `.pi-api-audit-runs/candidates/`, including candidates whose comparison evidence has not yet been accepted into SOT `evidence.comparisons[]`. It lets a reviewer toggle observed endpoints for inclusion/exclusion, and exports Markdown or a field-named `scenario-dictionary-patch` v1 handback. It does not mutate the scenario dictionary SOT and is not an old/new behavior-diff view; use `index.html` report mode for old/new behavior comparison.
 
 ### Candidate validation behavior
 

@@ -268,6 +268,8 @@ Do not support baseline `evidence.layerA` / `evidence.layerB` formats. The packa
 
 ## Review workflow
 
+`review.html` is a candidate endpoint curation / handback viewer. It reads all suggestion artifacts under `.pi-api-audit-runs/candidates/`, including suggestions whose comparison evidence has not yet been accepted into the scenario dictionary SOT. Its old/new endpoint tables are for deciding what to add to `browserApiAllowlist.old/new` and `upstreamApiCandidates.old/new`; they are not old/new behavior-diff tables. Use `index.html` report mode for behavior comparison.
+
 Recommended human/LLM review order:
 
 1. Review the suggestion artifact first.
@@ -283,6 +285,7 @@ Review questions:
 - Are `possibleAdditionalUpstream` endpoints core scenario behavior or surrounding page traffic?
 - Are `backgroundCandidates` correctly excluded from core candidates?
 - Does the evidence support adding a comparison lineage entry to the scenario dictionary?
+- In `review.html`, should each observed old/new endpoint be kept as a scenario dictionary candidate, or excluded as background/noise?
 
 ## Report guidance
 

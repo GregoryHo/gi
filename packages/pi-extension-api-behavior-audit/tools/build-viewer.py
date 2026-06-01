@@ -115,6 +115,7 @@ def main() -> int:
     review_payload = build_review_payload(
         bundles,
         generated_at=generated_at, sot_path=sot_path_str,
+        suggestions=suggestions,
     )
     review_html = render_html(args.review_template, review_payload, shared_js)
     review_output = args.review_output or (args.runs_dir / "review.html")

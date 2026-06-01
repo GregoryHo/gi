@@ -192,9 +192,9 @@ scenario + comparison the viewer shows:
 Switch scenarios or comparisons via the top-bar dropdowns; the URL hash
 (`#scenario=…&comparison=…`) preserves the selection on reload.
 
-### `review.html` — suggestion review (handback)
+### `review.html` — candidate endpoint curation (handback)
 
-Driven by suggestion artifacts under `.pi-api-audit-runs/candidates/`.
+Driven by all suggestion artifacts under `.pi-api-audit-runs/candidates/`, even before the matching comparison has been accepted into scenario dictionary `evidence.comparisons[]`.
 Browse each suggestion, toggle which observed endpoints should join the
 scenario allowlist / upstream candidates (matches-known endpoints are
 checked by default; background candidates are dimmed and unchecked), then
@@ -207,9 +207,11 @@ hand back the curated decisions as:
   field-named pattern in `src/scenario-suggestion.ts`, not RFC 6902)
 - **Download .md** — produces `<scenarioId>-<comparisonRunId>.md`
 
+The review viewer is not an old/new behavior-diff view. Its old/new tables curate which observed paths should be written to `browserApiAllowlist.old/new` and `upstreamApiCandidates.old/new`. Use `index.html` report mode for behavior comparison, timelines, pair building, and body/header diffs.
+
 The export preview re-renders live as you toggle checkboxes or type into
 the notes field. The top-right "open in report →" link opens the matching
-comparison in `index.html`.
+comparison in `index.html` when that comparison is available in report mode.
 
 ### CLI flags
 
