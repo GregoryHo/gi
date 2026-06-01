@@ -5,6 +5,7 @@
 ### Added
 
 - Persistent proxy/window lifecycle tools so agents can keep recorder proxy sockets alive while starting and stopping clean recording windows independently.
+- Recording window finalization now writes comparison artifacts and returns `comparisonPath` for analyze/suggest/review follow-up.
 
 ## 0.2.0 - 2026-06-01
 

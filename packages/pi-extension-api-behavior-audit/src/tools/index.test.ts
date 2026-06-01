@@ -351,6 +351,8 @@ test("persistent proxy tools finalize recording windows without stopping proxies
   assert.equal(started.details.oldProxyUrl, "http://127.0.0.1:18080");
   assert.equal(window.details.comparisonRunId, "comparison-tool");
   assert.equal(stoppedWindow.details.status, "stopped");
+  assert.match(stoppedWindow.details.comparisonPath as string, /comparisons\/comparison-tool\.json$/);
+  assert.match(stoppedWindow.content[0].text, /comparison-tool\.json/);
   const listedSessions = listed.details.sessions as Array<{ status: string }>;
   assert.equal(listedSessions[0].status, "active");
   assert.equal(stoppedProxy.details.status, "stopped");

@@ -1,6 +1,6 @@
 import { dirname } from "node:path";
 
-import { createComparisonRunId } from "../adapters/artifacts.ts";
+import { createComparisonRunId, writeComparisonRun } from "../adapters/artifacts.ts";
 import {
   startRecordingProxy,
   type RecordingWindowHandle,
@@ -11,6 +11,7 @@ import type {
   TargetCapturePlan,
   TargetRecorderHandle,
 } from "../adapters/target-capture.ts";
+import type { ComparisonRunArtifact } from "../types.ts";
 
 export type ProxySessionStatus = "active" | "stopped";
 export type RecordingWindowStatus = "active" | "stopped";
@@ -60,6 +61,7 @@ export interface RecordingWindowSummary extends Record<string, unknown> {
   status: RecordingWindowStatus;
   scenarioId: string;
   comparisonRunId: string;
+  comparisonPath?: string;
   targets: RecordingWindowTargetSummary[];
   warnings: string[];
   startedAt: string;
@@ -102,6 +104,7 @@ interface RecordingWindowRecord {
   comparisonRunId: string;
   targets: Array<{ target: ResolvedTargetCaptureTarget; proxy: PersistentProxyRecorderHandle; window: RecordingWindowHandle }>;
   warnings: string[];
+  comparisonPath?: string;
   startedAt: string;
   stoppedAt?: string;
   finalSummary?: RecordingWindowSummary;
@@ -197,10 +200,12 @@ export class ProxySessionRegistry {
     window.status = "stopped";
     window.stoppedAt = this.now().toISOString();
     window.warnings = buildWindowWarnings(window.targets);
+    const session = this.proxySessions.get(window.proxySessionId);
+    if (!session) throw new Error(`Proxy session not found: ${window.proxySessionId}`);
+    window.comparisonPath = await writeComparisonRun(session.plan.artifactDir, buildComparisonRunArtifact(window));
     window.finalSummary = summarizeRecordingWindow(window);
 
-    const session = this.proxySessions.get(window.proxySessionId);
-    if (session?.activeRecordingWindowId === recordingWindowId) delete session.activeRecordingWindowId;
+    if (session.activeRecordingWindowId === recordingWindowId) delete session.activeRecordingWindowId;
     return window.finalSummary;
   }
 
@@ -316,11 +321,36 @@ function summarizeRecordingWindow(window: RecordingWindowRecord): RecordingWindo
     status: window.status,
     scenarioId: window.scenarioId,
     comparisonRunId: window.comparisonRunId,
+    ...(window.comparisonPath ? { comparisonPath: window.comparisonPath } : {}),
     targets,
     warnings: [...window.warnings],
     startedAt: window.startedAt,
     ...(window.stoppedAt ? { stoppedAt: window.stoppedAt } : {}),
     ...buildWindowAliases(targets),
+  };
+}
+
+function buildComparisonRunArtifact(window: RecordingWindowRecord): ComparisonRunArtifact {
+  return {
+    version: 1,
+    kind: "api-behavior-comparison-run",
+    comparisonRunId: window.comparisonRunId,
+    candidateScenarioId: window.scenarioId,
+    createdAt: window.startedAt,
+    ...(window.stoppedAt ? { updatedAt: window.stoppedAt } : {}),
+    targets: Object.fromEntries(
+      window.targets.map(({ target, window: recordingWindow }) => [
+        target.targetId,
+        {
+          targetId: target.targetId,
+          side: target.side,
+          variant: target.variant,
+          runId: recordingWindow.runId,
+          manifestPath: recordingWindow.manifestPath,
+          exchangesPath: recordingWindow.exchangesPath,
+        },
+      ]),
+    ),
   };
 }
 

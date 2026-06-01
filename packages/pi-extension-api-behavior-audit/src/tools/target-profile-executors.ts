@@ -395,6 +395,7 @@ function formatRecordingWindowSummary(prefix: string, summary: RecordingWindowSu
     `Proxy session: ${summary.proxySessionId}`,
     `Scenario: ${summary.scenarioId}`,
     `Comparison: ${summary.comparisonRunId}`,
+    ...(summary.comparisonPath ? [`Comparison artifact: ${summary.comparisonPath}`] : []),
     ...summary.targets.flatMap((target) => [
       `Target ${target.targetId}: ${target.proxyUrl}`,
       `  run: ${target.runId}`,

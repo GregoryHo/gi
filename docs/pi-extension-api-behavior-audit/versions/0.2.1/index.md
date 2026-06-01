@@ -29,3 +29,8 @@ stop proxy session
 ## Milestones
 
 See `milestones.md`.
+
+Implemented so far:
+
+- M1 persistent proxy/window lifecycle tools.
+- M2 automatic comparison artifact creation when recording windows stop.

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { dirname } from "node:path";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 import { ProxySessionRegistry } from "./proxy-session-lifecycle.ts";
@@ -93,6 +94,20 @@ test("ProxySessionRegistry finalizes recording windows without stopping persiste
 
   const stoppedWindow = await registry.stopRecordingWindow("window-1");
   assert.equal(stoppedWindow.status, "stopped");
+  assert.equal(stoppedWindow.comparisonPath, ".pi-api-audit-runs/comparisons/comparison-1.json");
+  const comparison = JSON.parse(await readFile(stoppedWindow.comparisonPath, "utf8")) as {
+    kind: string;
+    comparisonRunId: string;
+    candidateScenarioId: string;
+    targets: Record<string, { runId: string; manifestPath: string; exchangesPath: string; side: string }>;
+  };
+  assert.equal(comparison.kind, "api-behavior-comparison-run");
+  assert.equal(comparison.comparisonRunId, "comparison-1");
+  assert.equal(comparison.candidateScenarioId, "account-activity-basic");
+  assert.equal(comparison.targets.old.runId, "old-run-1");
+  assert.equal(comparison.targets.new.runId, "new-run-2");
+  assert.equal(comparison.targets.old.manifestPath, ".pi-api-audit-runs/old-run-1/manifest.json");
+  assert.equal(comparison.targets.new.exchangesPath, ".pi-api-audit-runs/new-run-2/exchanges.ndjson");
   assert.deepEqual(stoppedWindow.warnings, ["No upstream exchanges were recorded for target new; confirm the app points to http://127.0.0.1:18081."]);
   assert.deepEqual(events, [
     "begin:old:comparison-1",

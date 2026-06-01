@@ -64,4 +64,4 @@ v0.1.1 delivered a patch-level workspace path fix: mutable API audit paths resol
 
 v0.2.0 delivered programmatic capture lifecycle tools, bounded automation-script capture, and an agent-facing review helper so agents can start/stop/finalize safe read-only recorder flows and queue review slash-command steps without mandatory HITL done confirmation.
 
-v0.2.1 is active and separates persistent proxy sockets from clean recording windows so legacy apps can keep stable local proxy URLs while agents finalize run artifacts independently.
+v0.2.1 is active and separates persistent proxy sockets from clean recording windows so legacy apps can keep stable local proxy URLs while agents finalize run artifacts independently. Recording window finalization now also writes comparison artifacts for the existing analyze/suggest/review pipeline.
