@@ -1,0 +1,55 @@
+{
+  "name": "@gregho/pi-extension-agent-lens",
+  "version": "0.3.0",
+  "description": "pi extension package for observing agent turns, context, provider payloads, tools, and memory compression.",
+  "type": "module",
+  "main": "src/index.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    }
+  },
+  "keywords": [
+    "pi-package",
+    "pi-extension",
+    "agent-lens",
+    "observability",
+    "agent-tracing"
+  ],
+  "files": [
+    "src/commands.ts",
+    "src/config.ts",
+    "src/cleanup.ts",
+    "src/index.ts",
+    "src/index-report.ts",
+    "src/redact.ts",
+    "src/report.ts",
+    "src/report-compaction.ts",
+    "src/report-events.ts",
+    "src/report-summary.ts",
+    "src/summarize.ts",
+    "src/trace.ts",
+    "src/traces.ts",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "pi": {
+    "extensions": [
+      "./src/index.ts"
+    ]
+  },
+  "scripts": {
+    "test": "node --test --experimental-strip-types \"src/**/*.test.ts\"",
+    "typecheck": "tsc --noEmit",
+    "pack:dry-run": "npm pack --dry-run"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "typebox": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.8.3"
+  }
+}

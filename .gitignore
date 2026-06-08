@@ -2,6 +2,7 @@
 node_modules/
 dist/
 .pi-api-audit-runs/
+.pi-agent-lens/
 .env
 .env.*
 !.env.example
