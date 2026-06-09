@@ -8,4 +8,5 @@
 - Corrected earlier draft that mistakenly framed item 4 (`Behavior evaluation views`) as in-scope; behavior evaluation is deferred again unless explicitly re-scoped.
 - User approved Track C: Memory-explorer UX bridge for 0.4.0.
 - Created 0.4.1 placeholder for generic report UX polish and other deferred 0.4.x follow-ups; raw capture, behavior evaluation, server mode, and full eval/replay remain separate product decisions rather than automatic 0.4.1 scope.
+- Deepened M1 planning into a concrete memory-flow foundation: existing evidence inventory, proposed `contextBefore -> preparation -> result -> contextAfter -> providerAfter` model, confidence labels, metadata gaps, and safety wording.
 - Safety stance remains unchanged: read-only by default, local artifacts, no raw private content capture by default, no mutation of pi behavior.
