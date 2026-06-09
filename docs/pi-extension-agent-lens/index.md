@@ -9,7 +9,11 @@
 
 ## Active planning version
 
-None.
+- Version: `0.4.0`
+- Status: Planning active; implementation not started.
+- Theme: Memory-explorer UX bridge.
+- Planning index: `versions/0.4.0/index.md`
+- Milestone tracker: `versions/0.4.0/milestones.md`
 
 ## Product summary
 
@@ -49,6 +53,8 @@ v0.3.0 delivered:
 - `archive.md` — completed/superseded docs index.
 - `versions/0.2.0/index.md` — sealed 0.2.0 planning and release notes.
 - `versions/0.3.0/index.md` — sealed 0.3.0 planning and release notes.
+- `versions/0.4.0/index.md` — active 0.4.0 planning.
+- `versions/0.4.1/index.md` — deferred placeholder for 0.4.x follow-up candidates.
 - `versions/README.md` — convention for future versioned planning docs.
 - `log.md` — append-only product/change log.
 - `AGENTS.md` — docs governance and workflow.
