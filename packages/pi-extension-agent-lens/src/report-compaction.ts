@@ -5,6 +5,8 @@ export interface TraceRecordLike {
 	data: unknown;
 }
 
+export type MemoryFlowConfidence = "observed" | "nearby observed" | "inferred" | "missing";
+
 export interface CompactionExplorer {
 	groups: CompactionExplorerGroup[];
 }
@@ -15,9 +17,12 @@ export interface CompactionExplorerGroup {
 	result?: CompactionResultView;
 	contextBefore?: ContextSnapshotView;
 	contextAfter?: ContextSnapshotView;
+	providerAfter?: ProviderRequestView;
 }
 
 export interface CompactionPreparationView {
+	recordIndex: number;
+	confidence: MemoryFlowConfidence;
 	timestamp: string;
 	firstKeptEntryId?: string;
 	tokensBefore?: number;
@@ -27,6 +32,8 @@ export interface CompactionPreparationView {
 }
 
 export interface CompactionResultView {
+	recordIndex: number;
+	confidence: MemoryFlowConfidence;
 	timestamp: string;
 	id?: string;
 	firstKeptEntryId?: string;
@@ -37,10 +44,24 @@ export interface CompactionResultView {
 }
 
 export interface ContextSnapshotView {
+	recordIndex: number;
+	confidence: MemoryFlowConfidence;
 	timestamp: string;
 	messageCount?: number;
 	roleCounts: Record<string, number>;
 	hasCompactionSummary: boolean;
+}
+
+export interface ProviderRequestView {
+	recordIndex: number;
+	confidence: MemoryFlowConfidence;
+	timestamp: string;
+	model?: string;
+	inputCount?: number;
+	messageCount?: number;
+	toolCount?: number;
+	instructionsLength?: number;
+	roleCounts: Record<string, number>;
 }
 
 export function buildCompactionExplorer(records: readonly TraceRecordLike[]): CompactionExplorer {
@@ -55,9 +76,10 @@ export function buildCompactionExplorer(records: readonly TraceRecordLike[]): Co
 		groups.push({
 			runIndex,
 			preparation: preparation ? toPreparationView(preparation) : undefined,
-			result: toResultView(record),
+			result: toResultView(record, index),
 			contextBefore: findContextBefore(records, preparation?.index ?? index, runIndex),
 			contextAfter: findContextAfter(records, index, runIndex),
+			providerAfter: findProviderAfter(records, index, runIndex),
 		});
 	}
 
@@ -73,6 +95,7 @@ export function buildCompactionExplorer(records: readonly TraceRecordLike[]): Co
 				preparation: toPreparationView({ record, index }),
 				contextBefore: findContextBefore(records, index, runIndex),
 				contextAfter: findContextAfter(records, index, runIndex),
+				providerAfter: findProviderAfter(records, index, runIndex),
 			});
 		}
 	}
@@ -96,7 +119,7 @@ function findContextBefore(records: readonly TraceRecordLike[], beforeIndex: num
 		const record = records[index];
 		if (record.event !== "context") continue;
 		if (runIndex !== undefined && getNumber(asObject(record.data), "runIndex") !== runIndex) continue;
-		return toContextView(record);
+		return toContextView(record, index);
 	}
 	return undefined;
 }
@@ -106,7 +129,17 @@ function findContextAfter(records: readonly TraceRecordLike[], afterIndex: numbe
 		const record = records[index];
 		if (record.event !== "context") continue;
 		if (runIndex !== undefined && getNumber(asObject(record.data), "runIndex") !== runIndex) continue;
-		return toContextView(record);
+		return toContextView(record, index);
+	}
+	return undefined;
+}
+
+function findProviderAfter(records: readonly TraceRecordLike[], afterIndex: number, runIndex: number | undefined): ProviderRequestView | undefined {
+	for (let index = afterIndex + 1; index < records.length; index += 1) {
+		const record = records[index];
+		if (record.event !== "before_provider_request") continue;
+		if (runIndex !== undefined && getNumber(asObject(record.data), "runIndex") !== runIndex) continue;
+		return toProviderView(record, index);
 	}
 	return undefined;
 }
@@ -115,6 +148,8 @@ function toPreparationView(item: { record: TraceRecordLike; index: number }): Co
 	const data = asObject(item.record.data);
 	const preparation = asObject(data.preparation);
 	return {
+		recordIndex: item.index,
+		confidence: "observed",
 		timestamp: item.record.timestamp,
 		firstKeptEntryId: getString(preparation, "firstKeptEntryId"),
 		tokensBefore: getNumber(preparation, "tokensBefore"),
@@ -124,11 +159,13 @@ function toPreparationView(item: { record: TraceRecordLike; index: number }): Co
 	};
 }
 
-function toResultView(record: TraceRecordLike): CompactionResultView {
+function toResultView(record: TraceRecordLike, recordIndex: number): CompactionResultView {
 	const data = asObject(record.data);
 	const compaction = asObject(data.compaction);
 	const summary = asObject(compaction.summary);
 	return {
+		recordIndex,
+		confidence: "observed",
 		timestamp: record.timestamp,
 		id: getString(compaction, "id"),
 		firstKeptEntryId: getString(compaction, "firstKeptEntryId"),
@@ -139,20 +176,41 @@ function toResultView(record: TraceRecordLike): CompactionResultView {
 	};
 }
 
-function toContextView(record: TraceRecordLike): ContextSnapshotView {
+function toContextView(record: TraceRecordLike, recordIndex: number): ContextSnapshotView {
 	const data = asObject(record.data);
 	const messages = asObject(data.messages);
-	const roles = asObject(messages.roleCounts);
-	const roleCounts: Record<string, number> = {};
-	for (const [role, count] of Object.entries(roles)) {
-		if (typeof count === "number") roleCounts[role] = count;
-	}
 	return {
+		recordIndex,
+		confidence: "nearby observed",
 		timestamp: record.timestamp,
 		messageCount: getNumber(messages, "count"),
-		roleCounts,
+		roleCounts: getNumberMap(asObject(messages.roleCounts)),
 		hasCompactionSummary: messages.hasCompactionSummary === true,
 	};
+}
+
+function toProviderView(record: TraceRecordLike, recordIndex: number): ProviderRequestView {
+	const data = asObject(record.data);
+	const payload = asObject(data.payload);
+	return {
+		recordIndex,
+		confidence: "inferred",
+		timestamp: record.timestamp,
+		model: getString(payload, "model"),
+		inputCount: getNumber(payload, "inputCount"),
+		messageCount: getNumber(payload, "messageCount"),
+		toolCount: getNumber(payload, "toolCount"),
+		instructionsLength: getNumber(payload, "instructionsLength"),
+		roleCounts: getNumberMap(asObject(payload.inputRoles)),
+	};
+}
+
+function getNumberMap(value: Record<string, unknown>): Record<string, number> {
+	const numbers: Record<string, number> = {};
+	for (const [key, nested] of Object.entries(value)) {
+		if (typeof nested === "number") numbers[key] = nested;
+	}
+	return numbers;
 }
 
 function asObject(value: unknown): Record<string, unknown> {

@@ -13,7 +13,7 @@ Planned focus areas:
 
 ## Status
 
-0.1.0 implemented read-only JSONL lifecycle traces with redacted summaries and local live-updating HTML reports. 0.2.0 added project-local configuration, retention cleanup, and a multi-trace index. 0.3.0 adds observable-log report navigation, trace summary cards, and a session/compaction explorer.
+0.1.0 implemented read-only JSONL lifecycle traces with redacted summaries and local live-updating HTML reports. 0.2.0 added project-local configuration, retention cleanup, and a multi-trace index. 0.3.0 added observable-log report navigation, trace summary cards, and a session/compaction explorer. 0.4.0 adds a metadata-only memory-flow explorer with static links between compaction flow cards and observable-log records.
 
 ## Commands
 
@@ -27,7 +27,7 @@ Shows the active trace file path, raw-capture status, live-report status, latest
 /agent-lens report
 ```
 
-Writes a local HTML report next to the active JSONL trace and updates `.pi-agent-lens/latest.html`. The command notification shows both paths. After the command runs, the report is refreshed on later trace events and the HTML auto-refreshes in the browser. The report shows its source trace path and generation time, trace summary cards, a session/compaction explorer, plus an observable log with category chips, local filter/search controls, and expandable record details.
+Writes a local HTML report next to the active JSONL trace and updates `.pi-agent-lens/latest.html`. The command notification shows both paths. After the command runs, the report is refreshed on later trace events and the HTML auto-refreshes in the browser. The report shows its source trace path and generation time, trace summary cards, a memory-flow explorer with static links to related observable-log records, plus an observable log with category chips, local filter/search controls, backlinks, highlights, and expandable record details.
 
 ```text
 /agent-lens traces

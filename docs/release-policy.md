@@ -13,6 +13,7 @@ Current package versions:
 | Package | Current version | Notes |
 | --- | ---: | --- |
 | `@gregho/pi-extension-jira-board` | `0.2.0` | Jira board/context extension |
+| `@gregho/pi-extension-agent-lens` | `0.4.0` | Memory-explorer UX bridge for local agent trace reports |
 | `@gregho/pi-extension-agent-workers` | `0.3.1` | Patch release removing temporary worker UI PoC command |
 | `@gregho/pi-extension-api-behavior-audit` | `0.2.2` | Local path-based passthrough routing patch for legacy proxy compatibility |
 

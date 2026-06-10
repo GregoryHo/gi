@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed.
+Done. Automated verification passed and user approved manual smoke on 2026-06-09.
 
 ## Motivation
 
@@ -18,13 +18,14 @@ Every M2 UI change must answer yes to this question:
 
 If not, defer it to `../0.4.1/index.md`.
 
-## Candidate scope
+## Accepted scope
 
 - Add stable HTML anchors for memory-flow groups and related log records.
 - Link memory-flow cards to related observable-log records.
-- Link related observable-log records back to their memory-flow group.
-- Highlight before/after context snapshots around compaction.
-- Add a compact memory-flow layout only if long compaction-heavy traces require it.
+- Link related observable-log records back to their memory-flow group with a quiet visible link/chip.
+- Highlight before/after/preparation/result/provider-after records around compaction.
+- Add a summary-card link to the first memory-flow group only when memory-flow groups exist.
+- Keep compact reading to static CSS layout improvements; defer a user-facing density toggle unless M3/manual smoke proves it is needed.
 - Preserve no-dependency, no-build, no-server report generation unless explicitly re-scoped.
 
 Generic report polish, broad index filtering, and UX refinements unrelated to memory-flow reading are deferred to 0.4.1.
@@ -47,6 +48,7 @@ Rules:
 
 - `record-<n>` maps to observable-log row number `n`.
 - `memory-flow-<n>` maps to rendered memory-flow group number `n`.
+- Helper/model code may use zero-based record indexes internally, but rendered anchors and user-visible labels are one-based.
 - Missing segments still render a card with no record link and clear `Missing` state.
 - Anchors should be HTML-escaped where dynamic values are involved, though generated IDs should be deterministic and internal.
 
@@ -122,11 +124,11 @@ Related rows can show:
 
 ### Summary cards
 
-The existing compaction summary card can link to the first memory-flow group when compactions exist:
+The existing compaction summary card can link to the first memory-flow group when M1 produced memory flows:
 
 - `Compactions: 2` → `#memory-flow-1`.
 
-This is useful only if it stays visually quiet.
+This is useful only if it stays visually quiet and remains absent when there are no memory-flow groups.
 
 ## Relationship to M1
 
@@ -135,15 +137,63 @@ M2 depends on M1 exposing enough structured data for links and confidence labels
 Expected M1/M2 boundary:
 
 - M1 helper returns memory-flow groups with record indexes and confidence labels.
+- M1 owns grouping decisions, including which context/provider records are observed, nearby observed, inferred, or missing.
 - M2 renderer turns those groups into anchors, links, and highlights.
 
-## Open questions
+## Planning decisions
 
-1. Should related log rows show a visible chip/link, or should highlighting plus anchors be enough?
-2. Should clicking `View record #N` open that record's `<details>` automatically with tiny local JS?
-3. Should compact mode ship in 0.4.0 M2, or wait until M3/manual smoke proves it is needed?
-4. Should summary-card links point to memory flow only when compaction records exist?
-5. Should provider-after be included in M2 links if M1 marks it as inferred rather than observed?
+Resolved follow-up decisions:
+
+1. Related log rows should show a quiet visible backlink (`Memory flow #M`) plus a role label. Highlighting alone is too easy to miss after a jump.
+2. Static anchors are required. Tiny JavaScript to open/focus linked `<details>` is optional progressive enhancement only, with no storage and no network.
+3. Do not ship a user-facing compact/density toggle in M2. Use static card/grid CSS that reads better for long traces; revisit controls in M3 or 0.4.1 after manual smoke.
+4. Summary-card links should point to memory flow only when M1 produced at least one memory-flow group.
+5. Include provider-after links when M1 marks them `inferred`, but label them as `next observed provider request` and never as guaranteed causal reconstruction.
+
+## Implementation plan
+
+1. **Consume M1 model**
+   - Use the M1 memory-flow helper output as the only source for memory-flow group/segment relationships.
+   - Treat absent groups as a no-op for M2 UX additions.
+
+2. **Add anchors and links**
+   - Give observable-log rows deterministic `id="record-N"` anchors.
+   - Give memory-flow groups and segments deterministic `id="memory-flow-N..."` anchors.
+   - Render `View record #N` links on memory-flow segment cards when a source record exists.
+
+3. **Add observable-log backlinks/highlights**
+   - Build a renderer-side lookup from record index to memory-flow metadata.
+   - Add `data-memory-flow`, `data-memory-role`, and CSS classes to related rows.
+   - Render a quiet `Memory flow #N` backlink and role/confidence label on related rows.
+
+4. **Wire summary-card entry point**
+   - When memory flows exist, add a quiet link from the compaction summary card to `#memory-flow-1`.
+   - Leave the summary card unchanged when no memory flow exists.
+
+5. **Keep JavaScript optional**
+   - Implement static anchor behavior first.
+   - Add only tiny open/focus helper JavaScript if static links are hard to use in manual smoke.
+
+## Expected files
+
+Likely implementation touches:
+
+- `packages/pi-extension-agent-lens/src/report.ts` — render anchors, links, highlights, summary-card entry point, and optional tiny navigation helper.
+- `packages/pi-extension-agent-lens/src/report-events.ts` — only if observable-log event metadata needs a small typed extension for rendering links.
+- `packages/pi-extension-agent-lens/src/report.test.ts` or a focused report-memory UX test file — generated HTML assertions for anchors, links, attributes/classes, missing segments, and escaping.
+
+M2 should not change trace capture hooks unless M1 explicitly left a tested metadata gap that is accepted into 0.4.0 scope.
+
+## Implementation notes
+
+Implemented as a narrow M1/M2 overlap by extending the existing `buildCompactionExplorer` model instead of adding a separate helper:
+
+- compaction flow segments now expose zero-based record indexes and confidence labels;
+- provider-after metadata is inferred from the next observed same-run provider request;
+- rendered report anchors and labels remain one-based for users;
+- observable-log rows receive static anchors, memory-flow backlinks, role data attributes, and CSS-only role highlights;
+- the compaction summary card links to `#memory-flow-1` only when a flow exists;
+- no trace capture hooks, raw capture, browser storage, dependencies, build step, server, or network behavior were added.
 
 ## Non-goals
 
@@ -165,19 +215,21 @@ Richer UX must not weaken report safety:
 - no network requests;
 - no new capture pipeline unless separately scoped.
 
-## Acceptance criteria draft
+## Acceptance criteria
 
-If implemented, this milestone should satisfy:
+M2 is complete when:
 
-- Memory-flow cards link to related observable-log records.
-- Related observable-log rows can link back to memory-flow groups.
-- Before/after/preparation/result/provider-after roles are visually distinguishable when present.
-- Missing or inferred relationships remain clearly labeled.
+- Memory-flow cards link to related observable-log records with deterministic static anchors.
+- Related observable-log rows link back to memory-flow groups with quiet visible labels.
+- Before-context, preparation, result, after-context, and provider-after roles are visually distinguishable when present.
+- Missing, nearby observed, and inferred relationships remain clearly labeled.
+- Provider-after wording says `next observed provider request` when inferred.
+- The compaction summary card links to memory flow only when memory-flow groups exist.
 - The report still works as a static HTML file with JavaScript disabled, except optional progressive enhancement.
 - Dynamic HTML remains escaped.
-- Tests cover generated anchors, related-record links, highlighting attributes/classes, missing segments, and redaction safety.
+- Tests cover generated anchors, related-record links, backlink labels, highlighting attributes/classes, missing segments, summary-card no-op behavior, and redaction safety.
 
-## Verification draft
+## Verification
 
 ```bash
 npm test --workspace @gregho/pi-extension-agent-lens
@@ -187,3 +239,18 @@ npm run typecheck
 ```
 
 Manual smoke should use a compaction-heavy trace and confirm a user can jump between memory flow and related log records without losing context.
+
+## Status tracking
+
+At M2 implementation start:
+
+1. Confirm M1 is `Done` or explicitly accept a narrow M1/M2 overlap.
+2. Update `versions/0.4.0/milestones.md` so `M2` is `In progress`.
+3. Append a short start entry to `versions/0.4.0/log.md`.
+
+At M2 completion:
+
+1. Run the verification commands above.
+2. Add implementation notes to this plan if final behavior differs from the planning decisions.
+3. Update `versions/0.4.0/milestones.md` so `M2` is `Done`.
+4. Append verification evidence to `versions/0.4.0/log.md`.

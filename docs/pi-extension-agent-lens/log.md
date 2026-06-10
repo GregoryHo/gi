@@ -24,3 +24,7 @@
 - Sealed v0.3.0 after M1/M2/M3 completion, automated verification, and user manual acceptance. Current stable version is `0.3.0`; no active planning version remains.
 - Opened active 0.4.0 planning under `versions/0.4.0/`. Discussion focus: session memory explorer and richer static report UX.
 - User chose 0.4.0 Track C: Memory-explorer UX bridge. Created `versions/0.4.1/` placeholder for generic report UX polish and other 0.4.x follow-up candidates.
+
+## 2026-06-09
+
+- Sealed v0.4.0 after M1/M2/M3 completion, automated verification, and user manual acceptance. Current stable version is `0.4.0`; no active planning version remains.

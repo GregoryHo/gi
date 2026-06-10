@@ -71,6 +71,46 @@ test("buildCompactionExplorer has an empty state when there are no compactions",
 	assert.deepEqual(explorer.groups, []);
 });
 
+test("buildCompactionExplorer exposes record indexes and confidence labels for memory-flow links", () => {
+	const explorer = buildCompactionExplorer([
+		...records,
+		{
+			schemaVersion: 1,
+			timestamp: "2026-06-07T01:00:04.000Z",
+			event: "before_provider_request",
+			data: { runIndex: 1, payload: { model: "test-model", inputCount: 8, inputRoles: { user: 3, assistant: 4, system: 1 }, toolCount: 2 } },
+		},
+	]);
+	const group = explorer.groups[0];
+
+	assert.equal(group.contextBefore?.recordIndex, 0);
+	assert.equal(group.contextBefore?.confidence, "nearby observed");
+	assert.equal(group.preparation?.recordIndex, 1);
+	assert.equal(group.preparation?.confidence, "observed");
+	assert.equal(group.result?.recordIndex, 2);
+	assert.equal(group.result?.confidence, "observed");
+	assert.equal(group.contextAfter?.recordIndex, 3);
+	assert.equal(group.contextAfter?.confidence, "nearby observed");
+	assert.equal(group.providerAfter?.recordIndex, 4);
+	assert.equal(group.providerAfter?.confidence, "inferred");
+	assert.equal(group.providerAfter?.model, "test-model");
+	assert.equal(group.providerAfter?.inputCount, 8);
+	assert.deepEqual(group.providerAfter?.roleCounts, { user: 3, assistant: 4, system: 1 });
+});
+
+test("buildCompactionExplorer keeps missing memory-flow segments undefined", () => {
+	const explorer = buildCompactionExplorer([
+		{ schemaVersion: 1, timestamp: "2026-06-07T01:00:02.000Z", event: "session_compact", data: { runIndex: 1, compaction: { summary: { length: 10 } } } },
+	]);
+	const group = explorer.groups[0];
+
+	assert.equal(group.contextBefore, undefined);
+	assert.equal(group.preparation, undefined);
+	assert.equal(group.contextAfter, undefined);
+	assert.equal(group.providerAfter, undefined);
+	assert.equal(group.result?.confidence, "observed");
+});
+
 test("buildCompactionExplorer does not expose raw summary text", () => {
 	const explorerJson = JSON.stringify(buildCompactionExplorer(records));
 

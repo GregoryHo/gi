@@ -50,7 +50,7 @@ test("renderHtmlReport includes trace summary cards", () => {
 	assert.match(html, /129565 tokens/);
 });
 
-test("renderHtmlReport includes session and compaction explorer", () => {
+test("renderHtmlReport frames compactions as a partial memory-flow explorer", () => {
 	const html = renderHtmlReport([
 		{ schemaVersion: 1, timestamp: "2026-06-07T03:19:00.000Z", event: "context", data: { runIndex: 1, messages: { count: 21, roleCounts: { user: 8, assistant: 9 }, hasCompactionSummary: false } } },
 		{ schemaVersion: 1, timestamp: "2026-06-07T03:19:01.000Z", event: "session_before_compact", data: { runIndex: 1, preparation: { firstKeptEntryId: "entry-kept", tokensBefore: 129565, messagesToSummarize: { count: 12 }, turnPrefixMessages: { count: 21 } } } },
@@ -58,8 +58,11 @@ test("renderHtmlReport includes session and compaction explorer", () => {
 		{ schemaVersion: 1, timestamp: "2026-06-07T03:19:03.000Z", event: "context", data: { runIndex: 1, messages: { count: 8, roleCounts: { compactionSummary: 1, user: 3 }, hasCompactionSummary: true } } },
 	], { title: "Agent Lens Test" });
 
-	assert.match(html, /Session and compaction explorer/);
-	assert.match(html, /Compaction timeline/);
+	assert.match(html, /Memory flow explorer/);
+	assert.match(html, /Partial metadata-only view/);
+	assert.match(html, /What stayed recent/);
+	assert.match(html, /What became summary metadata/);
+	assert.match(html, /What the next observed provider request likely saw/);
 	assert.match(html, /Before context/);
 	assert.match(html, /After context/);
 	assert.match(html, /129565 tokens/);
@@ -67,13 +70,34 @@ test("renderHtmlReport includes session and compaction explorer", () => {
 	assert.equal(html.includes("RAW_SUMMARY_SHOULD_NOT_RENDER"), false);
 });
 
+test("renderHtmlReport links memory-flow cards and related observable-log rows", () => {
+	const html = renderHtmlReport([
+		{ schemaVersion: 1, timestamp: "2026-06-07T03:19:00.000Z", event: "context", data: { runIndex: 1, messages: { count: 21, roleCounts: { user: 8, assistant: 9 }, hasCompactionSummary: false } } },
+		{ schemaVersion: 1, timestamp: "2026-06-07T03:19:01.000Z", event: "session_before_compact", data: { runIndex: 1, preparation: { firstKeptEntryId: "entry-kept", tokensBefore: 129565, messagesToSummarize: { count: 12 }, turnPrefixMessages: { count: 21 } } } },
+		{ schemaVersion: 1, timestamp: "2026-06-07T03:19:02.000Z", event: "session_compact", data: { runIndex: 1, compaction: { firstKeptEntryId: "entry-kept", tokensBefore: 129565, summary: { length: 2765, sha256: "abc123" }, detailKeys: ["settings"] } } },
+		{ schemaVersion: 1, timestamp: "2026-06-07T03:19:03.000Z", event: "context", data: { runIndex: 1, messages: { count: 8, roleCounts: { compactionSummary: 1, user: 3 }, hasCompactionSummary: true } } },
+		{ schemaVersion: 1, timestamp: "2026-06-07T03:19:04.000Z", event: "before_provider_request", data: { runIndex: 1, payload: { model: "test-model", inputCount: 8, inputRoles: { system: 1, user: 3, assistant: 4 }, toolCount: 2, instructionsLength: 1000 } } },
+	], { title: "Agent Lens Test" });
+
+	assert.match(html, /id="memory-flow-1"/);
+	assert.match(html, /id="memory-flow-1-before-context"/);
+	assert.match(html, /href="#record-1">View record #1/);
+	assert.match(html, /id="record-1"/);
+	assert.match(html, /data-memory-flow="1"/);
+	assert.match(html, /data-memory-role="before-context"/);
+	assert.match(html, /href="#memory-flow-1">Memory flow #1/);
+	assert.match(html, /next observed provider request/);
+	assert.match(html, /href="#memory-flow-1">View memory flow/);
+});
+
 test("renderHtmlReport includes compaction explorer empty state", () => {
 	const html = renderHtmlReport([
 		{ schemaVersion: 1, timestamp: "2026-06-07T03:19:00.000Z", event: "context", data: { runIndex: 1, messages: { count: 2 } } },
 	], { title: "Agent Lens Test" });
 
-	assert.match(html, /Session and compaction explorer/);
+	assert.match(html, /Memory flow explorer/);
 	assert.match(html, /No compaction records found/);
+	assert.equal(html.includes('href="#memory-flow-1">View memory flow'), false);
 });
 
 test("renderHtmlReport shows run and turn identifiers as metadata instead of duplicate chips", () => {

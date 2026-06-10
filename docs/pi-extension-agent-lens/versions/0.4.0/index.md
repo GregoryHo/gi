@@ -1,9 +1,9 @@
-# Agent Lens 0.4.0 planning
+# Agent Lens 0.4.0
 
 ## Status
 
 - Version: `0.4.0`
-- Status: Planning active; implementation not started.
+- Status: Sealed on 2026-06-09 after M1/M2/M3 completion and manual acceptance.
 - Theme: Memory-explorer UX bridge.
 - Package: `packages/pi-extension-agent-lens`
 - Stable base: `0.3.0`
@@ -110,10 +110,33 @@ Why this may be the best 0.4.0 shape:
 - Generic report polish is deferred to 0.4.1.
 - Behavior evaluation remains deferred and is not part of 0.4.0 or automatically part of 0.4.1.
 
-## Open product questions
+## Delivered 0.4.0 scope
 
-1. What is the smallest useful session-memory view that does not overpromise full lineage reconstruction?
-2. Which trace records or pi metadata can safely support memory-flow relationships?
-3. Should 0.4.0 allow any additional redacted metadata capture, or only render from existing 0.3.0 records?
-4. Should browser-side state persistence be allowed for memory-view controls, or should reports stay stateless?
-5. How should the UI word inferred memory relationships so users do not mistake them for guaranteed session reconstruction?
+| Milestone | Status | Plan | Scope |
+| --- | --- | --- | --- |
+| M1 | Done | `m1-session-memory-explorer.md` | Safe memory-flow grouping from existing redacted trace records. |
+| M2 | Done | `m2-richer-report-ux.md` | Static memory-flow/record anchors, links, backlinks, and role highlights. |
+| M3 | Done | `m3-memory-explorer-integration.md` | Cohesive memory-flow explorer framing, safety wording, and release-shape review. |
+
+## Release notes
+
+0.4.0 delivered a memory-explorer UX bridge without changing Agent Lens capture defaults:
+
+- Memory-flow groups link context-before, compaction preparation/result, context-after, and provider-after records where available.
+- Relationships are labeled as observed, nearby observed, inferred, or missing.
+- Reports show partial metadata-only wording to avoid implying full session reconstruction.
+- Memory-flow cards link to observable-log rows, and related rows link back with role labels and highlights.
+- The trace summary compaction card links to the first memory-flow group when one exists.
+- Provider-after cards show the next observed provider request after compaction as inferred from event order.
+- No raw capture, browser storage, dependencies, server, or network behavior was added.
+
+## Verification
+
+```bash
+npm test --workspace @gregho/pi-extension-agent-lens
+npm run typecheck --workspace @gregho/pi-extension-agent-lens
+npm run pack:dry-run --workspace @gregho/pi-extension-agent-lens
+npm run typecheck
+```
+
+Manual smoke was approved on 2026-06-09.

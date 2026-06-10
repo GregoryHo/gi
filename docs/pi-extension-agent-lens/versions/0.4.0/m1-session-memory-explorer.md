@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed.
+Done. Implemented through the `buildCompactionExplorer` memory-flow helper contract during the M2/M3 integration path.
 
 ## Motivation
 
@@ -216,15 +216,14 @@ Preferred wording:
 - `next observed provider request after compaction`;
 - `inferred from event order`.
 
-## Acceptance criteria draft
+## Acceptance criteria
 
-If implemented, this milestone should satisfy:
+Implemented status:
 
-- A pure helper builds memory-flow groups from existing JSONL records.
-- Each link/segment has a confidence label: observed, nearby observed, inferred, or missing.
-- Missing metadata produces clear partial-view messaging.
-- No raw message/session/provider/summary content is rendered.
-- Tests cover grouping, next-provider linking, missing metadata, and redaction safety.
+- Done: a pure helper builds memory-flow groups from existing JSONL records.
+- Done: each present segment has a confidence label: observed, nearby observed, or inferred; missing segments render clear partial-view messaging.
+- Done: no raw message/session/provider/summary content is rendered.
+- Done: tests cover grouping, next-provider linking, missing metadata, record indexes, confidence labels, and redaction safety.
 
 ## Verification draft
 

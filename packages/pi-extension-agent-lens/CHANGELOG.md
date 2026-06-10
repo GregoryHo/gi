@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.0 - 2026-06-09
+
+- Add a memory-flow explorer framing for compaction-heavy trace reports.
+- Add metadata-only memory-flow grouping with record indexes and confidence labels for observed, nearby observed, inferred, and missing relationships.
+- Link memory-flow cards to related observable-log records and add observable-log backlinks/highlights.
+- Add provider-after cards for the next observed provider request after compaction, labeled as inferred from event order.
+- Add partial-view safety wording so reports do not imply full session reconstruction or raw memory inspection.
+- Preserve static local HTML reports, redacted-only capture, no browser storage, no dependencies, and no server/network behavior.
+
 ## 0.3.0 - 2026-06-07
 
 - Add observable log rendering to single-trace HTML reports.

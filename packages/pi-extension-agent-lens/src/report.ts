@@ -19,6 +19,18 @@ export interface HtmlReportOptions {
 	writeLatestAlias?: boolean;
 }
 
+interface MemoryFlowRecordLink {
+	flowNumber: number;
+	role: string;
+	roleLabel: string;
+	confidence: string;
+}
+
+interface SummaryCardLink {
+	href: string;
+	label: string;
+}
+
 export function renderHtmlReport(records: readonly AgentLensTraceRecord[], options: HtmlReportOptions = {}): string {
 	const title = options.title ?? "Agent Lens Report";
 	const eventCounts = countEvents(records);
@@ -27,6 +39,8 @@ export function renderHtmlReport(records: readonly AgentLensTraceRecord[], optio
 		(record) => record.event === "session_before_compact" || record.event === "session_compact",
 	);
 	const contextRecords = records.filter((record) => record.event === "context");
+	const compactionExplorer = buildCompactionExplorer(records);
+	const memoryFlowRecordLinks = buildMemoryFlowRecordLinks(compactionExplorer);
 
 	return `<!doctype html>
 <html lang="en">
@@ -46,6 +60,11 @@ pre { background: #f8f9f9; border: 1px solid #d5d8dc; padding: 0.75rem; overflow
 .filter-chip { border: 1px solid #bfc9ca; border-radius: 999px; background: #fff; padding: 0.25rem 0.6rem; cursor: pointer; }
 .filter-chip.active { background: #17202a; color: #fff; }
 .log-row { border: 1px solid #d5d8dc; border-radius: 0.6rem; padding: 0.75rem; margin: 0.75rem 0; }
+.log-row.memory-related { border-left-width: 0.35rem; }
+.log-row.memory-role-before-context { border-left-color: #60a5fa; }
+.log-row.memory-role-preparation, .log-row.memory-role-result { border-left-color: #fb923c; }
+.log-row.memory-role-after-context, .log-row.memory-role-provider-after { border-left-color: #2dd4bf; }
+.log-row.memory-confidence-inferred { border-style: dashed; }
 .log-row-header { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
 .log-row-title { font-weight: 700; }
 .log-row-meta { color: #5d6d7e; font-size: 0.9rem; }
@@ -56,6 +75,8 @@ pre { background: #f8f9f9; border: 1px solid #d5d8dc; padding: 0.75rem; overflow
 .chip.category.provider { background: #fefce8; border-color: #fde68a; }
 .chip.category.compaction { background: #fff7ed; border-color: #fed7aa; }
 .chip.category.report { background: #f0fdfa; border-color: #99f6e4; }
+.chip.memory-link { background: #fff7ed; border-color: #fed7aa; }
+.chip.memory-role-label { background: #f8fafc; border-color: #cbd5e1; }
 .summary-card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: 0.75rem; margin: 1rem 0; }
 .summary-card { border: 1px solid #d5d8dc; border-radius: 0.75rem; padding: 0.8rem; background: #fbfcfc; }
 .summary-card-title { color: #5d6d7e; font-size: 0.85rem; margin-bottom: 0.25rem; }
@@ -92,9 +113,9 @@ function agentLensSetDetails(open) {
 <h1>${escapeHtml(title)}</h1>
 ${renderLiveNotice(options.refreshSeconds)}${renderSourceMetadata(options)}<p>${records.length} trace records.</p>
 ${renderCounts(eventCounts)}
-${renderSummaryCards(summarizeTraceForReport(records))}
-${renderCompactionExplorer(buildCompactionExplorer(records))}
-${renderTimeline(records)}
+${renderSummaryCards(summarizeTraceForReport(records), compactionExplorer.groups.length > 0)}
+${renderCompactionExplorer(compactionExplorer)}
+${renderTimeline(records, memoryFlowRecordLinks)}
 ${renderRecordSection("Context snapshots", contextRecords)}
 ${renderRecordSection("Provider payloads", providerRecords)}
 ${renderRecordSection("Compaction", compactionRecords)}
@@ -157,64 +178,89 @@ function renderCounts(counts: Map<string, number>): string {
 	return `<section><h2>Event counts</h2>\n${badges}</section>`;
 }
 
-function renderSummaryCards(summary: ReportTraceSummary): string {
+function renderSummaryCards(summary: ReportTraceSummary, hasMemoryFlows: boolean): string {
+	const compactionDetail = summary.maxCompactionTokensBefore !== undefined ? `${summary.maxCompactionTokensBefore} tokens` : "No compaction tokens";
 	const cards = [
 		renderSummaryCard("Total records", String(summary.totalRecords), `${summary.runCount} runs · ${summary.turnCount} turns`),
 		renderSummaryCard("Provider requests", String(summary.providerRequestCount), summary.models.length > 0 ? summary.models.join(", ") : "No models observed"),
 		renderSummaryCard("Context", summary.lastContextMessages !== undefined ? `${summary.lastContextMessages} messages` : "No snapshots", summary.maxContextMessages !== undefined ? `max ${summary.maxContextMessages} messages` : ""),
 		renderSummaryCard("Tools", summary.toolNames.length > 0 ? summary.toolNames.join(", ") : "No tools observed", "tool names only"),
-		renderSummaryCard("Compactions", String(summary.compactionCount), summary.maxCompactionTokensBefore !== undefined ? `${summary.maxCompactionTokensBefore} tokens` : "No compaction tokens"),
+		renderSummaryCard("Compactions", String(summary.compactionCount), compactionDetail, hasMemoryFlows ? { href: "#memory-flow-1", label: "View memory flow" } : undefined),
 		renderSummaryCard("Time range", summary.firstTimestamp ?? "No records", summary.lastTimestamp ? `last ${summary.lastTimestamp}` : ""),
 	];
 	return `<section><h2>Trace summary</h2><div class="summary-card-grid">${cards.join("\n")}</div></section>`;
 }
 
-function renderSummaryCard(title: string, value: string, detail: string): string {
-	return `<div class="summary-card"><div class="summary-card-title">${escapeHtml(title)}</div><div class="summary-card-value">${escapeHtml(value)}</div><div class="summary-card-detail">${escapeHtml(detail)}</div></div>`;
+function renderSummaryCard(title: string, value: string, detail: string, link?: SummaryCardLink): string {
+	const linkHtml = link ? ` <a href="${escapeHtml(link.href)}">${escapeHtml(link.label)}</a>` : "";
+	return `<div class="summary-card"><div class="summary-card-title">${escapeHtml(title)}</div><div class="summary-card-value">${escapeHtml(value)}</div><div class="summary-card-detail">${escapeHtml(detail)}${linkHtml}</div></div>`;
 }
 
 function renderCompactionExplorer(explorer: CompactionExplorer): string {
 	const body = explorer.groups.length === 0
 		? "<p>No compaction records found.</p>"
-		: explorer.groups.map(renderCompactionGroup).join("\n");
-	return `<section><h2>Session and compaction explorer</h2>${body}</section>`;
+		: explorer.groups.map((group, index) => renderCompactionGroup(group, index + 1)).join("\n");
+	return `<section><h2>Memory flow explorer</h2><p class="summary-card-detail">Partial metadata-only view. Relationships are labeled as observed, nearby observed, inferred, or missing; inferred links are based on event order and are not full session reconstruction.</p>${body}</section>`;
 }
 
-function renderCompactionGroup(group: CompactionExplorerGroup): string {
-	const title = group.runIndex !== undefined ? `Compaction timeline — run ${group.runIndex}` : "Compaction timeline";
+function renderCompactionGroup(group: CompactionExplorerGroup, flowNumber: number): string {
+	const title = group.runIndex !== undefined ? `Memory flow #${flowNumber} — Compaction timeline — run ${group.runIndex}` : `Memory flow #${flowNumber} — Compaction timeline`;
 	const preparation = group.preparation
-		? `<div class="compaction-flow-card"><h4>Preparation</h4><p>${escapeHtml(formatParts([
+		? `<div id="memory-flow-${flowNumber}-preparation" class="compaction-flow-card"><h4>What became summary metadata — Preparation</h4><p>${escapeHtml(formatParts([
 			group.preparation.tokensBefore !== undefined ? `${group.preparation.tokensBefore} tokens` : undefined,
 			group.preparation.firstKeptEntryId ? `first kept ${group.preparation.firstKeptEntryId}` : undefined,
 			group.preparation.messagesToSummarizeCount !== undefined ? `${group.preparation.messagesToSummarizeCount} messages to summarize` : undefined,
 			group.preparation.turnPrefixMessageCount !== undefined ? `${group.preparation.turnPrefixMessageCount} turn-prefix messages` : undefined,
-		]))}</p><p class="summary-card-detail">${escapeHtml(group.preparation.timestamp)}</p></div>`
-		: `<div class="compaction-flow-card"><h4>Preparation</h4><p>No preparation record linked.</p></div>`;
+		]))}</p>${renderSegmentMeta(group.preparation.timestamp, group.preparation.confidence, group.preparation.recordIndex)}</div>`
+		: `<div id="memory-flow-${flowNumber}-preparation" class="compaction-flow-card"><h4>What became summary metadata — Preparation</h4><p>Missing: no preparation record linked.</p><p class="summary-card-detail">Missing</p></div>`;
 	const result = group.result
-		? `<div class="compaction-flow-card"><h4>Result</h4><p>${escapeHtml(formatParts([
+		? `<div id="memory-flow-${flowNumber}-result" class="compaction-flow-card"><h4>Compaction result</h4><p>${escapeHtml(formatParts([
 			group.result.tokensBefore !== undefined ? `${group.result.tokensBefore} tokens` : undefined,
 			group.result.firstKeptEntryId ? `first kept ${group.result.firstKeptEntryId}` : undefined,
 			group.result.summaryLength !== undefined ? `summary length ${group.result.summaryLength}` : undefined,
 			group.result.summarySha256 ? `summary hash ${group.result.summarySha256}` : undefined,
 			group.result.detailKeys.length > 0 ? `detail keys ${group.result.detailKeys.join(", ")}` : undefined,
-		]))}</p><p class="summary-card-detail">${escapeHtml(group.result.timestamp)}</p></div>`
-		: `<div class="compaction-flow-card"><h4>Result</h4><p>No compaction result record linked.</p></div>`;
-	return `<article class="compaction-flow"><h3>${escapeHtml(title)}</h3><div class="compaction-flow-grid">
-${renderContextCard("Before context", group.contextBefore)}
+		]))}</p>${renderSegmentMeta(group.result.timestamp, group.result.confidence, group.result.recordIndex)}</div>`
+		: `<div id="memory-flow-${flowNumber}-result" class="compaction-flow-card"><h4>Result</h4><p>Missing: no compaction result record linked.</p><p class="summary-card-detail">Missing</p></div>`;
+	return `<article id="memory-flow-${flowNumber}" class="compaction-flow"><h3>${escapeHtml(title)}</h3><div class="compaction-flow-grid">
+${renderContextCard("Before context", group.contextBefore, `memory-flow-${flowNumber}-before-context`)}
 ${preparation}
 ${result}
-${renderContextCard("After context", group.contextAfter)}
+${renderContextCard("After context", group.contextAfter, `memory-flow-${flowNumber}-after-context`)}
+${renderProviderAfterCard(group.providerAfter, `memory-flow-${flowNumber}-provider-after`)}
 </div></article>`;
 }
 
-function renderContextCard(title: string, context: ContextSnapshotView | undefined): string {
-	if (!context) return `<div class="compaction-flow-card"><h4>${escapeHtml(title)}</h4><p>No nearby context snapshot.</p></div>`;
+function renderContextCard(title: string, context: ContextSnapshotView | undefined, id: string): string {
+	if (!context) return `<div id="${escapeHtml(id)}" class="compaction-flow-card"><h4>${escapeHtml(formatContextCardTitle(title))}</h4><p>Missing: no nearby context snapshot.</p><p class="summary-card-detail">Missing</p></div>`;
 	const roles = Object.entries(context.roleCounts).map(([role, count]) => `${role}:${count}`).join(", ");
-	return `<div class="compaction-flow-card"><h4>${escapeHtml(title)}</h4><p>${escapeHtml(formatParts([
+	return `<div id="${escapeHtml(id)}" class="compaction-flow-card"><h4>${escapeHtml(formatContextCardTitle(title))}</h4><p>${escapeHtml(formatParts([
 		context.messageCount !== undefined ? `${context.messageCount} messages` : undefined,
 		roles || undefined,
 		context.hasCompactionSummary ? "has compaction summary" : undefined,
-	]))}</p><p class="summary-card-detail">${escapeHtml(context.timestamp)}</p></div>`;
+	]))}</p>${renderSegmentMeta(context.timestamp, context.confidence, context.recordIndex)}</div>`;
+}
+
+function formatContextCardTitle(title: string): string {
+	return title === "After context" ? "What stayed recent — After context" : title;
+}
+
+function renderProviderAfterCard(provider: CompactionExplorerGroup["providerAfter"], id: string): string {
+	if (!provider) return `<div id="${escapeHtml(id)}" class="compaction-flow-card"><h4>What the next observed provider request likely saw</h4><p>Missing: no later provider request observed.</p><p class="summary-card-detail">Missing</p></div>`;
+	const roles = Object.entries(provider.roleCounts).map(([role, count]) => `${role}:${count}`).join(", ");
+	return `<div id="${escapeHtml(id)}" class="compaction-flow-card"><h4>What the next observed provider request likely saw</h4><p>${escapeHtml(formatParts([
+		provider.model ? `model ${provider.model}` : undefined,
+		provider.inputCount !== undefined ? `${provider.inputCount} inputs` : undefined,
+		provider.messageCount !== undefined ? `${provider.messageCount} messages` : undefined,
+		roles || undefined,
+		provider.toolCount !== undefined ? `${provider.toolCount} tools` : undefined,
+		provider.instructionsLength !== undefined ? `${provider.instructionsLength} instruction chars` : undefined,
+	]))}</p>${renderSegmentMeta(provider.timestamp, provider.confidence, provider.recordIndex)}</div>`;
+}
+
+function renderSegmentMeta(timestamp: string, confidence: string, recordIndex: number): string {
+	const recordNumber = recordIndex + 1;
+	return `<p class="summary-card-detail">${escapeHtml(confidence)} · ${escapeHtml(timestamp)} · <a href="#record-${recordNumber}">View record #${recordNumber}</a></p>`;
 }
 
 function formatParts(parts: Array<string | undefined>): string {
@@ -222,11 +268,37 @@ function formatParts(parts: Array<string | undefined>): string {
 	return present.length > 0 ? present.join(" · ") : "No metadata.";
 }
 
-function renderTimeline(records: readonly AgentLensTraceRecord[]): string {
+function buildMemoryFlowRecordLinks(explorer: CompactionExplorer): Map<number, MemoryFlowRecordLink[]> {
+	const links = new Map<number, MemoryFlowRecordLink[]>();
+	for (const [index, group] of explorer.groups.entries()) {
+		const flowNumber = index + 1;
+		addMemoryFlowRecordLink(links, group.contextBefore, flowNumber, "before-context", "nearest context before");
+		addMemoryFlowRecordLink(links, group.preparation, flowNumber, "preparation", "compaction preparation");
+		addMemoryFlowRecordLink(links, group.result, flowNumber, "result", "compaction result");
+		addMemoryFlowRecordLink(links, group.contextAfter, flowNumber, "after-context", "nearest context after");
+		addMemoryFlowRecordLink(links, group.providerAfter, flowNumber, "provider-after", "next observed provider request");
+	}
+	return links;
+}
+
+function addMemoryFlowRecordLink(
+	links: Map<number, MemoryFlowRecordLink[]>,
+	segment: { recordIndex: number; confidence: string } | undefined,
+	flowNumber: number,
+	role: string,
+	roleLabel: string,
+): void {
+	if (!segment) return;
+	const existing = links.get(segment.recordIndex) ?? [];
+	existing.push({ flowNumber, role, roleLabel, confidence: segment.confidence });
+	links.set(segment.recordIndex, existing);
+}
+
+function renderTimeline(records: readonly AgentLensTraceRecord[], memoryFlowRecordLinks: Map<number, MemoryFlowRecordLink[]>): string {
 	const events = records.map((record, index) => classifyTraceRecord(record, index));
 	return `<section><h2>Observable log</h2>
 ${renderLogControls(events)}
-${events.map(renderLogRow).join("\n")}
+${events.map((event) => renderLogRow(event, memoryFlowRecordLinks.get(event.index) ?? [])).join("\n")}
 </section>`;
 }
 
@@ -243,15 +315,24 @@ ${filters}
 </div>`;
 }
 
-function renderLogRow(event: ObservableLogEvent): string {
+function renderLogRow(event: ObservableLogEvent, memoryLinks: readonly MemoryFlowRecordLink[]): string {
 	const chips = event.chips.map((chip) => `<span class="chip">${escapeHtml(chip)}</span>`).join("\n");
+	const memoryChips = memoryLinks.map((link) => `<a class="chip memory-link" href="#memory-flow-${link.flowNumber}">Memory flow #${link.flowNumber}</a> <span class="chip memory-role-label">${escapeHtml(link.roleLabel)} · ${escapeHtml(link.confidence)}</span>`).join("\n");
+	const chipBlock = [chips, memoryChips].filter((block) => block.length > 0).join("\n");
+	const primaryMemoryLink = memoryLinks[0];
+	const memoryClass = primaryMemoryLink ? ` memory-related memory-role-${primaryMemoryLink.role} memory-confidence-${slugClass(primaryMemoryLink.confidence)}` : "";
+	const memoryAttributes = primaryMemoryLink ? ` data-memory-flow="${primaryMemoryLink.flowNumber}" data-memory-role="${escapeHtml(primaryMemoryLink.role)}"` : "";
 	const detailJson = JSON.stringify(event.record.data, null, 2);
-	return `<article class="log-row" data-log-row data-category="${escapeHtml(event.category)}" data-event="${escapeHtml(event.event)}" data-search="${escapeHtml(event.searchText)}">
+	return `<article id="record-${event.index + 1}" class="log-row${memoryClass}" data-log-row data-category="${escapeHtml(event.category)}" data-event="${escapeHtml(event.event)}" data-search="${escapeHtml(event.searchText)}"${memoryAttributes}>
 <div class="log-row-header"><span class="chip category ${escapeHtml(event.category)}">${escapeHtml(event.category)}</span><span class="log-row-title">${escapeHtml(event.label)}</span><span class="log-row-meta">${escapeHtml(formatLogMeta(event))}</span></div>
-${chips ? `<div>${chips}</div>` : ""}
+${chipBlock ? `<div>${chipBlock}</div>` : ""}
 <p class="log-summary">${escapeHtml(event.summary)}</p>
 <details><summary>Record details</summary><pre>${escapeHtml(detailJson)}</pre></details>
 </article>`;
+}
+
+function slugClass(value: string): string {
+	return value.toLowerCase().replaceAll(/[^a-z0-9]+/gu, "-").replaceAll(/^-|-$/gu, "");
 }
 
 function formatLogMeta(event: ObservableLogEvent): string {

@@ -19,4 +19,11 @@
 - `versions/0.3.0/m2-trace-summary-cards.md` — completed trace summary cards.
 - `versions/0.3.0/m3-session-compaction-explorer.md` — completed session/compaction explorer foundation.
 
+## 0.4.0 memory-explorer UX bridge
+
+- `versions/0.4.0/index.md` — sealed 0.4.0 release summary.
+- `versions/0.4.0/m1-session-memory-explorer.md` — completed safe memory-flow model/helper contract.
+- `versions/0.4.0/m2-richer-report-ux.md` — completed targeted memory report anchors, links, backlinks, and highlights.
+- `versions/0.4.0/m3-memory-explorer-integration.md` — completed cohesive memory-flow explorer integration and release-shape review.
+
 Future product iterations should be planned under `versions/<semver>/` before implementation starts.

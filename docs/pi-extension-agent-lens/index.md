@@ -2,18 +2,14 @@
 
 ## Current stable version
 
-- Version: `0.3.0`
+- Version: `0.4.0`
 - Package: `packages/pi-extension-agent-lens`
-- Status: Observable log reader and session/compaction legibility release sealed after manual acceptance.
-- Current package version: `0.3.0`
+- Status: Memory-explorer UX bridge release sealed after M1/M2/M3 completion and manual acceptance.
+- Current package version: `0.4.0`
 
 ## Active planning version
 
-- Version: `0.4.0`
-- Status: Planning active; implementation not started.
-- Theme: Memory-explorer UX bridge.
-- Planning index: `versions/0.4.0/index.md`
-- Milestone tracker: `versions/0.4.0/milestones.md`
+None. Future work should be planned under `versions/<semver>/` before implementation starts.
 
 ## Product summary
 
@@ -44,6 +40,14 @@ v0.3.0 delivered:
 - Reduced chip noise by moving run/turn identifiers into row metadata.
 - Defensive report redaction for raw-like `text` and `content` fields.
 
+v0.4.0 delivered:
+
+- Metadata-only memory-flow grouping around compaction events.
+- Confidence labels for observed, nearby observed, inferred, and missing relationships.
+- Static links from memory-flow cards to observable-log records and backlinks from related rows.
+- Memory-flow explorer safety wording that avoids overclaiming full session reconstruction.
+- Provider-after cards for the next observed provider request after compaction.
+
 ## Navigation
 
 - `roadmap.md` — broad product direction and deferred candidates.
@@ -53,7 +57,7 @@ v0.3.0 delivered:
 - `archive.md` — completed/superseded docs index.
 - `versions/0.2.0/index.md` — sealed 0.2.0 planning and release notes.
 - `versions/0.3.0/index.md` — sealed 0.3.0 planning and release notes.
-- `versions/0.4.0/index.md` — active 0.4.0 planning.
+- `versions/0.4.0/index.md` — sealed 0.4.0 planning and release notes.
 - `versions/0.4.1/index.md` — deferred placeholder for 0.4.x follow-up candidates.
 - `versions/README.md` — convention for future versioned planning docs.
 - `log.md` — append-only product/change log.
