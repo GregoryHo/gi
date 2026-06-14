@@ -50,6 +50,9 @@ ${renderRefreshMeta(options.refreshSeconds)}<title>${escapeHtml(title)}</title>
 <style>
 body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 2rem; line-height: 1.45; color: #17202a; }
 section { margin: 2rem 0; }
+.report-nav { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 1rem 0; padding: 0.75rem; border: 1px solid #d5d8dc; border-radius: 0.6rem; background: #fbfcfc; }
+.report-nav a { color: #1f618d; text-decoration: none; }
+.report-nav a:hover { text-decoration: underline; }
 table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
 th, td { border: 1px solid #d5d8dc; padding: 0.4rem 0.55rem; text-align: left; vertical-align: top; }
 th { background: #f4f6f7; }
@@ -59,7 +62,13 @@ pre { background: #f8f9f9; border: 1px solid #d5d8dc; padding: 0.75rem; overflow
 .observable-log-controls input { min-width: 18rem; padding: 0.35rem 0.5rem; }
 .filter-chip { border: 1px solid #bfc9ca; border-radius: 999px; background: #fff; padding: 0.25rem 0.6rem; cursor: pointer; }
 .filter-chip.active { background: #17202a; color: #fff; }
+.density-controls { display: inline-flex; gap: 0.35rem; align-items: center; }
+.log-count { color: #5d6d7e; font-size: 0.9rem; }
 .log-row { border: 1px solid #d5d8dc; border-radius: 0.6rem; padding: 0.75rem; margin: 0.75rem 0; }
+body.density-compact .log-row { padding: 0.45rem; margin: 0.45rem 0; }
+body.density-compact .log-summary { margin: 0.25rem 0; }
+body.density-compact .compaction-flow { padding: 0.65rem; }
+body.density-compact .compaction-flow-card { padding: 0.5rem; }
 .log-row.memory-related { border-left-width: 0.35rem; }
 .log-row.memory-role-before-context { border-left-color: #60a5fa; }
 .log-row.memory-role-preparation, .log-row.memory-role-result { border-left-color: #fb923c; }
@@ -92,13 +101,18 @@ pre { background: #f8f9f9; border: 1px solid #d5d8dc; padding: 0.75rem; overflow
 function agentLensFilterLog() {
   const query = (document.getElementById('agent-lens-log-search')?.value || '').toLowerCase();
   const active = new Set([...document.querySelectorAll('[data-filter-category].active')].map((button) => button.getAttribute('data-filter-category')));
+  let visible = 0;
   for (const row of document.querySelectorAll('[data-log-row]')) {
     const category = row.getAttribute('data-category');
     const search = (row.getAttribute('data-search') || '').toLowerCase();
     const categoryMatch = active.size === 0 || active.has(category);
     const searchMatch = query.length === 0 || search.includes(query);
-    row.classList.toggle('hidden', !(categoryMatch && searchMatch));
+    const matches = categoryMatch && searchMatch;
+    row.classList.toggle('hidden', !matches);
+    if (matches) visible += 1;
   }
+  const count = document.getElementById('visible-log-count');
+  if (count) count.textContent = String(visible) + ' visible';
 }
 function agentLensToggleCategory(button) {
   button.classList.toggle('active');
@@ -107,10 +121,14 @@ function agentLensToggleCategory(button) {
 function agentLensSetDetails(open) {
   for (const details of document.querySelectorAll('[data-log-row] details')) details.open = open;
 }
+function agentLensSetDensity(density) {
+  document.body.classList.toggle('density-compact', density === 'compact');
+}
 </script>
 </head>
 <body>
 <h1>${escapeHtml(title)}</h1>
+${renderReportNav()}
 ${renderLiveNotice(options.refreshSeconds)}${renderSourceMetadata(options)}<p>${records.length} trace records.</p>
 ${renderCounts(eventCounts)}
 ${renderSummaryCards(summarizeTraceForReport(records), compactionExplorer.groups.length > 0)}
@@ -155,6 +173,10 @@ function countEvents(records: readonly AgentLensTraceRecord[]): Map<string, numb
 	return counts;
 }
 
+function renderReportNav(): string {
+	return `<nav class="report-nav" aria-label="Report sections"><a href="#event-counts">Event counts</a><a href="#trace-summary">Trace summary</a><a href="#memory-flow-explorer">Memory flow</a><a href="#observable-log">Observable log</a><a href="#context-snapshots">Context snapshots</a><a href="#provider-payloads">Provider payloads</a><a href="#compaction">Compaction</a></nav>`;
+}
+
 function renderRefreshMeta(refreshSeconds: number | undefined): string {
 	return refreshSeconds ? `<meta http-equiv="refresh" content="${refreshSeconds}">\n` : "";
 }
@@ -175,7 +197,7 @@ function renderCounts(counts: Map<string, number>): string {
 		.sort(([a], [b]) => a.localeCompare(b))
 		.map(([event, count]) => `<span class="badge">${escapeHtml(event)}: ${count}</span>`)
 		.join("\n");
-	return `<section><h2>Event counts</h2>\n${badges}</section>`;
+	return `<section id="event-counts"><h2>Event counts</h2>\n${badges}</section>`;
 }
 
 function renderSummaryCards(summary: ReportTraceSummary, hasMemoryFlows: boolean): string {
@@ -188,7 +210,7 @@ function renderSummaryCards(summary: ReportTraceSummary, hasMemoryFlows: boolean
 		renderSummaryCard("Compactions", String(summary.compactionCount), compactionDetail, hasMemoryFlows ? { href: "#memory-flow-1", label: "View memory flow" } : undefined),
 		renderSummaryCard("Time range", summary.firstTimestamp ?? "No records", summary.lastTimestamp ? `last ${summary.lastTimestamp}` : ""),
 	];
-	return `<section><h2>Trace summary</h2><div class="summary-card-grid">${cards.join("\n")}</div></section>`;
+	return `<section id="trace-summary"><h2>Trace summary</h2><div class="summary-card-grid">${cards.join("\n")}</div></section>`;
 }
 
 function renderSummaryCard(title: string, value: string, detail: string, link?: SummaryCardLink): string {
@@ -200,7 +222,7 @@ function renderCompactionExplorer(explorer: CompactionExplorer): string {
 	const body = explorer.groups.length === 0
 		? "<p>No compaction records found.</p>"
 		: explorer.groups.map((group, index) => renderCompactionGroup(group, index + 1)).join("\n");
-	return `<section><h2>Memory flow explorer</h2><p class="summary-card-detail">Partial metadata-only view. Relationships are labeled as observed, nearby observed, inferred, or missing; inferred links are based on event order and are not full session reconstruction.</p>${body}</section>`;
+	return `<section id="memory-flow-explorer"><h2>Memory flow explorer</h2><p class="summary-card-detail">Partial metadata-only view. Relationships are labeled as observed, nearby observed, inferred, or missing; inferred links are based on event order and are not full session reconstruction.</p>${body}</section>`;
 }
 
 function renderCompactionGroup(group: CompactionExplorerGroup, flowNumber: number): string {
@@ -296,7 +318,7 @@ function addMemoryFlowRecordLink(
 
 function renderTimeline(records: readonly AgentLensTraceRecord[], memoryFlowRecordLinks: Map<number, MemoryFlowRecordLink[]>): string {
 	const events = records.map((record, index) => classifyTraceRecord(record, index));
-	return `<section><h2>Observable log</h2>
+	return `<section id="observable-log" data-total-log-rows="${events.length}"><h2>Observable log</h2>
 ${renderLogControls(events)}
 ${events.map((event) => renderLogRow(event, memoryFlowRecordLinks.get(event.index) ?? [])).join("\n")}
 </section>`;
@@ -312,6 +334,8 @@ function renderLogControls(events: readonly ObservableLogEvent[]): string {
 ${filters}
 <button type="button" class="filter-chip" onclick="agentLensSetDetails(true)">Expand all</button>
 <button type="button" class="filter-chip" onclick="agentLensSetDetails(false)">Collapse all</button>
+<span class="density-controls"><span>Density</span><button id="density-comfortable" type="button" class="filter-chip" onclick="agentLensSetDensity('comfortable')">Comfortable</button><button id="density-compact" type="button" class="filter-chip" onclick="agentLensSetDensity('compact')">Compact</button></span>
+<span id="visible-log-count" class="log-count">${events.length} visible</span>
 </div>`;
 }
 
@@ -349,7 +373,11 @@ function renderRecordSection(title: string, records: readonly AgentLensTraceReco
 		: records
 				.map((record) => `<h3>${escapeHtml(record.timestamp)} — ${escapeHtml(record.event)}</h3><pre>${escapeHtml(JSON.stringify(sanitizeReportValue(record.data), null, 2))}</pre>`)
 				.join("\n");
-	return `<section><h2>${escapeHtml(title)}</h2>${body}</section>`;
+	return `<section id="${escapeHtml(sectionId(title))}"><h2>${escapeHtml(title)}</h2>${body}</section>`;
+}
+
+function sectionId(title: string): string {
+	return title.toLowerCase().replaceAll(/[^a-z0-9]+/gu, "-").replaceAll(/^-|-$/gu, "");
 }
 
 function escapeHtml(value: string): string {

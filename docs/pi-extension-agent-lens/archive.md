@@ -26,4 +26,12 @@
 - `versions/0.4.0/m2-richer-report-ux.md` — completed targeted memory report anchors, links, backlinks, and highlights.
 - `versions/0.4.0/m3-memory-explorer-integration.md` — completed cohesive memory-flow explorer integration and release-shape review.
 
+## 0.4.1 report UX polish and metadata-only comparison
+
+- `versions/0.4.1/index.md` — sealed 0.4.1 release summary.
+- `versions/0.4.1/plan-spec.md` — completed version-level plan/spec and stop-condition record.
+- `versions/0.4.1/m1-index-sorting-filtering.md` — completed multi-trace index sorting/filtering/search.
+- `versions/0.4.1/m2-report-navigation-density.md` — completed per-trace report navigation and density refinements.
+- `versions/0.4.1/m3-metadata-trace-comparison.md` — completed metadata-only trace comparison.
+
 Future product iterations should be planned under `versions/<semver>/` before implementation starts.

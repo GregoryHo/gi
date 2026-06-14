@@ -28,3 +28,10 @@
 ## 2026-06-09
 
 - Sealed v0.4.0 after M1/M2/M3 completion, automated verification, and user manual acceptance. Current stable version is `0.4.0`; no active planning version remains.
+
+## 2026-06-14
+
+- Opened active 0.4.1 planning after user selected the report UX polish path. Proposed milestones are index sorting/filtering/search, per-trace navigation/density refinements, and optional metadata-only trace comparison. Current stable version remains `0.4.0`.
+- Completed automated implementation for all 0.4.1 milestones on `agent-lens-0.4.1-planning`: M1 index controls, M2 per-trace navigation/density, and M3 metadata-only trace comparison. Full automated verification passed; final manual smoke and release sealing remain pending.
+- User completed final manual smoke for 0.4.1. All planned milestones are now done.
+- Sealed v0.4.1 as a local package release. Current stable version is `0.4.1`; no active planning version remains. No publish or tag was created.

@@ -29,6 +29,7 @@ test("parseAgentLensCommand keeps status default and recognizes subcommands", ()
 	assert.equal(parseAgentLensCommand("report"), "report");
 	assert.equal(parseAgentLensCommand("traces"), "traces");
 	assert.equal(parseAgentLensCommand("index"), "index");
+	assert.equal(parseAgentLensCommand("compare"), "compare");
 	assert.equal(parseAgentLensCommand("clean --dry-run"), "clean_dry_run");
 	assert.equal(parseAgentLensCommand("clean --confirm"), "clean_confirm");
 });

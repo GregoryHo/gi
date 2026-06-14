@@ -199,6 +199,36 @@ test("agent-lens index command writes a multi-trace index report", async () => {
 	}
 });
 
+test("agent-lens compare command writes a metadata-only trace comparison report", async () => {
+	const originalCwd = process.cwd();
+	const dir = await mkdtemp(join(tmpdir(), "agent-lens-compare-command-"));
+	try {
+		process.chdir(dir);
+		let commandHandler: ((args: string, ctx: any) => Promise<void>) | undefined;
+		const notifications: string[] = [];
+		const pi = {
+			on() {},
+			registerCommand(_name: string, options: any) {
+				commandHandler = options.handler;
+			},
+		} as any;
+
+		agentLens(pi);
+		assert.ok(commandHandler);
+		await commandHandler("report", { ui: { notify: (message: string) => notifications.push(message) } });
+		await commandHandler("compare", { ui: { notify: (message: string) => notifications.push(message) } });
+
+		const comparePath = join(dir, ".pi-agent-lens", "compare.html");
+		const html = await readFile(comparePath, "utf8");
+		assert.match(html, /Agent Lens Trace Comparison/);
+		assert.match(html, /Metadata-only comparison/);
+		assert.equal(notifications.some((message) => message.includes("Agent Lens comparison:")), true);
+	} finally {
+		process.chdir(originalCwd);
+		await rm(dir, { recursive: true, force: true });
+	}
+});
+
 test("agent-lens clean commands dry-run and confirm retention cleanup", async () => {
 	const originalCwd = process.cwd();
 	const dir = await mkdtemp(join(tmpdir(), "agent-lens-clean-command-"));

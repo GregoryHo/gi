@@ -42,6 +42,31 @@ test("renderIndexReport renders trace table, report links, and active marker", (
 	assert.match(html, /2026-06-07T03:00:00.000Z/);
 });
 
+test("renderIndexReport renders local index controls and row metadata", () => {
+	const html = renderIndexReport([
+		...summaries,
+		{ traceFile: "/repo/.pi-agent-lens/agent-lens-empty.jsonl", recordCount: 0 },
+	], {
+		artifactRoot: "/repo/.pi-agent-lens",
+		activeTraceFile: "/repo/.pi-agent-lens/agent-lens-new.jsonl",
+		reportFiles: new Set(["/repo/.pi-agent-lens/agent-lens-new.html"]),
+		generatedAt: "2026-06-07T03:00:00.000Z",
+	});
+
+	assert.match(html, /id="trace-search"/);
+	assert.match(html, /id="active-filter"/);
+	assert.match(html, /id="event-filter"/);
+	assert.match(html, /id="report-filter"/);
+	assert.match(html, /id="sort-traces"/);
+	assert.match(html, /id="empty-trace-message"/);
+	assert.match(html, /data-active="true"/);
+	assert.match(html, /data-report="available"/);
+	assert.match(html, /data-report="missing"/);
+	assert.match(html, /data-trace-search="agent-lens-empty.jsonl/);
+	assert.match(html, /<td>missing<\/td>/);
+	assert.match(html, /<option value="context">context<\/option>/);
+});
+
 test("renderIndexReport escapes dynamic values", () => {
 	const html = renderIndexReport([
 		{ traceFile: "/repo/.pi-agent-lens/<script>.jsonl", recordCount: 1, lastEvent: "x<script>", lastTimestamp: "<bad>", sizeBytes: 1, modifiedAt: "<bad>" },

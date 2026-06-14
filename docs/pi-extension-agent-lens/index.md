@@ -2,10 +2,10 @@
 
 ## Current stable version
 
-- Version: `0.4.0`
+- Version: `0.4.1`
 - Package: `packages/pi-extension-agent-lens`
-- Status: Memory-explorer UX bridge release sealed after M1/M2/M3 completion and manual acceptance.
-- Current package version: `0.4.0`
+- Status: Report UX polish release sealed after M1/M2/M3 completion, automated verification, and manual acceptance.
+- Current package version: `0.4.1`
 
 ## Active planning version
 
@@ -48,6 +48,12 @@ v0.4.0 delivered:
 - Memory-flow explorer safety wording that avoids overclaiming full session reconstruction.
 - Provider-after cards for the next observed provider request after compaction.
 
+v0.4.1 delivered:
+
+- Multi-trace index sorting, filtering, search, active filtering, report-availability filtering, and stable missing metadata labels.
+- Per-trace report section navigation, stable anchors, observable-log visible counts, and comfortable/compact density controls.
+- `/agent-lens compare` with a local metadata-only trace comparison report and source report links where available.
+
 ## Navigation
 
 - `roadmap.md` — broad product direction and deferred candidates.
@@ -58,7 +64,7 @@ v0.4.0 delivered:
 - `versions/0.2.0/index.md` — sealed 0.2.0 planning and release notes.
 - `versions/0.3.0/index.md` — sealed 0.3.0 planning and release notes.
 - `versions/0.4.0/index.md` — sealed 0.4.0 planning and release notes.
-- `versions/0.4.1/index.md` — deferred placeholder for 0.4.x follow-up candidates.
+- `versions/0.4.1/index.md` — sealed 0.4.1 planning and release notes.
 - `versions/README.md` — convention for future versioned planning docs.
 - `log.md` — append-only product/change log.
 - `AGENTS.md` — docs governance and workflow.

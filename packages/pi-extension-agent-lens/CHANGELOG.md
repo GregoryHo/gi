@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.1 - 2026-06-14
+
+- Add local sorting, filtering, and search controls to the multi-trace index report.
+- Show stable `missing` values for unavailable index metadata instead of blank cells.
+- Add per-trace report section navigation, observable-log visible counts, and density controls.
+- Add `/agent-lens compare` for a metadata-only local trace comparison report.
+
 ## 0.4.0 - 2026-06-09
 
 - Add a memory-flow explorer framing for compaction-heavy trace reports.

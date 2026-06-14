@@ -1,4 +1,4 @@
-export type AgentLensCommand = "status" | "report" | "traces" | "index" | "clean_dry_run" | "clean_confirm";
+export type AgentLensCommand = "status" | "report" | "traces" | "index" | "compare" | "clean_dry_run" | "clean_confirm";
 
 export interface AgentLensStatus {
 	traceFile: string;
@@ -16,6 +16,7 @@ export function parseAgentLensCommand(args: string): AgentLensCommand {
 	if (command === "report") return "report";
 	if (command === "traces") return "traces";
 	if (command === "index") return "index";
+	if (command === "compare") return "compare";
 	if (command === "clean --dry-run") return "clean_dry_run";
 	if (command === "clean --confirm") return "clean_confirm";
 	return "status";

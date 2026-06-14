@@ -112,6 +112,23 @@ test("renderHtmlReport shows run and turn identifiers as metadata instead of dup
 	assert.match(html, /<span class="chip">start<\/span>/);
 });
 
+test("renderHtmlReport includes section navigation, density controls, and visible-count metadata", () => {
+	const html = renderHtmlReport(records, { title: "Agent Lens Test" });
+
+	assert.match(html, /class="report-nav"/);
+	assert.match(html, /href="#trace-summary"/);
+	assert.match(html, /href="#memory-flow-explorer"/);
+	assert.match(html, /href="#observable-log"/);
+	assert.match(html, /id="density-comfortable"/);
+	assert.match(html, /id="density-compact"/);
+	assert.match(html, /agentLensSetDensity/);
+	assert.match(html, /id="visible-log-count"/);
+	assert.match(html, /3 visible/);
+	assert.match(html, /data-total-log-rows="3"/);
+	assert.match(html, /id="trace-summary"/);
+	assert.match(html, /id="event-counts"/);
+});
+
 test("renderHtmlReport includes observable log chips, filters, search, and expandable details", () => {
 	const html = renderHtmlReport(records, { title: "Agent Lens Test" });
 

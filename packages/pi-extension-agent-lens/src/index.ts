@@ -1,6 +1,7 @@
 import { dirname, join } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { executeCleanupPlan, formatCleanupPlan, planCleanup } from "./cleanup.ts";
+import { writeTraceComparisonReport } from "./compare-report.ts";
 import { formatReportMessage, formatStatusMessage, parseAgentLensCommand } from "./commands.ts";
 import { loadAgentLensConfig } from "./config.ts";
 import { contentFingerprint } from "./redact.ts";
@@ -44,7 +45,7 @@ export default function agentLens(pi: ExtensionAPI): void {
 	};
 
 	pi.registerCommand("agent-lens", {
-		description: "Show Agent Lens trace status, list traces, or generate a local report",
+		description: "Show Agent Lens trace status, list traces, or generate local reports",
 		handler: async (args, ctx) => {
 			const command = parseAgentLensCommand(args);
 			if (command === "report") {
@@ -65,6 +66,11 @@ export default function agentLens(pi: ExtensionAPI): void {
 			if (command === "index") {
 				const indexFile = await writeIndexReport({ artifactRoot: config.artifactRoot, activeTraceFile: recorder.traceFile });
 				ctx.ui.notify(`Agent Lens index: ${indexFile}`, "info");
+				return;
+			}
+			if (command === "compare") {
+				const compareFile = await writeTraceComparisonReport({ artifactRoot: config.artifactRoot });
+				ctx.ui.notify(`Agent Lens comparison: ${compareFile}`, "info");
 				return;
 			}
 			if (command === "clean_dry_run" || command === "clean_confirm") {

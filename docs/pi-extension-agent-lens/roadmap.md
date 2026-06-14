@@ -33,22 +33,22 @@ Agent Lens helps users understand how pi agent behavior emerges from system prom
 - Reduced chip noise by moving run/turn identifiers into row metadata.
 - Defensive report redaction for raw-like `text` and `content` fields.
 
-## Active 0.4.0 direction
+## Delivered in 0.4.1
 
-0.4.0 is planned under `versions/0.4.0/` as a **Memory-explorer UX bridge**:
+- Multi-trace index sorting/filtering/search so users can find relevant reports quickly.
+- Per-trace navigation and density refinements for long static reports.
+- Metadata-only trace comparison through `/agent-lens compare` and `.pi-agent-lens/compare.html`.
 
-- Session memory explorer: connect compaction summaries to session entries and branch/navigation metadata where safely observable.
-- Targeted richer report UX: add only the navigation and reading improvements needed to make memory/compaction flow legible.
+## Active direction
 
-Generic report UX polish and follow-up static report improvements are parked in `versions/0.4.1/index.md`.
+No active planning version. Future work should be planned under `versions/<semver>/` before implementation starts.
 
 ## Deferred candidates
 
-Future work beyond 0.4.0 should be planned under `versions/<semver>/` before implementation.
+Future work should be planned under `versions/<semver>/` before implementation.
 
-- Generic static report UX polish not required for 0.4.0 memory-flow reading.
-- Index report sorting/filtering improvements.
-- Metadata-only trace comparison.
+- Additional report UX polish beyond the 0.4.1 milestones.
+- Richer metadata-only comparison workflows beyond the initial 0.4.1 compare report.
 - Explicit raw capture opt-in design, if still desired after config groundwork.
 - Behavior evaluation views beyond metadata-only summaries.
 - Optional local server mode if file-based live reports become insufficient.
