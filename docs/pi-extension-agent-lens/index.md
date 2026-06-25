@@ -9,7 +9,10 @@
 
 ## Active planning version
 
-None. Future work should be planned under `versions/<semver>/` before implementation starts.
+- Version: `0.5.0`
+- Status: Active planning; implementation not started.
+- Planning area: `versions/0.5.0/`
+- Theme: Multi-agent swimlane + topology foundation.
 
 ## Product summary
 
@@ -65,6 +68,7 @@ v0.4.1 delivered:
 - `versions/0.3.0/index.md` — sealed 0.3.0 planning and release notes.
 - `versions/0.4.0/index.md` — sealed 0.4.0 planning and release notes.
 - `versions/0.4.1/index.md` — sealed 0.4.1 planning and release notes.
+- `versions/0.5.0/index.md` — active 0.5.0 planning for multi-agent swimlane + topology foundation.
 - `versions/README.md` — convention for future versioned planning docs.
 - `log.md` — append-only product/change log.
 - `AGENTS.md` — docs governance and workflow.

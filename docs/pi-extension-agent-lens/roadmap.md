@@ -39,19 +39,27 @@ Agent Lens helps users understand how pi agent behavior emerges from system prom
 - Per-trace navigation and density refinements for long static reports.
 - Metadata-only trace comparison through `/agent-lens compare` and `.pi-agent-lens/compare.html`.
 
-## Active direction
+## Active 0.5.0 direction
 
-No active planning version. Future work should be planned under `versions/<semver>/` before implementation starts.
+0.5.0 is planned under `versions/0.5.0/` as **Multi-agent swimlane + topology foundation**:
+
+- Safe topology model and evidence inventory before UI work.
+- Static report swimlane timeline for agent/tool/provider/memory activity.
+- Partial topology explorer for safely observable relationships.
+- Hybrid metadata strategy: start with existing trace metadata; M1 decides whether minimal new redacted metadata capture is necessary.
+
+The release should stay static/local-first, metadata-only by default, and avoid full session reconstruction claims.
 
 ## Deferred candidates
 
 Future work should be planned under `versions/<semver>/` before implementation.
 
-- Additional report UX polish beyond the 0.4.1 milestones.
-- Richer metadata-only comparison workflows beyond the initial 0.4.1 compare report.
+- Additional report UX polish not required for 0.5.0 swimlane/topology reading.
+- Richer metadata-only comparison workflows beyond the initial 0.4.1 compare report and outside 0.5.0 topology scope.
 - Explicit raw capture opt-in design, if still desired after config groundwork.
 - Behavior evaluation views beyond metadata-only summaries.
 - Optional local server mode if file-based live reports become insufficient.
+- Full session branch tree reconstruction, unless a future version has enough safe metadata and explicit product approval.
 
 ## Continuing non-goals
 
