@@ -1,0 +1,40 @@
+# Web Search log
+
+## 2026-06-25 — 0.3.0 sealed
+
+v0.3.0 sealed with session-local provenance bridge and untrusted-content hardening. `web_search` now returns `responseId` plus result ids; `fetch_content` can fetch by direct URL, `responseId/resultId`, or `responseId/index`. Fetched content output explicitly warns that web text is untrusted evidence/data, not instructions.
+
+## 2026-06-25 — 0.1.0 sealed
+
+M1 completed and docs sealed for v0.1.0. Implemented `web_search` with OpenAI/Codex auth resolution, required OpenAI Responses API `web_search` calls, citation parsing from JSON/SSE responses, compact safe output, and tests for core behavior.
+
+Verification passed:
+
+```bash
+npm test --workspace @gregho/pi-extension-web-search
+npm run typecheck --workspace @gregho/pi-extension-web-search
+npm run pack:dry-run --workspace @gregho/pi-extension-web-search
+npm run typecheck
+pi -e ./packages/pi-extension-web-search --no-extensions --offline --no-session --list-models gpt-4o
+```
+
+The pi load smoke command exited 0 without extension startup errors. Authenticated live search smoke remains manual because it depends on an interactive pi/OpenAI login context.
+
+## 2026-06-25 — M1 implementation started
+
+M1 implementation started in the sibling worktree. Scope remains one read-only OpenAI/Codex-backed `web_search` tool with tests first for pure parsing, request construction, and tool registration behavior.
+
+## 2026-06-25 — 0.1.0 scope narrowed
+
+Decision: v0.1.0 will not depend on Google CSE. The MVP should use OpenAI/Codex web-search capability because the user already has an OpenAI subscription and current pi provider access is OpenAI-based.
+
+Reference inputs:
+
+- `amosblomqvist/pi-config` for a minimal `web_search` tool shape and query normalization ideas.
+- `nicobailon/pi-web-access` for OpenAI/Codex auth resolution and Responses API `web_search` usage.
+
+Constraints:
+
+- Keep v0.1.0 read-only.
+- Avoid browser cookies and persistent content storage.
+- Keep provider routing out of M1.

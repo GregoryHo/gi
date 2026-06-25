@@ -1,0 +1,35 @@
+{
+  "name": "@gregho/pi-extension-web-search",
+  "version": "0.3.0",
+  "description": "pi extension package for read-only OpenAI/Codex-backed web search.",
+  "type": "module",
+  "main": "src/index.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    }
+  },
+  "keywords": [
+    "pi-package",
+    "pi-extension",
+    "web-search",
+    "openai",
+    "codex"
+  ],
+  "scripts": {
+    "test": "node --test --experimental-strip-types",
+    "typecheck": "tsc --noEmit",
+    "pack:dry-run": "npm pack --dry-run"
+  },
+  "pi": {
+    "extensions": [
+      "./src/index.ts"
+    ]
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-ai": "*",
+    "@earendil-works/pi-coding-agent": "*",
+    "typebox": "*"
+  }
+}
