@@ -1,5 +1,11 @@
 # Web Search archive
 
+## 0.5.0
+
+- `versions/0.5.0/index.md` — sealed 0.5.0 planning index.
+- `versions/0.5.0/m1-defuddle-extraction.md` — completed Defuddle extraction plan.
+- `versions/0.5.0/milestones.md` — sealed 0.5.0 milestone tracker.
+
 ## 0.4.0
 
 - `versions/0.4.0/index.md` — sealed 0.4.0 planning index.

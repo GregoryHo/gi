@@ -4,7 +4,7 @@ Web Search is a pi extension package for read-only web search.
 
 ## Status
 
-`0.4.0` implements an OpenAI/Codex-backed `web_search` tool, a minimal safe `fetch_content` tool, a session-local provenance bridge, and chunked retrieval for fetched content.
+`0.5.0` implements an OpenAI/Codex-backed `web_search` tool, a safe `fetch_content` tool, a session-local provenance bridge, chunked retrieval for fetched content, and Defuddle-based HTML cleanup.
 
 ## Tools
 
@@ -33,11 +33,11 @@ get_search_content({ responseId: "fc_1", offset: 12000, limit: 8000 })
 
 - Fetches public HTTP/HTTPS URLs directly or via `responseId` plus `resultId`/`index` from `web_search`.
 - Blocks localhost/private/reserved IP targets and validates redirects.
-- Converts HTML to compact markdown-ish text; returns text/json/markdown as text.
+- Converts HTML to cleaner markdown using local Defuddle extraction with simple fallback; returns text/json/markdown as text.
 - Enforces timeout, response byte limit, and extracted character limit.
 - Marks fetched web text as untrusted evidence/data, not instructions.
 - Stores full extracted content in session-local memory and returns a `responseId` for chunked retrieval with `get_search_content`.
-- Does not use browser cookies, JavaScript rendering, PDF/video/GitHub special handling, provider fallback, or persistent storage.
+- Does not use browser cookies, JavaScript rendering, Defuddle async third-party fallbacks, PDF/video/GitHub special handling, provider fallback, or persistent storage.
 
 ## Development
 

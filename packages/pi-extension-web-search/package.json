@@ -1,6 +1,6 @@
 {
   "name": "@gregho/pi-extension-web-search",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "pi extension package for read-only OpenAI/Codex-backed web search.",
   "type": "module",
   "main": "src/index.ts",
@@ -31,5 +31,9 @@
     "@earendil-works/pi-ai": "*",
     "@earendil-works/pi-coding-agent": "*",
     "typebox": "*"
+  },
+  "dependencies": {
+    "defuddle": "^0.19.1",
+    "linkedom": "^0.18.12"
   }
 }

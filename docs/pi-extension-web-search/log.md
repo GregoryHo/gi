@@ -1,5 +1,9 @@
 # Web Search log
 
+## 2026-06-26 — 0.5.0 sealed
+
+v0.5.0 sealed with Defuddle-first HTML extraction. `fetch_content` now parses HTML through local `defuddle/node` with `useAsync:false`, falling back to the prior simple extractor when needed. Live pi docs smoke showed cleaner first-chunk content while preserving truncation and chunk retrieval.
+
 ## 2026-06-25 — 0.4.0 sealed
 
 v0.4.0 sealed with session-local full fetched-content retrieval. `fetch_content` now returns `responseId` and `fullCharCount` while keeping inline output bounded; `get_search_content` retrieves full content chunks by offset/limit during the current extension session.

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.0 - 2026-06-26
+
+- Add Defuddle-based HTML extraction using `defuddle/node` and `linkedom`.
+- Disable Defuddle async third-party fallback with `useAsync: false`.
+- Preserve the previous simple HTML extractor as fallback when Defuddle fails or returns empty content.
+- Improve docs-page readability while preserving existing SSRF, timeout, truncation, chunk retrieval, and untrusted-content safety boundaries.
+
 ## 0.4.0 - 2026-06-25
 
 - Add session-local full fetched-content storage for `fetch_content` results.
