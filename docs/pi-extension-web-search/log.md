@@ -1,5 +1,9 @@
 # Web Search log
 
+## 2026-06-26 — 0.6.2 sealed
+
+v0.6.2 sealed with generic online routing guidance. Added natural-language cues for online/public/remote/internet/external research and outside-current-repo availability questions, without adding narrow tools.
+
 ## 2026-06-26 — 0.6.1 sealed
 
 v0.6.1 sealed with public source routing guidance. `web_research` is registered first and guidance now steers ambiguous public extension/package/source implementation discovery away from local grep unless the user explicitly asks for local/current-repo search.

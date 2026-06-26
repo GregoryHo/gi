@@ -98,6 +98,34 @@ test("registered tools route public source discovery to web_research instead of 
   assert.match(webSearchGuidance, /only wants search result snippets/i);
 });
 
+test("registered tools recognize generic online and external existence cues", () => {
+  const tools: RegisteredTool[] = [];
+  const pi = {
+    registerTool(tool: unknown) {
+      tools.push(tool as RegisteredTool);
+    },
+  } as Parameters<typeof registerWebSearchTool>[0];
+
+  registerWebSearchTool(pi);
+
+  const webSearchGuidance = tools.find((tool) => tool.name === "web_search")?.promptGuidelines?.join("\n") ?? "";
+  const research = tools.find((tool) => tool.name === "web_research");
+  const researchText = [research?.description, research?.promptSnippet, ...(research?.promptGuidelines ?? [])].join("\n");
+
+  assert.match(researchText, /online/i);
+  assert.match(researchText, /public/i);
+  assert.match(researchText, /remote/i);
+  assert.match(researchText, /internet/i);
+  assert.match(researchText, /external/i);
+  assert.match(researchText, /published package/i);
+  assert.match(researchText, /pi\.dev/i);
+  assert.match(researchText, /npm/i);
+  assert.match(researchText, /GitHub/i);
+  assert.match(researchText, /outside the current repo/i);
+  assert.match(webSearchGuidance, /external-existence/i);
+  assert.match(webSearchGuidance, /web_research/i);
+});
+
 test("web_research searches, fetches top sources, stores content, and returns evidence", async () => {
   const tools: RegisteredTool[] = [];
   const pi = {

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.2 - 2026-06-26
+
+- Strengthen generic `web_research` guidance for natural-language online/public/remote research cues.
+- Add explicit cues for `上網`, `online`, `public`, `remote`, `internet`, `web`, `external`, `pi.dev`, `npm`, `GitHub`, and published packages.
+- Clarify that questions about what exists outside the current repo or what public packages/libraries/tools are available should consider `web_research` before local search.
+- No new tools, schema changes, or sub-agent-specific routing.
+
 ## 0.6.1 - 2026-06-26
 
 - Register `web_research` before lower-level web tools to improve natural-language routing.

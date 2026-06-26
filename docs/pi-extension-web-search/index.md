@@ -2,10 +2,10 @@
 
 ## Current stable version
 
-- Version: `0.6.1`
+- Version: `0.6.2`
 - Package: `packages/pi-extension-web-search`
-- Status: Public source routing guidance patch sealed after M1 completion and automated verification.
-- Current package version: `0.6.1`
+- Status: Generic online routing guidance patch sealed after M1 completion and automated verification.
+- Current package version: `0.6.2`
 
 ## Active planning version
 
@@ -78,12 +78,19 @@ v0.6.1 delivered:
 - Public/online source-code, GitHub repository, pi package, extension, library, and implementation discovery guidance.
 - Local grep/read guidance limited to explicit current-repo/local-file/local-path requests.
 
+v0.6.2 delivered:
+
+- Generic online/public/remote/internet/external cue guidance.
+- Explicit `pi.dev`, `npm`, `GitHub`, published package, and outside-current-repo cues.
+- No new tools or schema changes.
+
 ## Navigation
 
 - `roadmap.md` — broad product direction and deferred candidates.
 - `milestones.md` — sealed v0.1.0 milestone tracker.
 - `m1-openai-web-search.md` — completed M1 plan.
 - `archive.md` — completed/superseded docs index.
+- `versions/0.6.2/index.md` — sealed 0.6.2 planning and release notes.
 - `versions/0.6.1/index.md` — sealed 0.6.1 planning and release notes.
 - `versions/0.6.0/index.md` — sealed 0.6.0 planning and release notes.
 - `versions/0.5.2/index.md` — sealed 0.5.2 planning and release notes.

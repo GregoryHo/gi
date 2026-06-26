@@ -63,7 +63,7 @@ export function registerWebSearchTool(pi: ToolRegistry, deps: RegisterWebSearchT
       "Keep queries specific and avoid sending secrets, private code, credentials, or personal data.",
       "This tool returns search answers, citations, responseId, and source ids; treat those ids as internal tool plumbing, not user-facing requirements.",
       "For natural-language research tasks, search first, then fetch the most relevant source when snippets are insufficient to answer accurately.",
-      "For research/read/source-inspection tasks, prefer web_research unless the user only wants search result snippets or explicitly asks to call web_search.",
+      "For research/read/source-inspection or external-existence tasks, prefer web_research unless the user only wants search result snippets or explicitly asks to call web_search.",
       "Do not ask the user to choose result ids unless they explicitly want tool/debug details; choose the best source yourself when the intent is clear.",
     ],
     parameters: Type.Object({
@@ -178,11 +178,13 @@ function registerWebResearchWorkflow(pi: ToolRegistry, deps: {
   pi.registerTool({
     name: "web_research",
     label: "Web Research",
-    description: "High-level natural-language web research tool. Searches the web, fetches top public sources, and returns a compact evidence bundle. Read-only; uses the same SSRF-guarded fetch path and session-local storage as fetch_content.",
-    promptSnippet: "Use web_research for natural-language research questions where the user wants an answer grounded in current web sources, especially when both search and source reading are likely needed.",
+    description: "High-level natural-language web research tool for online/public/remote internet research. Searches the web, fetches top public sources, and returns a compact evidence bundle. Read-only; uses the same SSRF-guarded fetch path and session-local storage as fetch_content.",
+    promptSnippet: "Use web_research for natural-language research questions where the user wants an answer grounded in current web sources, especially online/public/remote sources or when both search and source reading are likely needed.",
     promptGuidelines: [
       "Prefer this tool for natural-language research/read tasks that need both web search and source reading.",
-      "Use this when the user asks to find, research, inspect, 查, 查詢, 找, find, look up, or compare public/online source code, GitHub repositories, pi packages, extensions, libraries, or implementations.",
+      "Use this when the user asks to find, research, inspect, 查, 查詢, 找, find, look up, or compare public/online source code, remote source code, GitHub repositories, pi packages, extensions, libraries, or implementations.",
+      "Treat cues like 上網, online, public, remote, internet, web, external, pi.dev, npm, GitHub, or published package as web_research cues.",
+      "If the user asks whether something exists outside the current repo, whether there are public packages/libraries/tools, or what is available online, consider web_research before local search.",
       "If a request mentions source, implementation, package, extension, library, or GitHub and is not clearly local, treat it as public web research.",
       "Use local grep/read only when the user explicitly says current repo, local files, this project, or provides a known local path.",
       "This tool handles search and source reading together so users do not need to know responseId, resultId, or offsets.",
