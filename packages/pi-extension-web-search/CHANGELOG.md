@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.0 - 2026-06-26
+
+- Add `web_research({ question, maxSources, maxCharsPerSource, domainFilter })` high-level workflow tool.
+- `web_research` searches the web, stores search result ids, fetches top sources with the same SSRF-guarded fetch path, stores fetched full content, and returns a compact evidence bundle.
+- Fetch failures for individual sources are recorded without failing the whole research call.
+- Low-level `web_search`, `fetch_content`, and `get_search_content` remain available for targeted follow-up and debugging.
+
 ## 0.5.2 - 2026-06-26
 
 - Strengthen LLM-facing guidance so search/fetch/retrieval ids and offsets are treated as internal tool plumbing.

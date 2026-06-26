@@ -4,7 +4,7 @@ Web Search is a pi extension package for read-only web search.
 
 ## Status
 
-`0.5.2` implements an OpenAI/Codex-backed `web_search` tool, a safe `fetch_content` tool, a session-local provenance bridge, chunked retrieval for fetched content, Defuddle-based HTML cleanup, visible retrieval metadata, and natural-language retrieval guidance.
+`0.6.0` implements an OpenAI/Codex-backed `web_search` tool, a high-level `web_research` workflow, a safe `fetch_content` tool, a session-local provenance bridge, chunked retrieval for fetched content, Defuddle-based HTML cleanup, visible retrieval metadata, and natural-language retrieval guidance.
 
 ## Tools
 
@@ -12,6 +12,8 @@ Web Search is a pi extension package for read-only web search.
 web_search({ query: "pi extension docs", count: 5 })
 web_search({ query: "typescript release notes", domainFilter: ["typescriptlang.org"] })
 web_search({ query: "package comparison", domainFilter: ["github.com", "-spam.example"] })
+
+web_research({ question: "How do pi custom tools work?", maxSources: 2 })
 
 fetch_content({ url: "https://example.com/docs" })
 fetch_content({ url: "https://example.com/docs", maxChars: 8000 })
@@ -21,6 +23,13 @@ fetch_content({ responseId: "ws_1", index: 1 })
 get_search_content({ responseId: "fc_1" })
 get_search_content({ responseId: "fc_1", offset: 12000, limit: 8000 })
 ```
+
+`web_research`:
+
+- Use for natural-language research/read tasks where both search and source reading are likely needed.
+- Searches, fetches top public sources, stores fetched content session-locally, and returns a compact evidence bundle.
+- Continues to use the same OpenAI/Codex search path and SSRF-guarded fetch path.
+- Does not perform browser rendering, cookie access, persistent storage, or hidden third-party extraction fallbacks.
 
 `web_search`:
 

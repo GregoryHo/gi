@@ -2,10 +2,10 @@
 
 ## Current stable version
 
-- Version: `0.5.2`
+- Version: `0.6.0`
 - Package: `packages/pi-extension-web-search`
-- Status: Natural-language retrieval guidance patch sealed after M1 completion and automated verification.
-- Current package version: `0.5.2`
+- Status: High-level web research workflow release sealed after M1 completion and automated verification.
+- Current package version: `0.6.0`
 
 ## Active planning version
 
@@ -65,12 +65,20 @@ v0.5.2 delivered:
 - Guidance that response ids, result ids, and offsets are internal tool plumbing.
 - No schema, storage, extraction, or network behavior changes.
 
+v0.6.0 delivered:
+
+- `web_research` high-level workflow tool for natural-language research/read tasks.
+- Internal search plus top-source fetch through existing safe paths.
+- Per-source fetch failure handling without failing the whole research call.
+- Low-level tools remain available for targeted follow-up/debugging.
+
 ## Navigation
 
 - `roadmap.md` — broad product direction and deferred candidates.
 - `milestones.md` — sealed v0.1.0 milestone tracker.
 - `m1-openai-web-search.md` — completed M1 plan.
 - `archive.md` — completed/superseded docs index.
+- `versions/0.6.0/index.md` — sealed 0.6.0 planning and release notes.
 - `versions/0.5.2/index.md` — sealed 0.5.2 planning and release notes.
 - `versions/0.5.1/index.md` — sealed 0.5.1 planning and release notes.
 - `versions/0.5.0/index.md` — sealed 0.5.0 planning and release notes.

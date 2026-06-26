@@ -27,7 +27,7 @@ test("registerWebSearchTool registers strict web_search and fetch_content schema
 
   registerWebSearchTool(pi);
 
-  assert.deepEqual(tools.map((tool) => tool.name), ["web_search", "fetch_content", "get_search_content"]);
+  assert.deepEqual(tools.map((tool) => tool.name), ["web_search", "fetch_content", "get_search_content", "web_research"]);
   assert.deepEqual(tools[0]?.parameters.required, ["query"]);
   assert.ok(tools[0]?.parameters.properties?.query);
   assert.ok(tools[0]?.parameters.properties?.count);
@@ -42,6 +42,11 @@ test("registerWebSearchTool registers strict web_search and fetch_content schema
   assert.ok(tools[2]?.parameters.properties?.responseId);
   assert.ok(tools[2]?.parameters.properties?.offset);
   assert.ok(tools[2]?.parameters.properties?.limit);
+  assert.deepEqual(tools[3]?.parameters.required, ["question"]);
+  assert.ok(tools[3]?.parameters.properties?.question);
+  assert.ok(tools[3]?.parameters.properties?.maxSources);
+  assert.ok(tools[3]?.parameters.properties?.maxCharsPerSource);
+  assert.ok(tools[3]?.parameters.properties?.domainFilter);
 });
 
 test("registered tools guide the LLM to handle retrieval plumbing internally", () => {
@@ -57,6 +62,7 @@ test("registered tools guide the LLM to handle retrieval plumbing internally", (
   const webSearchGuidance = tools.find((tool) => tool.name === "web_search")?.promptGuidelines?.join("\n") ?? "";
   const fetchGuidance = tools.find((tool) => tool.name === "fetch_content")?.promptGuidelines?.join("\n") ?? "";
   const getGuidance = tools.find((tool) => tool.name === "get_search_content")?.promptGuidelines?.join("\n") ?? "";
+  const researchGuidance = tools.find((tool) => tool.name === "web_research")?.promptGuidelines?.join("\n") ?? "";
 
   assert.match(webSearchGuidance, /search first, then fetch/i);
   assert.match(webSearchGuidance, /natural-language/i);
@@ -64,6 +70,122 @@ test("registered tools guide the LLM to handle retrieval plumbing internally", (
   assert.match(fetchGuidance, /Do not ask the user to provide responseId or offset/i);
   assert.match(getGuidance, /continuation requests/i);
   assert.match(getGuidance, /Do not require the user to know responseId or offset/i);
+  assert.match(researchGuidance, /Prefer this tool for natural-language research/i);
+  assert.match(researchGuidance, /search and source reading/i);
+});
+
+test("web_research searches, fetches top sources, stores content, and returns evidence", async () => {
+  const tools: RegisteredTool[] = [];
+  const pi = {
+    registerTool(tool: unknown) {
+      tools.push(tool as RegisteredTool);
+    },
+  } as Parameters<typeof registerWebSearchTool>[0];
+  const searched: Array<{ query: string; count?: number }> = [];
+  const fetched: string[] = [];
+
+  registerWebSearchTool(pi, {
+    store: createSearchResultStore(),
+    contentStore: createFetchedContentStore(),
+    search: async (options) => {
+      searched.push({ query: options.query, count: options.count });
+      return {
+        query: options.query,
+        authRoute: "openai-codex",
+        answer: "Use official docs for custom tools.",
+        sources: [
+          { title: "Extensions", url: "https://docs.example.com/extensions", snippet: "tools" },
+          { title: "Other", url: "https://docs.example.com/other", snippet: "other" },
+        ],
+      };
+    },
+    fetch: async (options) => {
+      fetched.push(options.url);
+      return {
+        url: options.url,
+        finalUrl: options.url,
+        title: options.url.endsWith("extensions") ? "Extensions" : "Other",
+        contentType: "text/html",
+        content: options.url.endsWith("extensions") ? "Extension content excerpt" : "Other content excerpt",
+        fullContent: options.url.endsWith("extensions") ? "Extension content excerpt full" : "Other content excerpt full",
+        truncated: false,
+      };
+    },
+  });
+
+  const researchTool = tools.find((tool) => tool.name === "web_research");
+  assert.ok(researchTool);
+
+  const result = await researchTool.execute("call-1", {
+    question: "How do I write a pi custom tool?",
+    maxSources: 1,
+    maxCharsPerSource: 1000,
+  }, undefined, undefined, undefined);
+
+  assert.deepEqual(searched, [{ query: "How do I write a pi custom tool?", count: 1 }]);
+  assert.deepEqual(fetched, ["https://docs.example.com/extensions"]);
+  assert.match(result.content[0]?.text ?? "", /Question: How do I write a pi custom tool\?/);
+  assert.match(result.content[0]?.text ?? "", /Search answer:/);
+  assert.match(result.content[0]?.text ?? "", /Extension content excerpt/);
+  assert.deepEqual(result.details, {
+    question: "How do I write a pi custom tool?",
+    searchResponseId: "ws_1",
+    searchSourceCount: 2,
+    fetchedSourceCount: 1,
+    sources: [{
+      id: "r1",
+      title: "Extensions",
+      url: "https://docs.example.com/extensions",
+      fetchResponseId: "fc_1",
+      charCount: 25,
+      fullCharCount: 30,
+      truncated: false,
+    }],
+  });
+});
+
+test("web_research records fetch errors and continues with other sources", async () => {
+  const tools: RegisteredTool[] = [];
+  const pi = {
+    registerTool(tool: unknown) {
+      tools.push(tool as RegisteredTool);
+    },
+  } as Parameters<typeof registerWebSearchTool>[0];
+
+  registerWebSearchTool(pi, {
+    store: createSearchResultStore(),
+    contentStore: createFetchedContentStore(),
+    search: async (options) => ({
+      query: options.query,
+      authRoute: "openai-codex",
+      answer: "Two sources found.",
+      sources: [
+        { title: "Broken", url: "https://broken.example.com", snippet: "broken" },
+        { title: "Working", url: "https://working.example.com", snippet: "working" },
+      ],
+    }),
+    fetch: async (options) => {
+      if (options.url.includes("broken")) throw new Error("HTTP 500");
+      return {
+        url: options.url,
+        finalUrl: options.url,
+        title: "Working",
+        contentType: "text/plain",
+        content: "Working excerpt",
+        fullContent: "Working excerpt full",
+        truncated: false,
+      };
+    },
+  });
+
+  const researchTool = tools.find((tool) => tool.name === "web_research");
+  assert.ok(researchTool);
+
+  const result = await researchTool.execute("call-1", { question: "compare sources", maxSources: 2 }, undefined, undefined, undefined);
+  assert.match(result.content[0]?.text ?? "", /Fetch error: HTTP 500/);
+  assert.match(result.content[0]?.text ?? "", /Working excerpt/);
+  assert.equal(result.details.fetchedSourceCount, 1);
+  assert.deepEqual((result.details.sources as Array<{ error?: string; fetchResponseId?: string }>).map((source) => source.error ?? source.fetchResponseId), ["HTTP 500", "fc_1"]);
 });
 
 test("fetch_content stores full content and get_search_content retrieves chunks", async () => {

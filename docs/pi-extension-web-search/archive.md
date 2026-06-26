@@ -1,5 +1,11 @@
 # Web Search archive
 
+## 0.6.0
+
+- `versions/0.6.0/index.md` — sealed 0.6.0 planning index.
+- `versions/0.6.0/m1-web-research-tool.md` — completed high-level web research tool plan.
+- `versions/0.6.0/milestones.md` — sealed 0.6.0 milestone tracker.
+
 ## 0.5.2
 
 - `versions/0.5.2/index.md` — sealed 0.5.2 planning index.

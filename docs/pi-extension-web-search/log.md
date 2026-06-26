@@ -1,5 +1,9 @@
 # Web Search log
 
+## 2026-06-26 — 0.6.0 sealed
+
+v0.6.0 sealed with `web_research`, a high-level workflow tool that searches, fetches top sources, stores fetched content, and returns a compact evidence bundle for natural-language research/read tasks.
+
 ## 2026-06-26 — 0.5.2 sealed
 
 v0.5.2 sealed with natural-language retrieval guidance. Tool guidance now tells the model to handle response ids, result ids, and offsets internally, and to continue reading truncated content when more context is needed.
