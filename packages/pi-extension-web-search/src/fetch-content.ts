@@ -18,6 +18,7 @@ export interface FetchedContentResult {
   title: string;
   contentType: string;
   content: string;
+  fullContent: string;
   truncated: boolean;
 }
 
@@ -59,7 +60,7 @@ export async function fetchContent(options: FetchContentOptions): Promise<Fetche
       method: "GET",
       headers: {
         "accept": "text/html,application/xhtml+xml,text/plain,application/json,application/markdown,text/markdown,*/*;q=0.8",
-        "user-agent": "pi-extension-web-search/0.3.0",
+        "user-agent": "pi-extension-web-search/0.4.0",
       },
       signal,
     },
@@ -95,6 +96,7 @@ export async function extractFetchedContent(
     title: extracted.title,
     contentType,
     content: truncated ? content.slice(0, maxChars) : content,
+    fullContent: content,
     truncated,
   };
 }

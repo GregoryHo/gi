@@ -2,10 +2,10 @@
 
 ## Current stable version
 
-- Version: `0.3.0`
+- Version: `0.4.0`
 - Package: `packages/pi-extension-web-search`
-- Status: Provenance bridge release sealed after M1 completion and automated verification.
-- Current package version: `0.3.0`
+- Status: Full fetched-content retrieval release sealed after M1 completion and automated verification.
+- Current package version: `0.4.0`
 
 ## Active planning version
 
@@ -39,12 +39,20 @@ v0.3.0 delivered:
 - Stronger untrusted-content warning in fetched output and tool guidelines.
 - No persistent storage of search results or fetched bodies.
 
+v0.4.0 delivered:
+
+- Session-local full fetched-content storage for `fetch_content` results.
+- `get_search_content({ responseId, offset, limit })` for chunked content retrieval.
+- `responseId`, `fullCharCount`, and continuation hints when inline fetched content is truncated.
+- No persistent storage across reloads/restarts.
+
 ## Navigation
 
 - `roadmap.md` — broad product direction and deferred candidates.
 - `milestones.md` — sealed v0.1.0 milestone tracker.
 - `m1-openai-web-search.md` — completed M1 plan.
 - `archive.md` — completed/superseded docs index.
+- `versions/0.4.0/index.md` — sealed 0.4.0 planning and release notes.
 - `versions/0.3.0/index.md` — sealed 0.3.0 planning and release notes.
 - `versions/0.2.0/index.md` — sealed 0.2.0 planning and release notes.
 - `versions/README.md` — convention for future versioned planning docs.

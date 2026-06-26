@@ -1,5 +1,9 @@
 # Web Search log
 
+## 2026-06-25 — 0.4.0 sealed
+
+v0.4.0 sealed with session-local full fetched-content retrieval. `fetch_content` now returns `responseId` and `fullCharCount` while keeping inline output bounded; `get_search_content` retrieves full content chunks by offset/limit during the current extension session.
+
 ## 2026-06-25 — 0.3.0 sealed
 
 v0.3.0 sealed with session-local provenance bridge and untrusted-content hardening. `web_search` now returns `responseId` plus result ids; `fetch_content` can fetch by direct URL, `responseId/resultId`, or `responseId/index`. Fetched content output explicitly warns that web text is untrusted evidence/data, not instructions.

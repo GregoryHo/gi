@@ -4,7 +4,7 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
 import webSearch from "./index.ts";
 
-test("webSearch extension registers web_search and fetch_content tools", () => {
+test("webSearch extension registers web_search, fetch_content, and get_search_content tools", () => {
   const toolNames: string[] = [];
   webSearch({
     registerTool(tool: { name: string }) {
@@ -12,5 +12,5 @@ test("webSearch extension registers web_search and fetch_content tools", () => {
     },
   } as unknown as ExtensionAPI);
 
-  assert.deepEqual(toolNames, ["web_search", "fetch_content"]);
+  assert.deepEqual(toolNames, ["web_search", "fetch_content", "get_search_content"]);
 });

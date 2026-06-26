@@ -41,6 +41,7 @@ test("extractFetchedContent handles JSON and truncates by maxChars", async () =>
   assert.equal(result.contentType, "application/json");
   assert.equal(result.truncated, true);
   assert.equal(result.content.length, 20);
+  assert.equal(result.fullContent, JSON.stringify({ ok: true, message: "hello world" }));
 });
 
 test("fetchContent returns final URL details and compact content", async () => {
@@ -66,6 +67,7 @@ test("formatFetchContentResult returns bounded safe tool output", () => {
     title: "Example Page",
     contentType: "text/html",
     content: "# Example\n\nBody",
+    fullContent: "# Example\n\nBody",
     truncated: false,
   });
 

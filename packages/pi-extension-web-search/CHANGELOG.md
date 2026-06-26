@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.0 - 2026-06-25
+
+- Add session-local full fetched-content storage for `fetch_content` results.
+- Add `get_search_content({ responseId, offset, limit })` for chunked retrieval of fetched content.
+- Add `responseId` and `fullCharCount` metadata to `fetch_content` results.
+- Add continuation hint when inline fetched content is truncated.
+- Keep retrieval session-local only; no persistent storage of fetched bodies.
+
 ## 0.3.0 - 2026-06-25
 
 - Add session-local `responseId` and per-source result ids to `web_search` output and details.

@@ -1,5 +1,11 @@
 # Web Search archive
 
+## 0.4.0
+
+- `versions/0.4.0/index.md` — sealed 0.4.0 planning index.
+- `versions/0.4.0/m1-full-content-retrieval.md` — completed full fetched-content retrieval plan.
+- `versions/0.4.0/milestones.md` — sealed 0.4.0 milestone tracker.
+
 ## 0.3.0
 
 - `versions/0.3.0/index.md` — sealed 0.3.0 planning index.
