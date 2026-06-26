@@ -1,5 +1,11 @@
 # Web Search archive
 
+## 0.5.2
+
+- `versions/0.5.2/index.md` — sealed 0.5.2 planning index.
+- `versions/0.5.2/m1-natural-language-retrieval-guidance.md` — completed natural-language retrieval guidance plan.
+- `versions/0.5.2/milestones.md` — sealed 0.5.2 milestone tracker.
+
 ## 0.5.1
 
 - `versions/0.5.1/index.md` — sealed 0.5.1 planning index.

@@ -1,6 +1,6 @@
 {
   "name": "@gregho/pi-extension-web-search",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "pi extension package for read-only OpenAI/Codex-backed web search.",
   "type": "module",
   "main": "src/index.ts",

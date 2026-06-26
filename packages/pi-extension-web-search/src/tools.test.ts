@@ -7,6 +7,9 @@ import { registerWebSearchTool } from "./tools.ts";
 
 type RegisteredTool = {
   name: string;
+  description?: string;
+  promptSnippet?: string;
+  promptGuidelines?: string[];
   parameters: {
     properties?: Record<string, unknown>;
     required?: string[];
@@ -39,6 +42,28 @@ test("registerWebSearchTool registers strict web_search and fetch_content schema
   assert.ok(tools[2]?.parameters.properties?.responseId);
   assert.ok(tools[2]?.parameters.properties?.offset);
   assert.ok(tools[2]?.parameters.properties?.limit);
+});
+
+test("registered tools guide the LLM to handle retrieval plumbing internally", () => {
+  const tools: RegisteredTool[] = [];
+  const pi = {
+    registerTool(tool: unknown) {
+      tools.push(tool as RegisteredTool);
+    },
+  } as Parameters<typeof registerWebSearchTool>[0];
+
+  registerWebSearchTool(pi);
+
+  const webSearchGuidance = tools.find((tool) => tool.name === "web_search")?.promptGuidelines?.join("\n") ?? "";
+  const fetchGuidance = tools.find((tool) => tool.name === "fetch_content")?.promptGuidelines?.join("\n") ?? "";
+  const getGuidance = tools.find((tool) => tool.name === "get_search_content")?.promptGuidelines?.join("\n") ?? "";
+
+  assert.match(webSearchGuidance, /search first, then fetch/i);
+  assert.match(webSearchGuidance, /natural-language/i);
+  assert.match(fetchGuidance, /automatically call get_search_content/i);
+  assert.match(fetchGuidance, /Do not ask the user to provide responseId or offset/i);
+  assert.match(getGuidance, /continuation requests/i);
+  assert.match(getGuidance, /Do not require the user to know responseId or offset/i);
 });
 
 test("fetch_content stores full content and get_search_content retrieves chunks", async () => {

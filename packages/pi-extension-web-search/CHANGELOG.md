@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.2 - 2026-06-26
+
+- Strengthen LLM-facing guidance so search/fetch/retrieval ids and offsets are treated as internal tool plumbing.
+- Encourage natural-language research flow: search first, fetch relevant sources, and continue reading truncated content automatically when needed.
+- Tell the model not to require users to provide `responseId`, result ids, or offsets unless they ask for debug/tool details.
+
 ## 0.5.1 - 2026-06-26
 
 - Surface `fetch_content` `responseId` and full character count in visible text output.

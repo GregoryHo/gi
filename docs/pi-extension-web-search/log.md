@@ -1,5 +1,9 @@
 # Web Search log
 
+## 2026-06-26 — 0.5.2 sealed
+
+v0.5.2 sealed with natural-language retrieval guidance. Tool guidance now tells the model to handle response ids, result ids, and offsets internally, and to continue reading truncated content when more context is needed.
+
 ## 2026-06-26 — 0.5.1 sealed
 
 v0.5.1 sealed with visible retrieval metadata. `fetch_content` now shows `responseId` and full character count in text output; `get_search_content` now shows offset/limit/count/next-offset metadata before the retrieved chunk.

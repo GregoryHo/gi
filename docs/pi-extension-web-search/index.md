@@ -2,10 +2,10 @@
 
 ## Current stable version
 
-- Version: `0.5.1`
+- Version: `0.5.2`
 - Package: `packages/pi-extension-web-search`
-- Status: Visible retrieval metadata patch sealed after M1 completion and automated verification.
-- Current package version: `0.5.1`
+- Status: Natural-language retrieval guidance patch sealed after M1 completion and automated verification.
+- Current package version: `0.5.2`
 
 ## Active planning version
 
@@ -59,12 +59,19 @@ v0.5.1 delivered:
 - Visible `get_search_content` retrieval metadata header with offset, limit, counts, and next offset.
 - No changes to storage lifetime, extraction, or network behavior.
 
+v0.5.2 delivered:
+
+- Natural-language retrieval guidance for search → fetch → continue-reading flows.
+- Guidance that response ids, result ids, and offsets are internal tool plumbing.
+- No schema, storage, extraction, or network behavior changes.
+
 ## Navigation
 
 - `roadmap.md` — broad product direction and deferred candidates.
 - `milestones.md` — sealed v0.1.0 milestone tracker.
 - `m1-openai-web-search.md` — completed M1 plan.
 - `archive.md` — completed/superseded docs index.
+- `versions/0.5.2/index.md` — sealed 0.5.2 planning and release notes.
 - `versions/0.5.1/index.md` — sealed 0.5.1 planning and release notes.
 - `versions/0.5.0/index.md` — sealed 0.5.0 planning and release notes.
 - `versions/0.4.0/index.md` — sealed 0.4.0 planning and release notes.
