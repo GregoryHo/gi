@@ -61,7 +61,7 @@ export async function fetchContent(options: FetchContentOptions): Promise<Fetche
       method: "GET",
       headers: {
         "accept": "text/html,application/xhtml+xml,text/plain,application/json,application/markdown,text/markdown,*/*;q=0.8",
-        "user-agent": "pi-extension-web-search/0.5.0",
+        "user-agent": "pi-extension-web-search/0.5.1",
       },
       signal,
     },

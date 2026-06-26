@@ -2,10 +2,10 @@
 
 ## Current stable version
 
-- Version: `0.5.0`
+- Version: `0.5.1`
 - Package: `packages/pi-extension-web-search`
-- Status: Defuddle extraction release sealed after M1 completion and automated verification.
-- Current package version: `0.5.0`
+- Status: Visible retrieval metadata patch sealed after M1 completion and automated verification.
+- Current package version: `0.5.1`
 
 ## Active planning version
 
@@ -53,12 +53,19 @@ v0.5.0 delivered:
 - Simple extractor fallback when Defuddle fails or returns empty content.
 - Cleaner docs/article extraction while preserving existing safety and truncation boundaries.
 
+v0.5.1 delivered:
+
+- Visible `fetch_content` `responseId` and full character count.
+- Visible `get_search_content` retrieval metadata header with offset, limit, counts, and next offset.
+- No changes to storage lifetime, extraction, or network behavior.
+
 ## Navigation
 
 - `roadmap.md` — broad product direction and deferred candidates.
 - `milestones.md` — sealed v0.1.0 milestone tracker.
 - `m1-openai-web-search.md` — completed M1 plan.
 - `archive.md` — completed/superseded docs index.
+- `versions/0.5.1/index.md` — sealed 0.5.1 planning and release notes.
 - `versions/0.5.0/index.md` — sealed 0.5.0 planning and release notes.
 - `versions/0.4.0/index.md` — sealed 0.4.0 planning and release notes.
 - `versions/0.3.0/index.md` — sealed 0.3.0 planning and release notes.

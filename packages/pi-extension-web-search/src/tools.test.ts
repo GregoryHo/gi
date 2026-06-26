@@ -70,10 +70,17 @@ test("fetch_content stores full content and get_search_content retrieves chunks"
   const fetchResult = await fetchTool.execute("call-1", { url: "https://example.com", maxChars: 10 }, undefined, undefined, undefined);
   assert.equal(fetchResult.details.responseId, "fc_1");
   assert.equal(fetchResult.details.fullCharCount, 36);
+  assert.match(fetchResult.content[0]?.text ?? "", /responseId: fc_1/);
+  assert.match(fetchResult.content[0]?.text ?? "", /Full chars: 36/);
   assert.match(fetchResult.content[0]?.text ?? "", /Use get_search_content\({ responseId: "fc_1"/);
 
   const chunk = await getTool.execute("call-2", { responseId: "fc_1", offset: 10, limit: 5 }, undefined, undefined, undefined);
-  assert.equal(chunk.content[0]?.text, "abcde");
+  assert.match(chunk.content[0]?.text ?? "", /responseId: fc_1/);
+  assert.match(chunk.content[0]?.text ?? "", /Offset: 10/);
+  assert.match(chunk.content[0]?.text ?? "", /Limit: 5/);
+  assert.match(chunk.content[0]?.text ?? "", /Full chars: 36/);
+  assert.match(chunk.content[0]?.text ?? "", /Next offset: 15/);
+  assert.match(chunk.content[0]?.text ?? "", /\n---\nabcde$/);
   assert.deepEqual(chunk.details, {
     responseId: "fc_1",
     url: "https://example.com",
@@ -132,4 +139,7 @@ test("web_search stores result ids and fetch_content can fetch by responseId/res
   const fetchResult = await fetchTool.execute("call-2", { responseId: "ws_1", resultId: "r1" }, undefined, undefined, undefined);
   assert.deepEqual(fetchedUrls, ["https://docs.example.com"]);
   assert.equal(fetchResult.details.url, "https://docs.example.com");
+  assert.equal(fetchResult.details.responseId, "fc_1");
+  assert.match(fetchResult.content[0]?.text ?? "", /responseId: fc_1/);
+  assert.match(fetchResult.content[0]?.text ?? "", /Full chars: 9/);
 });

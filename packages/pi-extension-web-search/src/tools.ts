@@ -108,6 +108,7 @@ export function registerWebSearchTool(pi: ToolRegistry, deps: RegisterWebSearchT
       const formatted = formatFetchContentResult(result);
       formatted.details.responseId = stored.responseId;
       formatted.details.fullCharCount = result.fullContent.length;
+      formatted.content[0].text = addFetchMetadataHeader(formatted.content[0].text, stored.responseId, result.fullContent.length);
       if (result.truncated) {
         formatted.content[0].text += `\n\n---\nShowing ${result.content.length} of ${result.fullContent.length} chars. Use get_search_content({ responseId: "${stored.responseId}", offset: ${result.content.length} }) to continue.`;
       }
@@ -132,7 +133,7 @@ export function registerWebSearchTool(pi: ToolRegistry, deps: RegisterWebSearchT
     async execute(_callId, params: GetSearchContentToolParams) {
       const chunk = contentStore.getChunk(params);
       return {
-        content: [{ type: "text" as const, text: chunk.content }],
+        content: [{ type: "text" as const, text: formatContentChunkText(chunk) }],
         details: {
           responseId: chunk.responseId,
           url: chunk.url,
@@ -149,6 +150,27 @@ export function registerWebSearchTool(pi: ToolRegistry, deps: RegisterWebSearchT
       };
     },
   });
+}
+
+function addFetchMetadataHeader(text: string, responseId: string, fullCharCount: number): string {
+  const [header, ...rest] = text.split("\n\n");
+  const metadata = `responseId: ${responseId}\nFull chars: ${fullCharCount}`;
+  return [header, metadata, ...rest].join("\n\n");
+}
+
+function formatContentChunkText(chunk: ReturnType<FetchedContentStore["getChunk"]>): string {
+  return [
+    `responseId: ${chunk.responseId}`,
+    `URL: ${chunk.finalUrl}`,
+    `Offset: ${chunk.offset}`,
+    `Limit: ${chunk.limit}`,
+    `Returned chars: ${chunk.charCount}`,
+    `Full chars: ${chunk.fullCharCount}`,
+    `Next offset: ${chunk.nextOffset ?? "null"}`,
+    "",
+    "---",
+    chunk.content,
+  ].join("\n");
 }
 
 function resolveFetchUrl(params: FetchContentToolParams, store: SearchResultStore): string {

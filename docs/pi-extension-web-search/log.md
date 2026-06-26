@@ -1,5 +1,9 @@
 # Web Search log
 
+## 2026-06-26 — 0.5.1 sealed
+
+v0.5.1 sealed with visible retrieval metadata. `fetch_content` now shows `responseId` and full character count in text output; `get_search_content` now shows offset/limit/count/next-offset metadata before the retrieved chunk.
+
 ## 2026-06-26 — 0.5.0 sealed
 
 v0.5.0 sealed with Defuddle-first HTML extraction. `fetch_content` now parses HTML through local `defuddle/node` with `useAsync:false`, falling back to the prior simple extractor when needed. Live pi docs smoke showed cleaner first-chunk content while preserving truncation and chunk retrieval.

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.1 - 2026-06-26
+
+- Surface `fetch_content` `responseId` and full character count in visible text output.
+- Surface `get_search_content` offset, limit, returned character count, full character count, and next offset in visible text output.
+- Improve manual smoke-test observability without changing storage, extraction, or network behavior.
+
 ## 0.5.0 - 2026-06-26
 
 - Add Defuddle-based HTML extraction using `defuddle/node` and `linkedom`.

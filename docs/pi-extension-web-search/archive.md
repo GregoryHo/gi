@@ -1,5 +1,11 @@
 # Web Search archive
 
+## 0.5.1
+
+- `versions/0.5.1/index.md` — sealed 0.5.1 planning index.
+- `versions/0.5.1/m1-visible-retrieval-metadata.md` — completed visible retrieval metadata plan.
+- `versions/0.5.1/milestones.md` — sealed 0.5.1 milestone tracker.
+
 ## 0.5.0
 
 - `versions/0.5.0/index.md` — sealed 0.5.0 planning index.
