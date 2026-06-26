@@ -1,5 +1,11 @@
 # Web Search archive
 
+## 0.6.1
+
+- `versions/0.6.1/index.md` — sealed 0.6.1 planning index.
+- `versions/0.6.1/m1-public-source-routing.md` — completed public source routing plan.
+- `versions/0.6.1/milestones.md` — sealed 0.6.1 milestone tracker.
+
 ## 0.6.0
 
 - `versions/0.6.0/index.md` — sealed 0.6.0 planning index.

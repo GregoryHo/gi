@@ -12,5 +12,5 @@ test("webSearch extension registers web_search, fetch_content, get_search_conten
     },
   } as unknown as ExtensionAPI);
 
-  assert.deepEqual(toolNames, ["web_search", "fetch_content", "get_search_content", "web_research"]);
+  assert.deepEqual(toolNames, ["web_research", "web_search", "fetch_content", "get_search_content"]);
 });

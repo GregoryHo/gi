@@ -27,26 +27,26 @@ test("registerWebSearchTool registers strict web_search and fetch_content schema
 
   registerWebSearchTool(pi);
 
-  assert.deepEqual(tools.map((tool) => tool.name), ["web_search", "fetch_content", "get_search_content", "web_research"]);
-  assert.deepEqual(tools[0]?.parameters.required, ["query"]);
-  assert.ok(tools[0]?.parameters.properties?.query);
-  assert.ok(tools[0]?.parameters.properties?.count);
+  assert.deepEqual(tools.map((tool) => tool.name), ["web_research", "web_search", "fetch_content", "get_search_content"]);
+  assert.deepEqual(tools[0]?.parameters.required, ["question"]);
+  assert.ok(tools[0]?.parameters.properties?.question);
+  assert.ok(tools[0]?.parameters.properties?.maxSources);
+  assert.ok(tools[0]?.parameters.properties?.maxCharsPerSource);
   assert.ok(tools[0]?.parameters.properties?.domainFilter);
-  assert.deepEqual(tools[1]?.parameters.required, undefined);
-  assert.ok(tools[1]?.parameters.properties?.url);
-  assert.ok(tools[1]?.parameters.properties?.responseId);
-  assert.ok(tools[1]?.parameters.properties?.resultId);
-  assert.ok(tools[1]?.parameters.properties?.index);
-  assert.ok(tools[1]?.parameters.properties?.maxChars);
-  assert.deepEqual(tools[2]?.parameters.required, ["responseId"]);
+  assert.deepEqual(tools[1]?.parameters.required, ["query"]);
+  assert.ok(tools[1]?.parameters.properties?.query);
+  assert.ok(tools[1]?.parameters.properties?.count);
+  assert.ok(tools[1]?.parameters.properties?.domainFilter);
+  assert.deepEqual(tools[2]?.parameters.required, undefined);
+  assert.ok(tools[2]?.parameters.properties?.url);
   assert.ok(tools[2]?.parameters.properties?.responseId);
-  assert.ok(tools[2]?.parameters.properties?.offset);
-  assert.ok(tools[2]?.parameters.properties?.limit);
-  assert.deepEqual(tools[3]?.parameters.required, ["question"]);
-  assert.ok(tools[3]?.parameters.properties?.question);
-  assert.ok(tools[3]?.parameters.properties?.maxSources);
-  assert.ok(tools[3]?.parameters.properties?.maxCharsPerSource);
-  assert.ok(tools[3]?.parameters.properties?.domainFilter);
+  assert.ok(tools[2]?.parameters.properties?.resultId);
+  assert.ok(tools[2]?.parameters.properties?.index);
+  assert.ok(tools[2]?.parameters.properties?.maxChars);
+  assert.deepEqual(tools[3]?.parameters.required, ["responseId"]);
+  assert.ok(tools[3]?.parameters.properties?.responseId);
+  assert.ok(tools[3]?.parameters.properties?.offset);
+  assert.ok(tools[3]?.parameters.properties?.limit);
 });
 
 test("registered tools guide the LLM to handle retrieval plumbing internally", () => {
@@ -72,6 +72,30 @@ test("registered tools guide the LLM to handle retrieval plumbing internally", (
   assert.match(getGuidance, /Do not require the user to know responseId or offset/i);
   assert.match(researchGuidance, /Prefer this tool for natural-language research/i);
   assert.match(researchGuidance, /search and source reading/i);
+});
+
+test("registered tools route public source discovery to web_research instead of local search", () => {
+  const tools: RegisteredTool[] = [];
+  const pi = {
+    registerTool(tool: unknown) {
+      tools.push(tool as RegisteredTool);
+    },
+  } as Parameters<typeof registerWebSearchTool>[0];
+
+  registerWebSearchTool(pi);
+
+  const webSearchGuidance = tools.find((tool) => tool.name === "web_search")?.promptGuidelines?.join("\n") ?? "";
+  const researchGuidance = tools.find((tool) => tool.name === "web_research")?.promptGuidelines?.join("\n") ?? "";
+
+  assert.equal(tools[0]?.name, "web_research");
+  assert.match(researchGuidance, /public\/online source code/i);
+  assert.match(researchGuidance, /GitHub repositories/i);
+  assert.match(researchGuidance, /pi packages/i);
+  assert.match(researchGuidance, /查|查詢|找/);
+  assert.match(researchGuidance, /Use local grep\/read only when/i);
+  assert.match(researchGuidance, /current repo|local files|this project/i);
+  assert.match(webSearchGuidance, /prefer web_research/i);
+  assert.match(webSearchGuidance, /only wants search result snippets/i);
 });
 
 test("web_research searches, fetches top sources, stores content, and returns evidence", async () => {

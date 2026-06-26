@@ -2,10 +2,10 @@
 
 ## Current stable version
 
-- Version: `0.6.0`
+- Version: `0.6.1`
 - Package: `packages/pi-extension-web-search`
-- Status: High-level web research workflow release sealed after M1 completion and automated verification.
-- Current package version: `0.6.0`
+- Status: Public source routing guidance patch sealed after M1 completion and automated verification.
+- Current package version: `0.6.1`
 
 ## Active planning version
 
@@ -72,12 +72,19 @@ v0.6.0 delivered:
 - Per-source fetch failure handling without failing the whole research call.
 - Low-level tools remain available for targeted follow-up/debugging.
 
+v0.6.1 delivered:
+
+- `web_research` registered before low-level tools.
+- Public/online source-code, GitHub repository, pi package, extension, library, and implementation discovery guidance.
+- Local grep/read guidance limited to explicit current-repo/local-file/local-path requests.
+
 ## Navigation
 
 - `roadmap.md` — broad product direction and deferred candidates.
 - `milestones.md` — sealed v0.1.0 milestone tracker.
 - `m1-openai-web-search.md` — completed M1 plan.
 - `archive.md` — completed/superseded docs index.
+- `versions/0.6.1/index.md` — sealed 0.6.1 planning and release notes.
 - `versions/0.6.0/index.md` — sealed 0.6.0 planning and release notes.
 - `versions/0.5.2/index.md` — sealed 0.5.2 planning and release notes.
 - `versions/0.5.1/index.md` — sealed 0.5.1 planning and release notes.

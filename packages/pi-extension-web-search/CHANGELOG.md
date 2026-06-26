@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.1 - 2026-06-26
+
+- Register `web_research` before lower-level web tools to improve natural-language routing.
+- Strengthen guidance so public/online source-code, GitHub repository, pi package, extension, library, and implementation discovery prefers `web_research`.
+- Clarify that local grep/read should be used only when the user explicitly asks for current-repo/local-file search or provides a local path.
+- Guide raw `web_search` toward quick snippets and explicit search-only requests.
+
 ## 0.6.0 - 2026-06-26
 
 - Add `web_research({ question, maxSources, maxCharsPerSource, domainFilter })` high-level workflow tool.

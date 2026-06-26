@@ -1,5 +1,9 @@
 # Web Search log
 
+## 2026-06-26 — 0.6.1 sealed
+
+v0.6.1 sealed with public source routing guidance. `web_research` is registered first and guidance now steers ambiguous public extension/package/source implementation discovery away from local grep unless the user explicitly asks for local/current-repo search.
+
 ## 2026-06-26 — 0.6.0 sealed
 
 v0.6.0 sealed with `web_research`, a high-level workflow tool that searches, fetches top sources, stores fetched content, and returns a compact evidence bundle for natural-language research/read tasks.
