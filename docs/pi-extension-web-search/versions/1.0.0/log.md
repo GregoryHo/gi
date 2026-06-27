@@ -1,5 +1,27 @@
 # Web Search 1.0.0 log
 
+## 2026-06-26 — M5 completed
+
+M5 sealing completed. Web Search package metadata and docs now identify `1.0.0` as stable. Active planning has been cleared, archive links include all 1.0.0 milestone plans, and no tag was created because tag creation was not explicitly requested.
+
+Verification passed:
+
+```bash
+npm test --workspace @gregho/pi-extension-web-search
+npm run typecheck --workspace @gregho/pi-extension-web-search
+npm run pack:dry-run --workspace @gregho/pi-extension-web-search
+npm run typecheck
+node -p "require('./packages/pi-extension-web-search/package.json').version"
+rg "1.0.0" packages/pi-extension-web-search/CHANGELOG.md docs/pi-extension-web-search docs/release-policy.md
+git tag --list 'v1.0.0' '1.0.0' 'pi-extension-web-search/v1.0.0'
+```
+
+Evidence: package tests passed with `38` tests, package/root typecheck passed, pack dry-run produced `gregho-pi-extension-web-search-1.0.0.tgz`, package version check printed `1.0.0`, and tag check printed no tags.
+
+## 2026-06-26 — M5 started
+
+Started M5 sealing for Web Search 1.0.0 after M4 public clean clone verification. Scope is version metadata, changelog, docs archive/index/log sealing, and verification. Package-scoped tag creation remains deferred until explicitly requested.
+
 ## 2026-06-26 — M4 completed
 
 M4 public release-candidate hardening completed. Final public clean clone from `https://github.com/GregoryHo/gi` succeeded at commit `c429980` after pushing the Web Search release-candidate commits to `origin/main`.

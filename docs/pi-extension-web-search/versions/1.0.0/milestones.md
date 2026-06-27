@@ -6,7 +6,7 @@
 | M2 | Done | `m2-public-metadata-license.md` | License, package metadata, release-policy table, and public repo hygiene. |
 | M3 | Done | `m3-web-search-doctor.md` | `/web-search-doctor` diagnostics command for setup/auth troubleshooting. |
 | M4 | Done | `m4-public-release-candidate.md` | Public clone smoke, verification, and release-candidate hardening. |
-| M5 | Planned | `m5-1.0.0-sealing.md` | Version bump, changelog/docs sealing, and optional package-scoped tag. |
+| M5 | Done | `m5-1.0.0-sealing.md` | Version bump, changelog/docs sealing, and optional package-scoped tag. |
 
 ## Status notes
 
@@ -19,3 +19,5 @@
 - 2026-06-26: M3 completed with redacted diagnostics command, README/CHANGELOG updates, and verification passing.
 - 2026-06-26: M4 started after user confirmed `https://github.com/GregoryHo/gi` is public and approved clean clone smoke.
 - 2026-06-26: M4 completed with public clean clone at `c429980`, package/root verification, pi load smoke, and `/web-search-doctor` print-mode smoke passing.
+- 2026-06-26: M5 started to seal Web Search 1.0.0. Tag creation remains deferred until explicitly requested.
+- 2026-06-26: M5 completed with package version `1.0.0`, changelog/docs sealing, archive updates, and verification passing. No tag was created.

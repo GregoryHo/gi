@@ -1,5 +1,18 @@
 # Web Search log
 
+## 2026-06-26 — 1.0.0 sealed
+
+v1.0.0 sealed as the stable public GitHub clone-and-install release. The package now includes MIT/public metadata, clone/install docs, `/web-search-doctor`, public clean clone verification evidence, and package version `1.0.0`. Active planning is cleared. No package-scoped tag was created because tagging was not explicitly requested.
+
+Verification passed:
+
+```bash
+npm test --workspace @gregho/pi-extension-web-search
+npm run typecheck --workspace @gregho/pi-extension-web-search
+npm run pack:dry-run --workspace @gregho/pi-extension-web-search
+npm run typecheck
+```
+
 ## 2026-06-26 — 1.0.0 planning started
 
 Started 1.0.0 planning. Goal is to publish the repository on GitHub before 1.0.0 in a clone-and-install form: users can clone the monorepo, run `npm install`, and install `./packages/pi-extension-web-search`. Scope focuses on docs, public metadata/license, diagnostics, clean clone smoke, and release sealing rather than feature breadth expansion.

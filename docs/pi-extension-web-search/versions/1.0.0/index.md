@@ -2,7 +2,7 @@
 
 ## Status
 
-Planned.
+Sealed.
 
 ## Goal
 

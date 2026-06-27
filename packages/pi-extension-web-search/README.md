@@ -6,7 +6,7 @@ It is intentionally smaller than broad browser/web-access suites: no browser coo
 
 ## Status
 
-`0.6.2` implements:
+`1.0.0` implements:
 
 - `web_research` — high-level search + source-reading workflow for public web research.
 - `web_search` — OpenAI/Codex-backed search with compact cited answers.

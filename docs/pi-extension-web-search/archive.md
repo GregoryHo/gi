@@ -1,5 +1,15 @@
 # Web Search archive
 
+## 1.0.0
+
+- `versions/1.0.0/index.md` — sealed 1.0.0 public GitHub readiness and release-hardening planning index.
+- `versions/1.0.0/m1-github-clone-usability.md` — completed clone/install documentation plan.
+- `versions/1.0.0/m2-public-metadata-license.md` — completed public metadata and license plan.
+- `versions/1.0.0/m3-web-search-doctor.md` — completed diagnostics command plan.
+- `versions/1.0.0/m4-public-release-candidate.md` — completed public clean clone release-candidate verification plan.
+- `versions/1.0.0/m5-1.0.0-sealing.md` — completed 1.0.0 sealing plan.
+- `versions/1.0.0/milestones.md` — sealed 1.0.0 milestone tracker.
+
 ## 0.6.2
 
 - `versions/0.6.2/index.md` — sealed 0.6.2 planning index.

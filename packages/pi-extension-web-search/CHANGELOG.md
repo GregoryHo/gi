@@ -1,9 +1,12 @@
 # Changelog
 
-## Unreleased
+## 1.0.0 - 2026-06-26
 
+- Declare Web Search stable for public GitHub clone-and-install usage.
 - Add `/web-search-doctor` diagnostics command for package version, registered tool names, redacted OpenAI/Codex auth status, `OPENAI_API_KEY` presence, and safety-boundary reporting.
-- Add public GitHub clone/install README guidance and package metadata/license preparation for 1.0.0.
+- Add print-mode output for `/web-search-doctor` so non-interactive clone smoke tests can verify diagnostics.
+- Add public GitHub clone/install README guidance, MIT license, package metadata, and release-policy entries.
+- Verify public clean clone install/test/typecheck/pack/pi-load/doctor-smoke flow from `https://github.com/GregoryHo/gi`.
 
 ## 0.6.2 - 2026-06-26
 

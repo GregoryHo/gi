@@ -12,7 +12,7 @@ Current package versions:
 
 | Package | Current version | Notes |
 | --- | ---: | --- |
-| `@gregho/pi-extension-web-search` | `0.6.2` | OpenAI/Codex-backed read-only web search and safe public content fetching |
+| `@gregho/pi-extension-web-search` | `1.0.0` | OpenAI/Codex-backed read-only web search and safe public content fetching |
 | `@gregho/pi-extension-jira-board` | `0.2.0` | Jira board/context extension |
 | `@gregho/pi-extension-agent-lens` | `0.4.1` | Report UX polish and metadata-only trace comparison |
 | `@gregho/pi-extension-agent-workers` | `0.3.1` | Patch release removing temporary worker UI PoC command |

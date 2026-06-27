@@ -2,20 +2,27 @@
 
 ## Current stable version
 
-- Version: `0.6.2`
+- Version: `1.0.0`
 - Package: `packages/pi-extension-web-search`
-- Status: Generic online routing guidance patch sealed after M1 completion and automated verification.
-- Current package version: `0.6.2`
+- Status: Stable for public GitHub clone-and-install usage after public clean clone verification.
+- Current package version: `1.0.0`
 
 ## Active planning version
 
-- Version: `1.0.0`
-- Plan: `versions/1.0.0/index.md`
-- Goal: public GitHub clone usability and stable release hardening without broad feature expansion.
+None. Future work should be planned under `versions/<semver>/` before implementation starts.
 
 ## Product summary
 
 Web Search is a small pi extension package that provides an LLM-callable web search tool using OpenAI/Codex web-search capability before adding external search providers.
+
+v1.0.0 delivered:
+
+- Public GitHub clone-and-install readiness for `https://github.com/GregoryHo/gi`.
+- MIT license and public package metadata.
+- `/web-search-doctor` diagnostics command with redacted auth/setup/safety reporting.
+- Print-mode doctor output for non-interactive smoke verification.
+- Public clean clone install/test/typecheck/pack/pi-load/doctor smoke verification.
+- No new broad web-access features beyond the existing small/read-only research surface.
 
 v0.1.0 delivered:
 
@@ -90,7 +97,7 @@ v0.6.2 delivered:
 
 - `roadmap.md` — broad product direction and deferred candidates.
 - `milestones.md` — sealed v0.1.0 milestone tracker.
-- `versions/1.0.0/index.md` — active 1.0.0 public GitHub readiness and release-hardening plan.
+- `versions/1.0.0/index.md` — sealed 1.0.0 public GitHub readiness and release-hardening plan.
 - `m1-openai-web-search.md` — completed M1 plan.
 - `archive.md` — completed/superseded docs index.
 - `versions/0.6.2/index.md` — sealed 0.6.2 planning and release notes.
