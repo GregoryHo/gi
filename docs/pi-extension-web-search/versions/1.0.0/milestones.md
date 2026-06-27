@@ -20,4 +20,5 @@
 - 2026-06-26: M4 started after user confirmed `https://github.com/GregoryHo/gi` is public and approved clean clone smoke.
 - 2026-06-26: M4 completed with public clean clone at `c429980`, package/root verification, pi load smoke, and `/web-search-doctor` print-mode smoke passing.
 - 2026-06-26: M5 started to seal Web Search 1.0.0. Tag creation remains deferred until explicitly requested.
-- 2026-06-26: M5 completed with package version `1.0.0`, changelog/docs sealing, archive updates, and verification passing. No tag was created.
+- 2026-06-26: M5 completed with package version `1.0.0`, changelog/docs sealing, archive updates, and verification passing. No tag was created at M5 completion.
+- 2026-06-26: User later requested package-scoped tag `pi-extension-web-search/v1.0.0` after sealing.

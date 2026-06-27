@@ -1,8 +1,12 @@
 # Web Search log
 
+## 2026-06-26 — 1.0.0 tag requested
+
+After sealing, the user explicitly requested the package-scoped release tag. The release tag is `pi-extension-web-search/v1.0.0` and should point at the final 1.0.0 release commit. Bare semver tags such as `v1.0.0` or `1.0.0` remain disallowed.
+
 ## 2026-06-26 — 1.0.0 sealed
 
-v1.0.0 sealed as the stable public GitHub clone-and-install release. The package now includes MIT/public metadata, clone/install docs, `/web-search-doctor`, public clean clone verification evidence, and package version `1.0.0`. Active planning is cleared. No package-scoped tag was created because tagging was not explicitly requested.
+v1.0.0 sealed as the stable public GitHub clone-and-install release. The package now includes MIT/public metadata, clone/install docs, `/web-search-doctor`, public clean clone verification evidence, and package version `1.0.0`. Active planning is cleared. At sealing time no package-scoped tag was created because tagging had not yet been explicitly requested.
 
 Verification passed:
 

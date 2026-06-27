@@ -1,8 +1,12 @@
 # Web Search 1.0.0 log
 
+## 2026-06-26 — package tag requested
+
+After M5 sealing, the user explicitly requested the package-scoped tag. The tag is `pi-extension-web-search/v1.0.0` and should point at the final 1.0.0 release commit. Bare semver tags remain disallowed.
+
 ## 2026-06-26 — M5 completed
 
-M5 sealing completed. Web Search package metadata and docs now identify `1.0.0` as stable. Active planning has been cleared, archive links include all 1.0.0 milestone plans, and no tag was created because tag creation was not explicitly requested.
+M5 sealing completed. Web Search package metadata and docs now identify `1.0.0` as stable. Active planning has been cleared and archive links include all 1.0.0 milestone plans. At M5 completion no tag was created because tag creation had not yet been explicitly requested.
 
 Verification passed:
 
