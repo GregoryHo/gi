@@ -9,7 +9,9 @@
 
 ## Active planning version
 
-None. Future work should be planned under `versions/<semver>/` before implementation starts.
+- Version: `1.0.0`
+- Plan: `versions/1.0.0/index.md`
+- Goal: public GitHub clone usability and stable release hardening without broad feature expansion.
 
 ## Product summary
 
@@ -88,6 +90,7 @@ v0.6.2 delivered:
 
 - `roadmap.md` — broad product direction and deferred candidates.
 - `milestones.md` — sealed v0.1.0 milestone tracker.
+- `versions/1.0.0/index.md` — active 1.0.0 public GitHub readiness and release-hardening plan.
 - `m1-openai-web-search.md` — completed M1 plan.
 - `archive.md` — completed/superseded docs index.
 - `versions/0.6.2/index.md` — sealed 0.6.2 planning and release notes.

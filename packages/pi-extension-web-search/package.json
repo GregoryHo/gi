@@ -2,6 +2,17 @@
   "name": "@gregho/pi-extension-web-search",
   "version": "0.6.2",
   "description": "pi extension package for read-only OpenAI/Codex-backed web search.",
+  "license": "MIT",
+  "author": "GregoryHo",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GregoryHo/gi.git",
+    "directory": "packages/pi-extension-web-search"
+  },
+  "bugs": {
+    "url": "https://github.com/GregoryHo/gi/issues"
+  },
+  "homepage": "https://github.com/GregoryHo/gi/tree/main/packages/pi-extension-web-search#readme",
   "type": "module",
   "main": "src/index.ts",
   "exports": {

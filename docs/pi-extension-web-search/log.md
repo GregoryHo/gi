@@ -1,5 +1,9 @@
 # Web Search log
 
+## 2026-06-26 — 1.0.0 planning started
+
+Started 1.0.0 planning. Goal is to publish the repository on GitHub before 1.0.0 in a clone-and-install form: users can clone the monorepo, run `npm install`, and install `./packages/pi-extension-web-search`. Scope focuses on docs, public metadata/license, diagnostics, clean clone smoke, and release sealing rather than feature breadth expansion.
+
 ## 2026-06-26 — 0.6.2 sealed
 
 v0.6.2 sealed with generic online routing guidance. Added natural-language cues for online/public/remote/internet/external research and outside-current-repo availability questions, without adding narrow tools.

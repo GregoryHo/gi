@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Add `/web-search-doctor` diagnostics command for package version, registered tool names, redacted OpenAI/Codex auth status, `OPENAI_API_KEY` presence, and safety-boundary reporting.
+- Add public GitHub clone/install README guidance and package metadata/license preparation for 1.0.0.
+
 ## 0.6.2 - 2026-06-26
 
 - Strengthen generic `web_research` guidance for natural-language online/public/remote research cues.
