@@ -7,10 +7,22 @@ test("getLastPlanModeState returns the latest custom plan-mode entry", () => {
   const entries = [
     { type: "custom", customType: "plan-mode", data: { enabled: true, toolsBeforePlanMode: ["read"] } },
     { type: "custom", customType: "other", data: { enabled: false } },
-    { type: "custom", customType: "plan-mode", data: { enabled: false, toolsBeforePlanMode: ["read", "edit"] } },
+    {
+      type: "custom",
+      customType: "plan-mode",
+      data: {
+        enabled: false,
+        toolsBeforePlanMode: ["read", "edit"],
+        capturedPlan: { steps: [{ step: 1, text: "Inspect code" }] },
+      },
+    },
   ];
 
-  assert.deepEqual(getLastPlanModeState(entries), { enabled: false, toolsBeforePlanMode: ["read", "edit"] });
+  assert.deepEqual(getLastPlanModeState(entries), {
+    enabled: false,
+    toolsBeforePlanMode: ["read", "edit"],
+    capturedPlan: { steps: [{ step: 1, text: "Inspect code" }] },
+  });
 });
 
 test("getLastPlanModeState ignores malformed state", () => {

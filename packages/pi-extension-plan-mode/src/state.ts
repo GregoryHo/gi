@@ -1,9 +1,12 @@
+import type { CapturedPlan } from "./plan.ts";
+
 export const PLAN_MODE_STATE_TYPE = "plan-mode";
 export const PLAN_MODE_CONTEXT_TYPE = "plan-mode-context";
 
 export interface PlanModeState {
   enabled: boolean;
   toolsBeforePlanMode?: string[];
+  capturedPlan?: CapturedPlan;
 }
 
 interface CustomEntryLike {
@@ -28,13 +31,29 @@ export function filterPlanModeContextMessages<T>(messages: readonly T[]): T[] {
 
 function parsePlanModeState(data: unknown): PlanModeState | undefined {
   if (!data || typeof data !== "object") return undefined;
-  const state = data as { enabled?: unknown; toolsBeforePlanMode?: unknown };
+  const state = data as { enabled?: unknown; toolsBeforePlanMode?: unknown; capturedPlan?: unknown };
   if (typeof state.enabled !== "boolean") return undefined;
   if (state.toolsBeforePlanMode !== undefined && !isStringArray(state.toolsBeforePlanMode)) return undefined;
+  if (state.capturedPlan !== undefined && !isCapturedPlan(state.capturedPlan)) return undefined;
   return {
     enabled: state.enabled,
     toolsBeforePlanMode: state.toolsBeforePlanMode,
+    capturedPlan: state.capturedPlan,
   };
+}
+
+function isCapturedPlan(value: unknown): value is CapturedPlan {
+  if (!value || typeof value !== "object") return false;
+  const plan = value as { steps?: unknown };
+  return (
+    Array.isArray(plan.steps) &&
+    plan.steps.length > 0 &&
+    plan.steps.every((step) => {
+      if (!step || typeof step !== "object") return false;
+      const candidate = step as { step?: unknown; text?: unknown };
+      return typeof candidate.step === "number" && Number.isFinite(candidate.step) && typeof candidate.text === "string";
+    })
+  );
 }
 
 function isStringArray(value: unknown): value is string[] {

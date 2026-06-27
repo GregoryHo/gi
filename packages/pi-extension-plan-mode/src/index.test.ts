@@ -75,15 +75,76 @@ test("context handler removes stale plan-mode context after mode is disabled", a
   assert.deepEqual(result, { messages: [keep] });
 });
 
+test("agent_end captures a plan and stay choice preserves plan mode", async () => {
+  const harness = createHarness({ activeTools: ["read", "edit", "write"], selectResults: ["Stay in plan mode"] });
+
+  planModeExtension(harness.pi as never);
+  await harness.commands.get("plan")?.handler("", harness.ctx);
+  await harness.event("agent_end")({ messages: [assistantMessage("Plan:\n1. Inspect code\n2. Write tests")] }, harness.ctx);
+
+  assert.deepEqual(harness.activeTools, ["read", "bash", "grep", "find", "ls"]);
+  assert.equal(harness.status["plan-mode"], "⏸ plan");
+  assert.match(harness.notifications.at(-1)?.message ?? "", /1\. Inspect code/);
+  assert.equal(harness.appendedEntries.at(-1)?.data.capturedPlan.steps.length, 2);
+});
+
+test("agent_end refine choice keeps plan mode and sends follow-up", async () => {
+  const harness = createHarness({
+    activeTools: ["read", "edit", "write"],
+    selectResults: ["Refine the plan"],
+    editorResults: ["Please include tests."],
+  });
+
+  planModeExtension(harness.pi as never);
+  await harness.commands.get("plan")?.handler("", harness.ctx);
+  await harness.event("agent_end")({ messages: [assistantMessage("Plan:\n1. Inspect code")] }, harness.ctx);
+
+  assert.deepEqual(harness.activeTools, ["read", "bash", "grep", "find", "ls"]);
+  assert.deepEqual(harness.sentUserMessages, [{ content: "Please include tests.", options: { deliverAs: "followUp" } }]);
+});
+
+test("agent_end approve choice exits plan mode without executing", async () => {
+  const harness = createHarness({
+    activeTools: ["read", "edit", "write", "custom_tool"],
+    selectResults: ["Approve plan and exit plan mode"],
+  });
+
+  planModeExtension(harness.pi as never);
+  await harness.commands.get("plan")?.handler("", harness.ctx);
+  await harness.event("agent_end")({ messages: [assistantMessage("Plan:\n1. Inspect code")] }, harness.ctx);
+
+  assert.deepEqual(harness.activeTools, ["read", "edit", "write", "custom_tool"]);
+  assert.equal(harness.status["plan-mode"], undefined);
+  assert.deepEqual(harness.sentUserMessages, []);
+});
+
+test("plan-current shows latest captured plan", async () => {
+  const harness = createHarness({ activeTools: ["read", "edit", "write"], selectResults: ["Stay in plan mode"] });
+
+  planModeExtension(harness.pi as never);
+  await harness.commands.get("plan")?.handler("", harness.ctx);
+  await harness.event("agent_end")({ messages: [assistantMessage("Plan:\n1. Inspect code")] }, harness.ctx);
+  await harness.commands.get("plan-current")?.handler("", harness.ctx);
+
+  assert.match(harness.notifications.at(-1)?.message ?? "", /1\. Inspect code/);
+});
+
+function assistantMessage(text: string): unknown {
+  return { role: "assistant", content: [{ type: "text", text }] };
+}
+
 interface FakeCommand {
   handler: (args: string, ctx: FakeContext) => Promise<void> | void;
 }
 
 interface FakeContext {
+  hasUI: boolean;
   ui: {
     theme: { fg: (_color: string, text: string) => string };
     setStatus: (key: string, value: string | undefined) => void;
-    notify: (_message: string, _level?: string) => void;
+    notify: (message: string, level?: string) => void;
+    select: (_title: string, _options: string[]) => Promise<string | undefined>;
+    editor: (_title: string, _initial: string) => Promise<string | undefined>;
   };
   sessionManager: { getEntries: () => unknown[] };
 }
@@ -92,6 +153,9 @@ interface HarnessOptions {
   activeTools: string[];
   flagPlan?: boolean;
   entries?: unknown[];
+  hasUI?: boolean;
+  selectResults?: Array<string | undefined>;
+  editorResults?: Array<string | undefined>;
 }
 
 function createHarness(options: HarnessOptions): {
@@ -99,12 +163,20 @@ function createHarness(options: HarnessOptions): {
   ctx: FakeContext;
   commands: Map<string, FakeCommand>;
   status: Record<string, string | undefined>;
+  notifications: Array<{ message: string; level?: string }>;
+  sentUserMessages: Array<{ content: string; options?: unknown }>;
+  appendedEntries: Array<{ customType: string; data: any }>;
   get activeTools(): string[];
   event: (name: string) => (...args: any[]) => Promise<any> | any;
 } {
   const commands = new Map<string, FakeCommand>();
   const events = new Map<string, Array<(...args: any[]) => Promise<any> | any>>();
   const status: Record<string, string | undefined> = {};
+  const notifications: Array<{ message: string; level?: string }> = [];
+  const sentUserMessages: Array<{ content: string; options?: unknown }> = [];
+  const appendedEntries: Array<{ customType: string; data: any }> = [];
+  const selectResults = [...(options.selectResults ?? [])];
+  const editorResults = [...(options.editorResults ?? [])];
   let activeTools = options.activeTools;
 
   const pi = {
@@ -115,7 +187,12 @@ function createHarness(options: HarnessOptions): {
     on(name: string, handler: (...args: any[]) => Promise<any> | any) {
       events.set(name, [...(events.get(name) ?? []), handler]);
     },
-    appendEntry() {},
+    appendEntry(customType: string, data: any) {
+      appendedEntries.push({ customType, data });
+    },
+    sendUserMessage(content: string, options?: unknown) {
+      sentUserMessages.push({ content, options });
+    },
     getFlag(name: string) {
       return name === "plan" ? options.flagPlan === true : false;
     },
@@ -128,12 +205,21 @@ function createHarness(options: HarnessOptions): {
   };
 
   const ctx: FakeContext = {
+    hasUI: options.hasUI ?? true,
     ui: {
       theme: { fg: (_color: string, text: string) => text },
       setStatus(key: string, value: string | undefined) {
         status[key] = value;
       },
-      notify() {},
+      notify(message: string, level?: string) {
+        notifications.push({ message, level });
+      },
+      async select() {
+        return selectResults.shift();
+      },
+      async editor() {
+        return editorResults.shift();
+      },
     },
     sessionManager: { getEntries: () => options.entries ?? [] },
   };
@@ -143,6 +229,9 @@ function createHarness(options: HarnessOptions): {
     ctx,
     commands,
     status,
+    notifications,
+    sentUserMessages,
+    appendedEntries,
     get activeTools() {
       return activeTools;
     },

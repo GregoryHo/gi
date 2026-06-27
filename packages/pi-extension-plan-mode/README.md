@@ -4,7 +4,7 @@ Scaffolded pi package for safe read-only planning before execution.
 
 ## Status
 
-M1 read-only plan mode is implemented. It provides `/plan`, `--plan`, write-tool disabling, conservative bash safety gates, hidden planning instructions, UI status, and session state restore.
+M2 plan capture and approval UX is implemented. The package provides read-only plan mode, captured `Plan:` steps, `/plan-current`, refinement follow-ups, and explicit approval to exit plan mode without starting execution.
 
 ## Features
 
@@ -15,12 +15,14 @@ M1 read-only plan mode is implemented. It provides `/plan`, `--plan`, write-tool
 - Hidden plan-mode instructions are injected before agent turns.
 - The TUI footer shows a compact plan-mode status.
 - Session custom entries restore mode state after reload/resume.
+- Numbered `Plan:` sections are captured after assistant turns while plan mode is active.
+- `/plan-current` shows the latest captured plan.
+- Captured plans can be refined or explicitly approved to exit plan mode.
 
-## Non-goals in M1
+## Non-goals in M2
 
-- No plan extraction.
-- No approval dialog.
 - No execution handoff.
+- No `[DONE:n]` progress tracking.
 - No goal/loop or worker integration.
 
 ## Load while developing

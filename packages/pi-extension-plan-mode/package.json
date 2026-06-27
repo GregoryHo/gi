@@ -19,6 +19,7 @@
   ],
   "files": [
     "src/index.ts",
+    "src/plan.ts",
     "src/safety.ts",
     "src/state.ts",
     "README.md",
