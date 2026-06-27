@@ -43,7 +43,7 @@ test("buildDoctorReport gives setup guidance when auth is unavailable", async ()
 });
 
 test("registerWebSearchDoctorCommand registers a user-facing diagnostics command", async () => {
-  const commands: Array<{ name: string; description?: string; handler: (args: string, ctx: { ui: { notify(message: string, level?: "info" | "error" | "warning"): void } }) => Promise<void> }> = [];
+  const commands: Array<{ name: string; description?: string; handler: (args: string, ctx: { mode?: string; ui: { notify(message: string, level?: "info" | "error" | "warning"): void } }) => Promise<void> }> = [];
   const notifications: Array<{ message: string; level?: "info" | "error" | "warning" }> = [];
 
   registerWebSearchDoctorCommand({
@@ -71,4 +71,36 @@ test("registerWebSearchDoctorCommand registers a user-facing diagnostics command
   assert.equal(notifications.length, 1);
   assert.equal(notifications[0]?.level, "info");
   assert.match(notifications[0]?.message ?? "", /Web Search doctor/);
+});
+
+test("registerWebSearchDoctorCommand writes to stdout in print mode", async () => {
+  const commands: Array<{ handler: (args: string, ctx: { mode?: string; ui: { notify(message: string, level?: "info" | "error" | "warning"): void } }) => Promise<void> }> = [];
+  const output: string[] = [];
+  const notifications: string[] = [];
+
+  registerWebSearchDoctorCommand({
+    registerCommand(_name, command) {
+      commands.push({ handler: command.handler });
+    },
+  }, {
+    version: "0.test",
+    env: {},
+    resolveAuth: async () => undefined,
+    writeOutput(text) {
+      output.push(text);
+    },
+  });
+
+  await commands[0]!.handler("", {
+    mode: "print",
+    ui: {
+      notify(message: string) {
+        notifications.push(message);
+      },
+    },
+  });
+
+  assert.equal(notifications.length, 0);
+  assert.equal(output.length, 1);
+  assert.match(output[0] ?? "", /Web Search doctor/);
 });

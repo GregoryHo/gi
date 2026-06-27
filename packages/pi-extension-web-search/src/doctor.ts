@@ -18,6 +18,7 @@ interface CommandRegistry {
 }
 
 interface DoctorCommandContext {
+  mode?: string;
   ui: {
     notify(message: string, level?: "info" | "error" | "warning"): void;
   };
@@ -29,6 +30,7 @@ export interface DoctorReportOptions {
   env?: Record<string, string | undefined>;
   resolveAuth?: () => Promise<OpenAIAuth | undefined>;
   toolNames?: readonly string[];
+  writeOutput?: (text: string) => void;
 }
 
 export function registerWebSearchDoctorCommand(pi: CommandRegistry, options: DoctorReportOptions = {}): void {
@@ -36,6 +38,10 @@ export function registerWebSearchDoctorCommand(pi: CommandRegistry, options: Doc
     description: "Diagnose Web Search extension setup and auth status.",
     async handler(_args, ctx) {
       const report = await buildDoctorReport({ ...options, ctx: options.ctx });
+      if (ctx.mode === "print") {
+        (options.writeOutput ?? console.log)(report);
+        return;
+      }
       ctx.ui.notify(report, "info");
     },
   });
