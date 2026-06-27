@@ -1,0 +1,155 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+
+import planModeExtension from "./index.ts";
+
+test("exports a pi extension factory", () => {
+  assert.equal(typeof planModeExtension, "function");
+});
+
+test("registers plan command that toggles write tools", async () => {
+  const harness = createHarness({ activeTools: ["read", "edit", "write", "custom_tool"] });
+
+  planModeExtension(harness.pi as never);
+  const planCommand = harness.commands.get("plan");
+  assert.ok(planCommand);
+
+  await planCommand.handler("", harness.ctx);
+  assert.deepEqual(harness.activeTools, ["read", "custom_tool", "bash", "grep", "find", "ls"]);
+  assert.equal(harness.status["plan-mode"], "⏸ plan");
+
+  await planCommand.handler("", harness.ctx);
+  assert.deepEqual(harness.activeTools, ["read", "edit", "write", "custom_tool"]);
+  assert.equal(harness.status["plan-mode"], undefined);
+});
+
+test("session_start honors --plan flag", async () => {
+  const harness = createHarness({ activeTools: ["read", "edit", "write"], flagPlan: true });
+
+  planModeExtension(harness.pi as never);
+  await harness.event("session_start")({}, harness.ctx);
+
+  assert.deepEqual(harness.activeTools, ["read", "bash", "grep", "find", "ls"]);
+  assert.equal(harness.status["plan-mode"], "⏸ plan");
+});
+
+test("plan mode blocks unsafe bash and allows read-only bash", async () => {
+  const harness = createHarness({ activeTools: ["read", "edit", "write"] });
+
+  planModeExtension(harness.pi as never);
+  const planCommand = harness.commands.get("plan");
+  assert.ok(planCommand);
+  await planCommand.handler("", harness.ctx);
+
+  const toolCall = harness.event("tool_call");
+  assert.deepEqual(await toolCall({ toolName: "bash", input: { command: "rm -rf tmp" } }), {
+    block: true,
+    reason: "Plan mode blocked this bash command because it is not on the read-only allowlist. Disable /plan to leave plan mode.",
+  });
+  assert.equal(await toolCall({ toolName: "bash", input: { command: "pwd" } }), undefined);
+});
+
+test("plan mode injects hidden planning context", async () => {
+  const harness = createHarness({ activeTools: ["read", "edit", "write"] });
+
+  planModeExtension(harness.pi as never);
+  const planCommand = harness.commands.get("plan");
+  assert.ok(planCommand);
+  await planCommand.handler("", harness.ctx);
+
+  const result = await harness.event("before_agent_start")({}, harness.ctx);
+  assert.equal(result.message.customType, "plan-mode-context");
+  assert.equal(result.message.display, false);
+  assert.match(result.message.content, /\[PLAN MODE ACTIVE\]/);
+});
+
+test("context handler removes stale plan-mode context after mode is disabled", async () => {
+  const harness = createHarness({ activeTools: ["read", "edit", "write"] });
+  const keep = { role: "user", content: [{ type: "text", text: "hello" }] };
+
+  planModeExtension(harness.pi as never);
+  const result = await harness.event("context")({
+    messages: [keep, { customType: "plan-mode-context", content: "[PLAN MODE ACTIVE]", display: false }],
+  });
+
+  assert.deepEqual(result, { messages: [keep] });
+});
+
+interface FakeCommand {
+  handler: (args: string, ctx: FakeContext) => Promise<void> | void;
+}
+
+interface FakeContext {
+  ui: {
+    theme: { fg: (_color: string, text: string) => string };
+    setStatus: (key: string, value: string | undefined) => void;
+    notify: (_message: string, _level?: string) => void;
+  };
+  sessionManager: { getEntries: () => unknown[] };
+}
+
+interface HarnessOptions {
+  activeTools: string[];
+  flagPlan?: boolean;
+  entries?: unknown[];
+}
+
+function createHarness(options: HarnessOptions): {
+  pi: object;
+  ctx: FakeContext;
+  commands: Map<string, FakeCommand>;
+  status: Record<string, string | undefined>;
+  get activeTools(): string[];
+  event: (name: string) => (...args: any[]) => Promise<any> | any;
+} {
+  const commands = new Map<string, FakeCommand>();
+  const events = new Map<string, Array<(...args: any[]) => Promise<any> | any>>();
+  const status: Record<string, string | undefined> = {};
+  let activeTools = options.activeTools;
+
+  const pi = {
+    registerFlag() {},
+    registerCommand(name: string, command: FakeCommand) {
+      commands.set(name, command);
+    },
+    on(name: string, handler: (...args: any[]) => Promise<any> | any) {
+      events.set(name, [...(events.get(name) ?? []), handler]);
+    },
+    appendEntry() {},
+    getFlag(name: string) {
+      return name === "plan" ? options.flagPlan === true : false;
+    },
+    getActiveTools() {
+      return activeTools;
+    },
+    setActiveTools(next: string[]) {
+      activeTools = next;
+    },
+  };
+
+  const ctx: FakeContext = {
+    ui: {
+      theme: { fg: (_color: string, text: string) => text },
+      setStatus(key: string, value: string | undefined) {
+        status[key] = value;
+      },
+      notify() {},
+    },
+    sessionManager: { getEntries: () => options.entries ?? [] },
+  };
+
+  return {
+    pi,
+    ctx,
+    commands,
+    status,
+    get activeTools() {
+      return activeTools;
+    },
+    event(name: string) {
+      const handler = events.get(name)?.[0];
+      assert.ok(handler, `missing event handler: ${name}`);
+      return handler;
+    },
+  };
+}
