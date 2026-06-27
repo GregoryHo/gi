@@ -2,7 +2,7 @@
 
 ## Status
 
-Planned.
+Done.
 
 ## SPEC
 
@@ -99,3 +99,31 @@ At completion:
 - Mark M4 `Done` in `milestones.md`.
 - Add completion notes here with clean clone evidence.
 - Append verification evidence to `log.md`.
+
+## Completion notes
+
+Completed on 2026-06-26.
+
+Release-candidate hardening notes:
+
+- Public clean clone from `https://github.com/GregoryHo/gi` succeeded at commit `c429980`.
+- Initial M4 attempt before pushing M1-M3 changes correctly failed because the public clone did not yet contain `src/doctor.ts`; this was recorded in `log.md`.
+- Pushed the Web Search public release-candidate commits to `origin/main` so the default clone path contains the package.
+- Added print-mode output for `/web-search-doctor` after discovering `ctx.ui.notify` does not produce visible output under `pi -p`; this was implemented with TDD and pushed before the final clean clone smoke.
+- `npm install` in the clean clone completed with npm audit warnings (`4 high severity vulnerabilities`) but exit 0. Dependency audit remediation is outside M4 scope.
+
+Final clean clone verification passed:
+
+```bash
+rm -rf /tmp/pi-web-search-smoke && git clone https://github.com/GregoryHo/gi /tmp/pi-web-search-smoke && cd /tmp/pi-web-search-smoke && git rev-parse --short HEAD && test -f packages/pi-extension-web-search/src/doctor.ts && rg "web-search-doctor" packages/pi-extension-web-search README.md && npm install && npm test --workspace @gregho/pi-extension-web-search && npm run typecheck --workspace @gregho/pi-extension-web-search && npm run pack:dry-run --workspace @gregho/pi-extension-web-search && npm run typecheck && pi -e ./packages/pi-extension-web-search --no-extensions --offline --no-session --list-models gpt-4o && pi -e ./packages/pi-extension-web-search --no-extensions --offline --no-session -p "/web-search-doctor"
+```
+
+Evidence:
+
+- Public clone HEAD: `c429980`.
+- Package tests: `38` tests passed.
+- Package typecheck: passed.
+- Package pack dry-run: passed.
+- Root workspace typecheck: passed.
+- Pi load smoke exited successfully and printed `No models matching "gpt-4o"`.
+- `/web-search-doctor` print-mode smoke printed the redacted diagnostics report.

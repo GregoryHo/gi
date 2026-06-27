@@ -1,5 +1,26 @@
 # Web Search 1.0.0 log
 
+## 2026-06-26 — M4 completed
+
+M4 public release-candidate hardening completed. Final public clean clone from `https://github.com/GregoryHo/gi` succeeded at commit `c429980` after pushing the Web Search release-candidate commits to `origin/main`.
+
+Final clean clone verification passed:
+
+```bash
+rm -rf /tmp/pi-web-search-smoke && git clone https://github.com/GregoryHo/gi /tmp/pi-web-search-smoke && cd /tmp/pi-web-search-smoke && git rev-parse --short HEAD && test -f packages/pi-extension-web-search/src/doctor.ts && rg "web-search-doctor" packages/pi-extension-web-search README.md && npm install && npm test --workspace @gregho/pi-extension-web-search && npm run typecheck --workspace @gregho/pi-extension-web-search && npm run pack:dry-run --workspace @gregho/pi-extension-web-search && npm run typecheck && pi -e ./packages/pi-extension-web-search --no-extensions --offline --no-session --list-models gpt-4o && pi -e ./packages/pi-extension-web-search --no-extensions --offline --no-session -p "/web-search-doctor"
+```
+
+Evidence:
+
+- Public clone HEAD: `c429980`.
+- Package tests: `38` tests passed.
+- Package typecheck: passed.
+- Package pack dry-run: passed.
+- Root workspace typecheck: passed.
+- Pi load smoke exited successfully and printed `No models matching "gpt-4o"`.
+- `/web-search-doctor` print-mode smoke printed a redacted diagnostics report.
+- `npm install` completed with npm audit warnings (`4 high severity vulnerabilities`); dependency audit remediation is outside M4 scope.
+
 ## 2026-06-26 — M4 started
 
 Started M4 public release-candidate hardening. User confirmed `https://github.com/GregoryHo/gi` is public and approved using it for `/tmp/pi-web-search-smoke` clean clone verification.
