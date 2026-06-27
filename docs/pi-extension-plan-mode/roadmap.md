@@ -34,8 +34,11 @@ After M1 is stable:
 
 - Extract numbered `Plan:` sections from assistant messages.
 - Display captured plan steps in a widget or compact message.
-- Ask whether to stay in plan mode, refine, or exit for execution.
+- Ask whether to stay in plan mode, refine, or approve and exit plan mode.
 - Persist the captured plan as session-local extension state.
+- Do not automatically execute the plan in M2.
+
+Plan: `m2-plan-capture-approval-ux.md`.
 
 ### M3 — Execution progress handoff
 

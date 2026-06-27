@@ -5,7 +5,7 @@
 | Milestone | Status | Plan |
 | --- | --- | --- |
 | M1 — Read-only plan mode | Complete | `m1-read-only-plan-mode.md` |
-| M2 — Plan capture and approval UX | Draft direction only | TBD |
+| M2 — Plan capture and approval UX | Proposed; pending review | `m2-plan-capture-approval-ux.md` |
 | M3 — Execution progress handoff | Draft direction only | TBD |
 | M4 — Goal/worker integration boundary | Draft direction only | TBD |
 

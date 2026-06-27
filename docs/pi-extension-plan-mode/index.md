@@ -12,6 +12,7 @@
 - `roadmap.md` — broad product direction.
 - `milestones.md` — proposed milestone sequence.
 - `m1-read-only-plan-mode.md` — M1 SPEC and acceptance criteria.
+- `m2-plan-capture-approval-ux.md` — proposed M2 SPEC and acceptance criteria.
 - `log.md` — append-only decisions and handoff history.
 - `archive.md` — completed/superseded docs index.
 - `versions/README.md` — future versioned planning convention.
