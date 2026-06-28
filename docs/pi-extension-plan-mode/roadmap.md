@@ -63,9 +63,35 @@ Define the boundary before building goal/loop mode:
 
 Plan: `m4-goal-worker-integration-boundary.md`.
 
+### M5 — Plan artifact lifecycle and session indexing
+
+Make plans durable and discoverable without creating artifact sprawl:
+
+- Stable plan ids.
+- `current.json` active pointer.
+- `index.json` searchable metadata.
+- One long-lived session can contain many plans.
+- Session sequence and previous/next plan links.
+- Complete/abandon/archive lifecycle.
+- Deterministic recap.
+
+Plan: `m5-plan-artifact-lifecycle-session-indexing.md`.
+
+### M6 — Natural-language plan routing
+
+Help the LLM distinguish refine-current vs new-objective vs resume/switch:
+
+- Compact active-plan summary in hidden context.
+- Routing policy for natural-language plan discussions.
+- Confirmation gate before replacing/switching/completing active plans.
+- Optional proposal-oriented LLM tools.
+
+Plan: `m6-natural-language-plan-routing.md`.
+
 ## Deferred
 
 - Autonomous loop execution.
 - Write-capable workers.
 - Cloud task runners.
 - Public package release.
+- LLM-generated recap.

@@ -3,8 +3,8 @@
 ## Current status
 
 - Package: `packages/pi-extension-plan-mode`
-- Status: M1-M4 complete for the initial planning-mode roadmap.
-- Active milestone: none.
+- Status: M1-M4 complete; M5/M6 planned.
+- Active milestone: proposed M5, pending implementation.
 
 ## Navigation
 
@@ -15,6 +15,8 @@
 - `m2-plan-capture-approval-ux.md` — M2 SPEC and acceptance criteria.
 - `m3-execution-progress-handoff.md` — M3 SPEC and acceptance criteria.
 - `m4-goal-worker-integration-boundary.md` — M4 boundary contract for future goal/worker integrations.
+- `m5-plan-artifact-lifecycle-session-indexing.md` — M5 artifact lifecycle and session indexing plan.
+- `m6-natural-language-plan-routing.md` — M6 natural-language routing plan.
 - `log.md` — append-only decisions and handoff history.
 - `archive.md` — completed/superseded docs index.
 - `versions/README.md` — future versioned planning convention.

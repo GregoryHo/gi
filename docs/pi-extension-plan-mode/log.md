@@ -16,3 +16,4 @@
 - Verification passed: `npm test --workspace @gregho/pi-extension-plan-mode` (29/29 tests); `npm run typecheck --workspace @gregho/pi-extension-plan-mode`; `npm run pack:dry-run --workspace @gregho/pi-extension-plan-mode`; `npm run typecheck`.
 - M4 completed as a documentation/contract milestone defining plan-mode, future goal-mode, and agent-worker ownership boundaries. No runtime integration was added.
 - M4 verification passed: `git diff --check`; `npm run typecheck --workspace @gregho/pi-extension-plan-mode`.
+- M5/M6 planning approved by user and documented as separate milestones: M5 for artifact lifecycle/session indexing; M6 for natural-language plan routing.
