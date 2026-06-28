@@ -8,3 +8,4 @@
 - Implemented M3 execution progress handoff with `/plan-execute`, execute choice, execution context injection, `[DONE:n]` tracking, progress status/widget, and marker-based completion.
 - Implemented M5 plan artifact lifecycle and session indexing with durable local artifacts, `current.json`, `index.json`, `/plan-new`, `/plan-history`, `/plan-switch`, `/plan-complete`, and `/plan-abandon`.
 - Fixed execution progress tracking to collect `[DONE:n]` markers from all assistant messages in an `agent_end` batch, preventing TUI progress from falling behind after tool-heavy turns or compaction.
+- Fixed `/plan-complete` and `/plan-abandon` for sessions that have a restored session-local captured plan but no M5 artifact id yet.

@@ -361,11 +361,12 @@ export default function planModeExtension(pi: ExtensionAPI): void {
   }
 
   async function finishActivePlan(ctx: ExtensionContext, status: "completed" | "abandoned"): Promise<void> {
-    const artifact = await getActiveArtifact(ctx);
+    const artifact = (await getActiveArtifact(ctx)) ?? (capturedPlan ? await ensureActiveArtifact(ctx, capturedPlan) : undefined);
     if (!artifact) {
       ctx.ui.notify("No active plan.", "info");
       return;
     }
+    activePlanId = artifact.id;
     activeArtifact = updateArtifact(artifact, status, capturedPlan, true);
     capturedPlan = { steps: activeArtifact.steps.map((step) => ({ ...step })) };
     executing = false;

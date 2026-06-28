@@ -299,6 +299,35 @@ test("plan-complete and plan-abandon update status and recap", async () => {
   assert.match(harness.notifications.at(-1)?.message ?? "", /abandoned/);
 });
 
+test("plan-complete migrates a session-local captured plan without activePlanId", async () => {
+  const harness = await createHarness({
+    activeTools: ["read", "edit", "write"],
+    entries: [
+      {
+        type: "custom",
+        customType: "plan-mode",
+        data: {
+          enabled: false,
+          capturedPlan: { steps: [{ step: 1, text: "Legacy current plan" }] },
+          executing: false,
+        },
+      },
+    ],
+  });
+
+  planModeExtension(harness.pi as never);
+  await harness.event("session_start")({}, harness.ctx);
+  await harness.commands.get("plan-current")?.handler("", harness.ctx);
+  assert.match(harness.notifications.at(-1)?.message ?? "", /Legacy current plan/);
+
+  await harness.commands.get("plan-complete")?.handler("", harness.ctx);
+
+  assert.match(harness.notifications.at(-1)?.message ?? "", /completed/);
+  const index = JSON.parse(await readFile(join(harness.artifactRoot, "index.json"), "utf8"));
+  assert.equal(index.plans[0].status, "completed");
+  assert.match(index.plans[0].summary, /Legacy current plan/);
+});
+
 test("plan-new requires disposition before replacing active plan", async () => {
   const harness = await createHarness({ activeTools: ["read", "edit", "write"], selectResults: ["Stay in plan mode", "Cancel"] });
 
