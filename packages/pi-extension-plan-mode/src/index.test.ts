@@ -1,4 +1,7 @@
 import assert from "node:assert/strict";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import test from "node:test";
 
 import planModeExtension from "./index.ts";
@@ -8,7 +11,7 @@ test("exports a pi extension factory", () => {
 });
 
 test("registers plan command that toggles write tools", async () => {
-  const harness = createHarness({ activeTools: ["read", "edit", "write", "custom_tool"] });
+  const harness = await createHarness({ activeTools: ["read", "edit", "write", "custom_tool"] });
 
   planModeExtension(harness.pi as never);
   const planCommand = harness.commands.get("plan");
@@ -24,7 +27,7 @@ test("registers plan command that toggles write tools", async () => {
 });
 
 test("session_start honors --plan flag", async () => {
-  const harness = createHarness({ activeTools: ["read", "edit", "write"], flagPlan: true });
+  const harness = await createHarness({ activeTools: ["read", "edit", "write"], flagPlan: true });
 
   planModeExtension(harness.pi as never);
   await harness.event("session_start")({}, harness.ctx);
@@ -34,7 +37,7 @@ test("session_start honors --plan flag", async () => {
 });
 
 test("plan mode blocks unsafe bash and allows read-only bash", async () => {
-  const harness = createHarness({ activeTools: ["read", "edit", "write"] });
+  const harness = await createHarness({ activeTools: ["read", "edit", "write"] });
 
   planModeExtension(harness.pi as never);
   const planCommand = harness.commands.get("plan");
@@ -50,7 +53,7 @@ test("plan mode blocks unsafe bash and allows read-only bash", async () => {
 });
 
 test("plan mode injects hidden planning context", async () => {
-  const harness = createHarness({ activeTools: ["read", "edit", "write"] });
+  const harness = await createHarness({ activeTools: ["read", "edit", "write"] });
 
   planModeExtension(harness.pi as never);
   const planCommand = harness.commands.get("plan");
@@ -64,7 +67,7 @@ test("plan mode injects hidden planning context", async () => {
 });
 
 test("context handler removes stale plan-mode context after mode is disabled", async () => {
-  const harness = createHarness({ activeTools: ["read", "edit", "write"] });
+  const harness = await createHarness({ activeTools: ["read", "edit", "write"] });
   const keep = { role: "user", content: [{ type: "text", text: "hello" }] };
 
   planModeExtension(harness.pi as never);
@@ -76,7 +79,7 @@ test("context handler removes stale plan-mode context after mode is disabled", a
 });
 
 test("agent_end captures a plan and stay choice preserves plan mode", async () => {
-  const harness = createHarness({ activeTools: ["read", "edit", "write"], selectResults: ["Stay in plan mode"] });
+  const harness = await createHarness({ activeTools: ["read", "edit", "write"], selectResults: ["Stay in plan mode"] });
 
   planModeExtension(harness.pi as never);
   await harness.commands.get("plan")?.handler("", harness.ctx);
@@ -89,7 +92,7 @@ test("agent_end captures a plan and stay choice preserves plan mode", async () =
 });
 
 test("agent_end refine choice keeps plan mode and sends follow-up", async () => {
-  const harness = createHarness({
+  const harness = await createHarness({
     activeTools: ["read", "edit", "write"],
     selectResults: ["Refine the plan"],
     editorResults: ["Please include tests."],
@@ -104,7 +107,7 @@ test("agent_end refine choice keeps plan mode and sends follow-up", async () => 
 });
 
 test("agent_end approve choice exits plan mode without executing", async () => {
-  const harness = createHarness({
+  const harness = await createHarness({
     activeTools: ["read", "edit", "write", "custom_tool"],
     selectResults: ["Approve plan and exit plan mode"],
   });
@@ -118,19 +121,23 @@ test("agent_end approve choice exits plan mode without executing", async () => {
   assert.deepEqual(harness.sentUserMessages, []);
 });
 
-test("plan-current shows latest captured plan", async () => {
-  const harness = createHarness({ activeTools: ["read", "edit", "write"], selectResults: ["Stay in plan mode"] });
+test("plan-current shows latest captured plan with artifact metadata", async () => {
+  const harness = await createHarness({ activeTools: ["read", "edit", "write"], selectResults: ["Stay in plan mode"] });
 
   planModeExtension(harness.pi as never);
   await harness.commands.get("plan")?.handler("", harness.ctx);
   await harness.event("agent_end")({ messages: [assistantMessage("Plan:\n1. Inspect code")] }, harness.ctx);
   await harness.commands.get("plan-current")?.handler("", harness.ctx);
 
-  assert.match(harness.notifications.at(-1)?.message ?? "", /1\. Inspect code/);
+  const message = harness.notifications.at(-1)?.message ?? "";
+  assert.match(message, /plan_/);
+  assert.match(message, /status: draft/);
+  assert.match(message, /session plan: 1/);
+  assert.match(message, /1\. Inspect code/);
 });
 
 test("plan-execute without a captured plan reports no plan", async () => {
-  const harness = createHarness({ activeTools: ["read", "edit", "write"] });
+  const harness = await createHarness({ activeTools: ["read", "edit", "write"] });
 
   planModeExtension(harness.pi as never);
   await harness.commands.get("plan-execute")?.handler("", harness.ctx);
@@ -141,7 +148,7 @@ test("plan-execute without a captured plan reports no plan", async () => {
 });
 
 test("execute choice exits plan mode and sends execution follow-up", async () => {
-  const harness = createHarness({
+  const harness = await createHarness({
     activeTools: ["read", "edit", "write", "custom_tool"],
     selectResults: ["Execute the plan"],
   });
@@ -158,7 +165,7 @@ test("execute choice exits plan mode and sends execution follow-up", async () =>
 });
 
 test("plan-execute command starts execution for captured plan", async () => {
-  const harness = createHarness({ activeTools: ["read", "edit", "write"], selectResults: ["Stay in plan mode"] });
+  const harness = await createHarness({ activeTools: ["read", "edit", "write"], selectResults: ["Stay in plan mode"] });
 
   planModeExtension(harness.pi as never);
   await harness.commands.get("plan")?.handler("", harness.ctx);
@@ -171,7 +178,7 @@ test("plan-execute command starts execution for captured plan", async () => {
 });
 
 test("execution mode injects remaining-step context", async () => {
-  const harness = createHarness({ activeTools: ["read", "edit", "write"], selectResults: ["Execute the plan"] });
+  const harness = await createHarness({ activeTools: ["read", "edit", "write"], selectResults: ["Execute the plan"] });
 
   planModeExtension(harness.pi as never);
   await harness.commands.get("plan")?.handler("", harness.ctx);
@@ -184,7 +191,7 @@ test("execution mode injects remaining-step context", async () => {
 });
 
 test("done markers update progress and plan-current completion display", async () => {
-  const harness = createHarness({ activeTools: ["read", "edit", "write"], selectResults: ["Execute the plan"] });
+  const harness = await createHarness({ activeTools: ["read", "edit", "write"], selectResults: ["Execute the plan"] });
 
   planModeExtension(harness.pi as never);
   await harness.commands.get("plan")?.handler("", harness.ctx);
@@ -198,7 +205,7 @@ test("done markers update progress and plan-current completion display", async (
 });
 
 test("all done markers end execution state", async () => {
-  const harness = createHarness({ activeTools: ["read", "edit", "write"], selectResults: ["Execute the plan"] });
+  const harness = await createHarness({ activeTools: ["read", "edit", "write"], selectResults: ["Execute the plan"] });
 
   planModeExtension(harness.pi as never);
   await harness.commands.get("plan")?.handler("", harness.ctx);
@@ -210,6 +217,84 @@ test("all done markers end execution state", async () => {
   assert.match(harness.notifications.at(-1)?.message ?? "", /Plan execution markers complete/);
 });
 
+test("capturing a plan writes current pointer and artifact outside repo", async () => {
+  const harness = await createHarness({ activeTools: ["read", "edit", "write"], selectResults: ["Stay in plan mode"] });
+
+  planModeExtension(harness.pi as never);
+  await harness.commands.get("plan")?.handler("", harness.ctx);
+  await harness.event("agent_end")({ messages: [assistantMessage("Plan:\n1. Inspect code")] }, harness.ctx);
+
+  const pointer = JSON.parse(await readFile(join(harness.artifactRoot, "current.json"), "utf8"));
+  assert.deepEqual(Object.keys(pointer), ["activePlanId"]);
+  assert.match(pointer.activePlanId, /^plan_/);
+
+  const index = JSON.parse(await readFile(join(harness.artifactRoot, "index.json"), "utf8"));
+  assert.equal(index.plans.length, 1);
+  assert.equal(index.plans[0].cwd, harness.ctx.cwd);
+  assert.equal(index.plans[0].sessionFile, harness.sessionFile);
+  assert.match(index.plans[0].artifactPath, /^plans\/\d{4}-\d{2}\/plan_/);
+});
+
+test("plan-history and plan-history --session list expected plans", async () => {
+  const harness = await createHarness({ activeTools: ["read", "edit", "write"], selectResults: ["Stay in plan mode"] });
+
+  planModeExtension(harness.pi as never);
+  await harness.commands.get("plan")?.handler("", harness.ctx);
+  await harness.event("agent_end")({ messages: [assistantMessage("Plan:\n1. Inspect code")] }, harness.ctx);
+  await harness.commands.get("plan-history")?.handler("", harness.ctx);
+  assert.match(harness.notifications.at(-1)?.message ?? "", /Inspect code/);
+
+  await harness.commands.get("plan-history")?.handler("--session", harness.ctx);
+  assert.match(harness.notifications.at(-1)?.message ?? "", /session plan 1/);
+});
+
+test("plan-switch restores an existing artifact", async () => {
+  const harness = await createHarness({ activeTools: ["read", "edit", "write"], selectResults: ["Stay in plan mode"] });
+
+  planModeExtension(harness.pi as never);
+  await harness.commands.get("plan")?.handler("", harness.ctx);
+  await harness.event("agent_end")({ messages: [assistantMessage("Plan:\n1. Inspect code")] }, harness.ctx);
+  const planId = JSON.parse(await readFile(join(harness.artifactRoot, "current.json"), "utf8")).activePlanId;
+
+  await harness.commands.get("plan-switch")?.handler(planId, harness.ctx);
+  await harness.commands.get("plan-current")?.handler("", harness.ctx);
+
+  assert.match(harness.notifications.at(-1)?.message ?? "", new RegExp(planId));
+});
+
+test("plan-complete and plan-abandon update status and recap", async () => {
+  const harness = await createHarness({ activeTools: ["read", "edit", "write"], selectResults: ["Stay in plan mode"] });
+
+  planModeExtension(harness.pi as never);
+  await harness.commands.get("plan")?.handler("", harness.ctx);
+  await harness.event("agent_end")({ messages: [assistantMessage("Plan:\n1. Inspect code")] }, harness.ctx);
+  await harness.commands.get("plan-complete")?.handler("", harness.ctx);
+  assert.match(harness.notifications.at(-1)?.message ?? "", /completed/);
+
+  const index = JSON.parse(await readFile(join(harness.artifactRoot, "index.json"), "utf8"));
+  assert.equal(index.plans[0].status, "completed");
+  const artifact = JSON.parse(await readFile(join(harness.artifactRoot, index.plans[0].artifactPath), "utf8"));
+  assert.equal(artifact.recap.completedSteps, 0);
+
+  await harness.commands.get("plan-abandon")?.handler("", harness.ctx);
+  assert.match(harness.notifications.at(-1)?.message ?? "", /abandoned/);
+});
+
+test("plan-new requires disposition before replacing active plan", async () => {
+  const harness = await createHarness({ activeTools: ["read", "edit", "write"], selectResults: ["Stay in plan mode", "Cancel"] });
+
+  planModeExtension(harness.pi as never);
+  await harness.commands.get("plan")?.handler("", harness.ctx);
+  await harness.event("agent_end")({ messages: [assistantMessage("Plan:\n1. Inspect code")] }, harness.ctx);
+  const before = JSON.parse(await readFile(join(harness.artifactRoot, "current.json"), "utf8")).activePlanId;
+
+  await harness.commands.get("plan-new")?.handler("", harness.ctx);
+
+  const after = JSON.parse(await readFile(join(harness.artifactRoot, "current.json"), "utf8")).activePlanId;
+  assert.equal(after, before);
+  assert.match(harness.notifications.at(-1)?.message ?? "", /cancelled/i);
+});
+
 function assistantMessage(text: string): unknown {
   return { role: "assistant", content: [{ type: "text", text }] };
 }
@@ -219,6 +304,7 @@ interface FakeCommand {
 }
 
 interface FakeContext {
+  cwd: string;
   hasUI: boolean;
   ui: {
     theme: { fg: (_color: string, text: string) => string };
@@ -228,7 +314,7 @@ interface FakeContext {
     select: (_title: string, _options: string[]) => Promise<string | undefined>;
     editor: (_title: string, _initial: string) => Promise<string | undefined>;
   };
-  sessionManager: { getEntries: () => unknown[] };
+  sessionManager: { getEntries: () => unknown[]; getSessionFile: () => string | undefined };
 }
 
 interface HarnessOptions {
@@ -238,9 +324,11 @@ interface HarnessOptions {
   hasUI?: boolean;
   selectResults?: Array<string | undefined>;
   editorResults?: Array<string | undefined>;
+  cwd?: string;
+  sessionFile?: string;
 }
 
-function createHarness(options: HarnessOptions): {
+async function createHarness(options: HarnessOptions): Promise<{
   pi: object;
   ctx: FakeContext;
   commands: Map<string, FakeCommand>;
@@ -249,9 +337,11 @@ function createHarness(options: HarnessOptions): {
   widgets: Record<string, string[] | undefined>;
   sentUserMessages: Array<{ content: string; options?: unknown }>;
   appendedEntries: Array<{ customType: string; data: any }>;
+  artifactRoot: string;
+  sessionFile: string;
   get activeTools(): string[];
   event: (name: string) => (...args: any[]) => Promise<any> | any;
-} {
+}> {
   const commands = new Map<string, FakeCommand>();
   const events = new Map<string, Array<(...args: any[]) => Promise<any> | any>>();
   const status: Record<string, string | undefined> = {};
@@ -261,7 +351,16 @@ function createHarness(options: HarnessOptions): {
   const appendedEntries: Array<{ customType: string; data: any }> = [];
   const selectResults = [...(options.selectResults ?? [])];
   const editorResults = [...(options.editorResults ?? [])];
+  const artifactRoot = await mkdtemp(join(tmpdir(), "plan-mode-runtime-test-"));
+  const previousArtifactRoot = process.env.PI_PLAN_MODE_ARTIFACT_ROOT;
+  process.env.PI_PLAN_MODE_ARTIFACT_ROOT = artifactRoot;
+  test.after(async () => {
+    if (previousArtifactRoot === undefined) delete process.env.PI_PLAN_MODE_ARTIFACT_ROOT;
+    else process.env.PI_PLAN_MODE_ARTIFACT_ROOT = previousArtifactRoot;
+    await rm(artifactRoot, { recursive: true, force: true });
+  });
   let activeTools = options.activeTools;
+  const sessionFile = options.sessionFile ?? "/sessions/current.jsonl";
 
   const pi = {
     registerFlag() {},
@@ -289,6 +388,7 @@ function createHarness(options: HarnessOptions): {
   };
 
   const ctx: FakeContext = {
+    cwd: options.cwd ?? "/repo",
     hasUI: options.hasUI ?? true,
     ui: {
       theme: { fg: (_color: string, text: string) => text },
@@ -308,7 +408,7 @@ function createHarness(options: HarnessOptions): {
         return editorResults.shift();
       },
     },
-    sessionManager: { getEntries: () => options.entries ?? [] },
+    sessionManager: { getEntries: () => options.entries ?? [], getSessionFile: () => sessionFile },
   };
 
   return {
@@ -320,6 +420,8 @@ function createHarness(options: HarnessOptions): {
     widgets,
     sentUserMessages,
     appendedEntries,
+    artifactRoot,
+    sessionFile,
     get activeTools() {
       return activeTools;
     },

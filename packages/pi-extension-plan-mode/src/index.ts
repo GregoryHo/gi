@@ -1,5 +1,23 @@
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import { homedir } from "node:os";
+import { join } from "node:path";
 
+import {
+  createDeterministicRecap,
+  createPlanArtifact,
+  isActivePlanStatus,
+  type PlanArtifactV1,
+  type PlanStatus,
+} from "./artifact-types.ts";
+import {
+  getLatestSessionPlanId,
+  getNextSessionPlanNumber,
+  getPlanModeProjectDir,
+  listPlanIndexEntries,
+  readPlanArtifact,
+  writeCurrentPlanPointer,
+  writePlanArtifact,
+} from "./artifacts.ts";
 import {
   extractCapturedPlan,
   extractDoneSteps,
@@ -35,11 +53,15 @@ const PLAN_CAPTURE_CHOICES = [
   "Execute the plan",
 ];
 
+const PLAN_NEW_DISPOSITION_CHOICES = ["Complete current plan", "Abandon current plan", "Archive/keep inactive", "Cancel"];
+
 export default function planModeExtension(pi: ExtensionAPI): void {
   let planModeEnabled = false;
   let toolsBeforePlanMode: string[] | undefined;
   let capturedPlan: CapturedPlan | undefined;
   let executing = false;
+  let activePlanId: string | undefined;
+  let activeArtifact: PlanArtifactV1 | undefined;
 
   pi.registerFlag("plan", {
     description: "Start in plan mode (read-only planning)",
@@ -83,6 +105,7 @@ export default function planModeExtension(pi: ExtensionAPI): void {
       toolsBeforePlanMode,
       capturedPlan,
       executing,
+      activePlanId,
     });
   }
 
@@ -98,23 +121,31 @@ export default function planModeExtension(pi: ExtensionAPI): void {
     persistState();
   }
 
-  function notifyCurrentPlan(ctx: ExtensionContext): void {
+  async function notifyCurrentPlan(ctx: ExtensionContext): Promise<void> {
     if (!capturedPlan) {
       ctx.ui.notify("No captured plan yet.", "info");
       return;
     }
     const showCompletion = executing || capturedPlan.steps.some((step) => step.completed === true);
-    ctx.ui.notify(`Captured plan:\n${formatCapturedPlan(capturedPlan, { showCompletion })}`, "info");
+    const metadata = activeArtifact
+      ? `Plan ${activeArtifact.id}\nstatus: ${activeArtifact.status}\nsession plan: ${activeArtifact.sequence.sessionPlanNumber}\ntitle: ${activeArtifact.title}\n`
+      : "";
+    ctx.ui.notify(`Captured plan:\n${metadata}${formatCapturedPlan(capturedPlan, { showCompletion })}`, "info");
   }
 
-  function startExecution(ctx: ExtensionContext): void {
+  async function startExecution(ctx: ExtensionContext): Promise<void> {
     if (!capturedPlan) {
       ctx.ui.notify("No captured plan to execute.", "info");
       return;
     }
 
+    const artifact = await ensureActiveArtifact(ctx, capturedPlan);
+    activeArtifact = updateArtifact(artifact, "executing", capturedPlan);
+    await saveActiveArtifact(ctx, activeArtifact);
+
     disablePlanMode();
     executing = true;
+    activePlanId = activeArtifact.id;
     updateStatus(ctx);
     persistState();
 
@@ -136,6 +167,31 @@ export default function planModeExtension(pi: ExtensionAPI): void {
     handler: async (_args, ctx) => startExecution(ctx),
   });
 
+  pi.registerCommand("plan-history", {
+    description: "Show recent plan artifacts",
+    handler: async (args, ctx) => showPlanHistory(args, ctx),
+  });
+
+  pi.registerCommand("plan-switch", {
+    description: "Switch to an existing plan artifact",
+    handler: async (args, ctx) => switchPlan(args, ctx),
+  });
+
+  pi.registerCommand("plan-complete", {
+    description: "Mark the active plan completed",
+    handler: async (_args, ctx) => finishActivePlan(ctx, "completed"),
+  });
+
+  pi.registerCommand("plan-abandon", {
+    description: "Mark the active plan abandoned",
+    handler: async (_args, ctx) => finishActivePlan(ctx, "abandoned"),
+  });
+
+  pi.registerCommand("plan-new", {
+    description: "Start a new active plan flow",
+    handler: async (_args, ctx) => startNewPlanFlow(ctx),
+  });
+
   pi.on("session_start", async (_event, ctx) => {
     const restored = getLastPlanModeState(ctx.sessionManager.getEntries());
     if (restored) {
@@ -143,6 +199,11 @@ export default function planModeExtension(pi: ExtensionAPI): void {
       toolsBeforePlanMode = restored.toolsBeforePlanMode;
       capturedPlan = restored.capturedPlan;
       executing = restored.executing === true;
+      activePlanId = restored.activePlanId;
+    }
+
+    if (activePlanId) {
+      activeArtifact = await readPlanArtifact(getArtifactRoot(ctx), activePlanId);
     }
 
     if (pi.getFlag("plan") === true) {
@@ -201,14 +262,21 @@ export default function planModeExtension(pi: ExtensionAPI): void {
       const changed = markCompletedSteps(capturedPlan, extractDoneSteps(text));
       if (changed === 0) return;
 
+      if (activeArtifact) {
+        activeArtifact = updateArtifact(activeArtifact, activeArtifact.status, capturedPlan);
+      }
+
       if (isPlanComplete(capturedPlan)) {
         executing = false;
+        if (activeArtifact) activeArtifact = updateArtifact(activeArtifact, "completed", capturedPlan, true);
+        if (activeArtifact) await saveActiveArtifact(ctx, activeArtifact);
         updateStatus(ctx);
         persistState();
         ctx.ui.notify("Plan execution markers complete. Verify results before claiming success.", "info");
         return;
       }
 
+      if (activeArtifact) await saveActiveArtifact(ctx, activeArtifact);
       updateStatus(ctx);
       persistState();
       return;
@@ -220,6 +288,10 @@ export default function planModeExtension(pi: ExtensionAPI): void {
     if (!plan) return;
 
     capturedPlan = plan;
+    activeArtifact = await ensureActiveArtifact(ctx, plan);
+    activeArtifact = updateArtifact(activeArtifact, activeArtifact.status, plan);
+    await saveActiveArtifact(ctx, activeArtifact);
+    activePlanId = activeArtifact.id;
     persistState();
 
     const summary = formatCapturedPlan(plan);
@@ -237,6 +309,8 @@ export default function planModeExtension(pi: ExtensionAPI): void {
     }
 
     if (choice === "Approve plan and exit plan mode") {
+      activeArtifact = updateArtifact(activeArtifact, "approved", plan);
+      await saveActiveArtifact(ctx, activeArtifact);
       disablePlanMode();
       updateStatus(ctx);
       persistState();
@@ -245,9 +319,121 @@ export default function planModeExtension(pi: ExtensionAPI): void {
     }
 
     if (choice === "Execute the plan") {
-      startExecution(ctx);
+      await startExecution(ctx);
     }
   });
+
+  async function showPlanHistory(args: string, ctx: ExtensionContext): Promise<void> {
+    const sessionFile = args.includes("--session") ? getSessionFile(ctx) : undefined;
+    const entries = await listPlanIndexEntries(getArtifactRoot(ctx), { cwd: ctx.cwd, sessionFile });
+    if (entries.length === 0) {
+      ctx.ui.notify("No plan history found.", "info");
+      return;
+    }
+    ctx.ui.notify(
+      entries
+        .map((entry) => `${entry.id} | ${entry.title} | ${entry.status} | session plan ${entry.sessionPlanNumber} | ${entry.updatedAt}`)
+        .join("\n"),
+      "info",
+    );
+  }
+
+  async function switchPlan(args: string, ctx: ExtensionContext): Promise<void> {
+    const planId = args.trim();
+    if (!planId) {
+      ctx.ui.notify("Usage: /plan-switch <id>", "info");
+      return;
+    }
+    const artifact = await readPlanArtifact(getArtifactRoot(ctx), planId);
+    if (!artifact) {
+      ctx.ui.notify(`Plan not found: ${planId}`, "warning");
+      return;
+    }
+
+    activeArtifact = artifact;
+    activePlanId = artifact.id;
+    capturedPlan = { steps: artifact.steps.map((step) => ({ ...step })) };
+    executing = artifact.status === "executing";
+    await writeCurrentPlanPointer(getArtifactRoot(ctx), { activePlanId });
+    updateStatus(ctx);
+    persistState();
+    ctx.ui.notify(`Switched to plan ${artifact.id}: ${artifact.title}`, "info");
+  }
+
+  async function finishActivePlan(ctx: ExtensionContext, status: "completed" | "abandoned"): Promise<void> {
+    const artifact = await getActiveArtifact(ctx);
+    if (!artifact) {
+      ctx.ui.notify("No active plan.", "info");
+      return;
+    }
+    activeArtifact = updateArtifact(artifact, status, capturedPlan, true);
+    capturedPlan = { steps: activeArtifact.steps.map((step) => ({ ...step })) };
+    executing = false;
+    await saveActiveArtifact(ctx, activeArtifact);
+    updateStatus(ctx);
+    persistState();
+    ctx.ui.notify(`Plan ${activeArtifact.id} ${status}.`, "info");
+  }
+
+  async function startNewPlanFlow(ctx: ExtensionContext): Promise<void> {
+    const artifact = await getActiveArtifact(ctx);
+    if (artifact && isActivePlanStatus(artifact.status)) {
+      if (!ctx.hasUI) {
+        ctx.ui.notify("Active plan exists. Complete, abandon, or switch it before /plan-new.", "warning");
+        return;
+      }
+      const disposition = await ctx.ui.select("Active plan exists - disposition?", PLAN_NEW_DISPOSITION_CHOICES);
+      if (disposition === "Cancel" || disposition === undefined) {
+        ctx.ui.notify("Plan new cancelled.", "info");
+        return;
+      }
+      if (disposition === "Complete current plan") activeArtifact = updateArtifact(artifact, "completed", capturedPlan, true);
+      if (disposition === "Abandon current plan") activeArtifact = updateArtifact(artifact, "abandoned", capturedPlan, true);
+      if (disposition === "Archive/keep inactive") activeArtifact = updateArtifact(artifact, "archived", capturedPlan, true);
+      if (activeArtifact) await saveActiveArtifact(ctx, activeArtifact);
+    }
+
+    capturedPlan = undefined;
+    activePlanId = undefined;
+    activeArtifact = undefined;
+    executing = false;
+    await writeCurrentPlanPointer(getArtifactRoot(ctx), {});
+    enablePlanMode();
+    updateStatus(ctx);
+    persistState();
+    ctx.ui.notify("Ready to capture a new plan.", "info");
+  }
+
+  async function ensureActiveArtifact(ctx: ExtensionContext, plan: CapturedPlan): Promise<PlanArtifactV1> {
+    if (activeArtifact && activePlanId === activeArtifact.id && !isTerminalPlanStatus(activeArtifact.status)) return activeArtifact;
+
+    const root = getArtifactRoot(ctx);
+    const sessionFile = getSessionFile(ctx);
+    const now = new Date();
+    const artifact = createPlanArtifact({
+      now,
+      cwd: ctx.cwd,
+      title: deriveTitle(plan),
+      steps: plan.steps,
+      sessionFile,
+      sessionPlanNumber: await getNextSessionPlanNumber(root, sessionFile),
+      previousPlanId: await getLatestSessionPlanId(root, sessionFile),
+    });
+    activePlanId = artifact.id;
+    return artifact;
+  }
+
+  async function getActiveArtifact(ctx: ExtensionContext): Promise<PlanArtifactV1 | undefined> {
+    if (activeArtifact) return activeArtifact;
+    if (!activePlanId) return undefined;
+    activeArtifact = await readPlanArtifact(getArtifactRoot(ctx), activePlanId);
+    return activeArtifact;
+  }
+
+  async function saveActiveArtifact(ctx: ExtensionContext, artifact: PlanArtifactV1): Promise<void> {
+    await writePlanArtifact(getArtifactRoot(ctx), artifact);
+    await writeCurrentPlanPointer(getArtifactRoot(ctx), { activePlanId: artifact.id });
+  }
 }
 
 function buildExecutionPrompt(plan: CapturedPlan): string {
@@ -294,4 +480,39 @@ function getTextContent(content: unknown): string {
     })
     .filter((text) => text.length > 0)
     .join("\n");
+}
+
+function getArtifactRoot(ctx: ExtensionContext): string {
+  return process.env.PI_PLAN_MODE_ARTIFACT_ROOT ?? getPlanModeProjectDir(join(homedir(), ".pi/agent"), ctx.cwd);
+}
+
+function getSessionFile(ctx: ExtensionContext): string | undefined {
+  return ctx.sessionManager.getSessionFile();
+}
+
+function deriveTitle(plan: CapturedPlan): string {
+  return plan.steps[0]?.text.slice(0, 80) || "Untitled plan";
+}
+
+function updateArtifact(
+  artifact: PlanArtifactV1,
+  status: PlanStatus,
+  plan: CapturedPlan | undefined,
+  includeRecap = false,
+): PlanArtifactV1 {
+  const updated: PlanArtifactV1 = {
+    ...artifact,
+    status,
+    updatedAt: new Date().toISOString(),
+    steps: (plan?.steps ?? artifact.steps).map((step) => ({ ...step })),
+  };
+  if (status === "completed") {
+    updated.session = { ...updated.session, completedAtEntryId: updated.session.completedAtEntryId };
+  }
+  if (includeRecap) updated.recap = createDeterministicRecap(updated);
+  return updated;
+}
+
+function isTerminalPlanStatus(status: PlanStatus): boolean {
+  return status === "completed" || status === "abandoned" || status === "archived";
 }

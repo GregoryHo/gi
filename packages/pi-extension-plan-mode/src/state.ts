@@ -8,6 +8,7 @@ export interface PlanModeState {
   toolsBeforePlanMode?: string[];
   capturedPlan?: CapturedPlan;
   executing?: boolean;
+  activePlanId?: string;
 }
 
 interface CustomEntryLike {
@@ -32,16 +33,24 @@ export function filterPlanModeContextMessages<T>(messages: readonly T[]): T[] {
 
 function parsePlanModeState(data: unknown): PlanModeState | undefined {
   if (!data || typeof data !== "object") return undefined;
-  const state = data as { enabled?: unknown; toolsBeforePlanMode?: unknown; capturedPlan?: unknown; executing?: unknown };
+  const state = data as {
+    enabled?: unknown;
+    toolsBeforePlanMode?: unknown;
+    capturedPlan?: unknown;
+    executing?: unknown;
+    activePlanId?: unknown;
+  };
   if (typeof state.enabled !== "boolean") return undefined;
   if (state.toolsBeforePlanMode !== undefined && !isStringArray(state.toolsBeforePlanMode)) return undefined;
   if (state.capturedPlan !== undefined && !isCapturedPlan(state.capturedPlan)) return undefined;
   if (state.executing !== undefined && typeof state.executing !== "boolean") return undefined;
+  if (state.activePlanId !== undefined && typeof state.activePlanId !== "string") return undefined;
   return {
     enabled: state.enabled,
     toolsBeforePlanMode: state.toolsBeforePlanMode,
     capturedPlan: state.capturedPlan,
     executing: state.executing,
+    activePlanId: state.activePlanId,
   };
 }
 

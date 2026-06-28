@@ -15,6 +15,7 @@ test("getLastPlanModeState returns the latest custom plan-mode entry", () => {
         toolsBeforePlanMode: ["read", "edit"],
         capturedPlan: { steps: [{ step: 1, text: "Inspect code", completed: true }] },
         executing: true,
+        activePlanId: "plan_1",
       },
     },
   ];
@@ -24,6 +25,7 @@ test("getLastPlanModeState returns the latest custom plan-mode entry", () => {
     toolsBeforePlanMode: ["read", "edit"],
     capturedPlan: { steps: [{ step: 1, text: "Inspect code", completed: true }] },
     executing: true,
+    activePlanId: "plan_1",
   });
 });
 

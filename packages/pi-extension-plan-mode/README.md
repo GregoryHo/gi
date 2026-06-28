@@ -4,7 +4,7 @@ Scaffolded pi package for safe read-only planning before execution.
 
 ## Status
 
-M3 execution progress handoff is implemented. The package provides read-only plan mode, captured `Plan:` steps, `/plan-current`, refinement follow-ups, explicit approval to exit without execution, and explicit `/plan-execute` handoff with marker-based progress.
+M5 plan artifact lifecycle and session indexing is implemented. The package provides read-only plan mode, captured `Plan:` steps, explicit execution handoff, marker-based progress, durable local plan artifacts, history, switching, complete, and abandon flows.
 
 ## Features
 
@@ -21,6 +21,13 @@ M3 execution progress handoff is implemented. The package provides read-only pla
 - `/plan-execute` starts explicit execution handoff for the latest captured plan.
 - The capture prompt includes an `Execute the plan` option.
 - Execution progress is tracked with `[DONE:n]` markers and shown in status/widget UI.
+- Plan artifacts are stored under `~/.pi/agent/plan-mode/<project-key>/` by default.
+- `current.json` stores only the active plan pointer.
+- `index.json` stores compact searchable plan metadata.
+- `/plan-history` and `/plan-history --session` list recent plans.
+- `/plan-switch <id>` restores an existing plan.
+- `/plan-new` starts a new plan flow without silently replacing an active plan.
+- `/plan-complete` and `/plan-abandon` persist deterministic recap/status.
 
 ## Boundary
 
@@ -34,6 +41,7 @@ It does not own goal/loop orchestration or worker delegation. Future goal mode m
 - No verifier loop.
 - No worker/sub-agent integration.
 - No inferred completion without explicit `[DONE:n]` markers.
+- No natural-language plan routing; M6 owns that.
 
 ## Load while developing
 

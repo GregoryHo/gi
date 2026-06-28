@@ -18,6 +18,8 @@
     "read-only"
   ],
   "files": [
+    "src/artifact-types.ts",
+    "src/artifacts.ts",
     "src/index.ts",
     "src/plan.ts",
     "src/safety.ts",

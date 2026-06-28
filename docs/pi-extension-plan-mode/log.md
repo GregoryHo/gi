@@ -17,3 +17,6 @@
 - M4 completed as a documentation/contract milestone defining plan-mode, future goal-mode, and agent-worker ownership boundaries. No runtime integration was added.
 - M4 verification passed: `git diff --check`; `npm run typecheck --workspace @gregho/pi-extension-plan-mode`.
 - M5/M6 planning approved by user and documented as separate milestones: M5 for artifact lifecycle/session indexing; M6 for natural-language plan routing.
+- M5 implementation started from `/plan-execute`. Scope is artifact lifecycle/session indexing only; M6, goal mode, and worker integration remain out of scope.
+- M5 implementation completed with artifact type/storage helpers, durable current pointer/index/artifacts, `/plan-new`, `/plan-history`, `/plan-switch`, `/plan-complete`, `/plan-abandon`, artifact sync from capture/execute/progress, and deterministic recap.
+- M5 automated verification passed: `npm test --workspace @gregho/pi-extension-plan-mode` (42/42 tests); `npm run typecheck --workspace @gregho/pi-extension-plan-mode`; `npm run pack:dry-run --workspace @gregho/pi-extension-plan-mode`; `npm run typecheck`. Manual TUI smoke remains pending.
