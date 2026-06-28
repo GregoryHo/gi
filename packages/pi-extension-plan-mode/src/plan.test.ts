@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { extractCapturedPlan, formatCapturedPlan } from "./plan.ts";
+import {
+  extractCapturedPlan,
+  extractDoneSteps,
+  formatCapturedPlan,
+  isPlanComplete,
+  markCompletedSteps,
+} from "./plan.ts";
 
 test("extractCapturedPlan extracts numbered steps from a Plan section", () => {
   const plan = extractCapturedPlan(`Analysis first.
@@ -35,4 +41,42 @@ test("formatCapturedPlan renders a compact numbered summary", () => {
     }),
     "1. Inspect code\n2. Write tests",
   );
+});
+
+test("formatCapturedPlan can render completion markers", () => {
+  assert.equal(
+    formatCapturedPlan(
+      {
+        steps: [
+          { step: 1, text: "Inspect code", completed: true },
+          { step: 2, text: "Write tests" },
+        ],
+      },
+      { showCompletion: true },
+    ),
+    "1. ☑ Inspect code\n2. ☐ Write tests",
+  );
+});
+
+test("extractDoneSteps extracts unique done markers", () => {
+  assert.deepEqual(extractDoneSteps("Finished [DONE:2], [DONE:1], and [DONE:2]."), [2, 1]);
+});
+
+test("markCompletedSteps marks matching steps only", () => {
+  const plan = {
+    steps: [
+      { step: 1, text: "Inspect code" },
+      { step: 2, text: "Write tests" },
+    ],
+  };
+
+  assert.equal(markCompletedSteps(plan, [2, 99]), 1);
+  assert.deepEqual(plan.steps, [
+    { step: 1, text: "Inspect code" },
+    { step: 2, text: "Write tests", completed: true },
+  ]);
+  assert.equal(isPlanComplete(plan), false);
+
+  markCompletedSteps(plan, [1]);
+  assert.equal(isPlanComplete(plan), true);
 });

@@ -7,6 +7,7 @@ export interface PlanModeState {
   enabled: boolean;
   toolsBeforePlanMode?: string[];
   capturedPlan?: CapturedPlan;
+  executing?: boolean;
 }
 
 interface CustomEntryLike {
@@ -31,14 +32,16 @@ export function filterPlanModeContextMessages<T>(messages: readonly T[]): T[] {
 
 function parsePlanModeState(data: unknown): PlanModeState | undefined {
   if (!data || typeof data !== "object") return undefined;
-  const state = data as { enabled?: unknown; toolsBeforePlanMode?: unknown; capturedPlan?: unknown };
+  const state = data as { enabled?: unknown; toolsBeforePlanMode?: unknown; capturedPlan?: unknown; executing?: unknown };
   if (typeof state.enabled !== "boolean") return undefined;
   if (state.toolsBeforePlanMode !== undefined && !isStringArray(state.toolsBeforePlanMode)) return undefined;
   if (state.capturedPlan !== undefined && !isCapturedPlan(state.capturedPlan)) return undefined;
+  if (state.executing !== undefined && typeof state.executing !== "boolean") return undefined;
   return {
     enabled: state.enabled,
     toolsBeforePlanMode: state.toolsBeforePlanMode,
     capturedPlan: state.capturedPlan,
+    executing: state.executing,
   };
 }
 
@@ -50,8 +53,13 @@ function isCapturedPlan(value: unknown): value is CapturedPlan {
     plan.steps.length > 0 &&
     plan.steps.every((step) => {
       if (!step || typeof step !== "object") return false;
-      const candidate = step as { step?: unknown; text?: unknown };
-      return typeof candidate.step === "number" && Number.isFinite(candidate.step) && typeof candidate.text === "string";
+      const candidate = step as { step?: unknown; text?: unknown; completed?: unknown };
+      return (
+        typeof candidate.step === "number" &&
+        Number.isFinite(candidate.step) &&
+        typeof candidate.text === "string" &&
+        (candidate.completed === undefined || typeof candidate.completed === "boolean")
+      );
     })
   );
 }

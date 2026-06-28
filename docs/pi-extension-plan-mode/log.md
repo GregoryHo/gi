@@ -11,3 +11,6 @@
 - M2 implementation started after user approval. Scope is plan capture and approval UX only; no execution handoff.
 - M2 implementation completed with numbered `Plan:` extraction, captured plan persistence, `/plan-current`, stay/refine/approve UI options, refine follow-up, and approve-to-exit behavior without execution.
 - Verification passed: `npm test --workspace @gregho/pi-extension-plan-mode` (20/20 tests); `npm run typecheck --workspace @gregho/pi-extension-plan-mode`; `npm run pack:dry-run --workspace @gregho/pi-extension-plan-mode`; `npm run typecheck`.
+- M3 implementation started after user approval. Scope is explicit execution handoff and marker-based progress tracking only; no autonomous loop.
+- M3 implementation completed with `/plan-execute`, execute choice in plan capture UX, execution-context injection, `[DONE:n]` marker tracking, progress status/widget, and completion-state persistence.
+- Verification passed: `npm test --workspace @gregho/pi-extension-plan-mode` (29/29 tests); `npm run typecheck --workspace @gregho/pi-extension-plan-mode`; `npm run pack:dry-run --workspace @gregho/pi-extension-plan-mode`; `npm run typecheck`.

@@ -4,7 +4,7 @@ Scaffolded pi package for safe read-only planning before execution.
 
 ## Status
 
-M2 plan capture and approval UX is implemented. The package provides read-only plan mode, captured `Plan:` steps, `/plan-current`, refinement follow-ups, and explicit approval to exit plan mode without starting execution.
+M3 execution progress handoff is implemented. The package provides read-only plan mode, captured `Plan:` steps, `/plan-current`, refinement follow-ups, explicit approval to exit without execution, and explicit `/plan-execute` handoff with marker-based progress.
 
 ## Features
 
@@ -18,12 +18,16 @@ M2 plan capture and approval UX is implemented. The package provides read-only p
 - Numbered `Plan:` sections are captured after assistant turns while plan mode is active.
 - `/plan-current` shows the latest captured plan.
 - Captured plans can be refined or explicitly approved to exit plan mode.
+- `/plan-execute` starts explicit execution handoff for the latest captured plan.
+- The capture prompt includes an `Execute the plan` option.
+- Execution progress is tracked with `[DONE:n]` markers and shown in status/widget UI.
 
-## Non-goals in M2
+## Non-goals in M3
 
-- No execution handoff.
-- No `[DONE:n]` progress tracking.
-- No goal/loop or worker integration.
+- No autonomous retry loop.
+- No verifier loop.
+- No worker/sub-agent integration.
+- No inferred completion without explicit `[DONE:n]` markers.
 
 ## Load while developing
 

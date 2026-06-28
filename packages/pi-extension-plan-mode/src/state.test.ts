@@ -13,7 +13,8 @@ test("getLastPlanModeState returns the latest custom plan-mode entry", () => {
       data: {
         enabled: false,
         toolsBeforePlanMode: ["read", "edit"],
-        capturedPlan: { steps: [{ step: 1, text: "Inspect code" }] },
+        capturedPlan: { steps: [{ step: 1, text: "Inspect code", completed: true }] },
+        executing: true,
       },
     },
   ];
@@ -21,7 +22,8 @@ test("getLastPlanModeState returns the latest custom plan-mode entry", () => {
   assert.deepEqual(getLastPlanModeState(entries), {
     enabled: false,
     toolsBeforePlanMode: ["read", "edit"],
-    capturedPlan: { steps: [{ step: 1, text: "Inspect code" }] },
+    capturedPlan: { steps: [{ step: 1, text: "Inspect code", completed: true }] },
+    executing: true,
   });
 });
 

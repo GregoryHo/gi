@@ -1,10 +1,15 @@
 export interface CapturedPlanStep {
   step: number;
   text: string;
+  completed?: boolean;
 }
 
 export interface CapturedPlan {
   steps: CapturedPlanStep[];
+}
+
+export interface FormatCapturedPlanOptions {
+  showCompletion?: boolean;
 }
 
 export function extractCapturedPlan(text: string): CapturedPlan | undefined {
@@ -29,8 +34,44 @@ export function extractCapturedPlan(text: string): CapturedPlan | undefined {
   return steps.length > 0 ? { steps } : undefined;
 }
 
-export function formatCapturedPlan(plan: CapturedPlan): string {
-  return plan.steps.map((step) => `${step.step}. ${step.text}`).join("\n");
+export function formatCapturedPlan(plan: CapturedPlan, options: FormatCapturedPlanOptions = {}): string {
+  return plan.steps
+    .map((step) => {
+      const marker = options.showCompletion ? `${step.completed ? "☑" : "☐"} ` : "";
+      return `${step.step}. ${marker}${step.text}`;
+    })
+    .join("\n");
+}
+
+export function extractDoneSteps(text: string): number[] {
+  const steps: number[] = [];
+  for (const match of text.matchAll(/\[DONE:(\d+)\]/gi)) {
+    const step = Number(match[1]);
+    if (Number.isFinite(step) && !steps.includes(step)) steps.push(step);
+  }
+  return steps;
+}
+
+export function markCompletedSteps(plan: CapturedPlan, doneSteps: readonly number[]): number {
+  let changed = 0;
+  for (const doneStep of doneSteps) {
+    const step = plan.steps.find((candidate) => candidate.step === doneStep);
+    if (!step || step.completed) continue;
+    step.completed = true;
+    changed += 1;
+  }
+  return changed;
+}
+
+export function isPlanComplete(plan: CapturedPlan): boolean {
+  return plan.steps.length > 0 && plan.steps.every((step) => step.completed === true);
+}
+
+export function getPlanProgress(plan: CapturedPlan): { completed: number; total: number } {
+  return {
+    completed: plan.steps.filter((step) => step.completed === true).length,
+    total: plan.steps.length,
+  };
 }
 
 function cleanPlanStepText(text: string): string {

@@ -1,6 +1,14 @@
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 
-import { extractCapturedPlan, formatCapturedPlan, type CapturedPlan } from "./plan.ts";
+import {
+  extractCapturedPlan,
+  extractDoneSteps,
+  formatCapturedPlan,
+  getPlanProgress,
+  isPlanComplete,
+  markCompletedSteps,
+  type CapturedPlan,
+} from "./plan.ts";
 import { getPlanModeToolNames, isReadOnlyBashCommand } from "./safety.ts";
 import {
   filterPlanModeContextMessages,
@@ -8,6 +16,8 @@ import {
   PLAN_MODE_CONTEXT_TYPE,
   PLAN_MODE_STATE_TYPE,
 } from "./state.ts";
+
+const PLAN_EXECUTION_CONTEXT_TYPE = "plan-execution-context";
 
 const PLAN_MODE_INSTRUCTIONS = `[PLAN MODE ACTIVE]
 You are in read-only plan mode.
@@ -18,12 +28,18 @@ Rules:
 - Produce a concise implementation plan with risks and verification steps.
 - If requirements are unclear, ask clarifying questions before planning.`;
 
-const PLAN_CAPTURE_CHOICES = ["Stay in plan mode", "Refine the plan", "Approve plan and exit plan mode"];
+const PLAN_CAPTURE_CHOICES = [
+  "Stay in plan mode",
+  "Refine the plan",
+  "Approve plan and exit plan mode",
+  "Execute the plan",
+];
 
 export default function planModeExtension(pi: ExtensionAPI): void {
   let planModeEnabled = false;
   let toolsBeforePlanMode: string[] | undefined;
   let capturedPlan: CapturedPlan | undefined;
+  let executing = false;
 
   pi.registerFlag("plan", {
     description: "Start in plan mode (read-only planning)",
@@ -50,6 +66,15 @@ export default function planModeExtension(pi: ExtensionAPI): void {
       "plan-mode",
       planModeEnabled ? ctx.ui.theme.fg("warning", "⏸ plan") : undefined,
     );
+
+    if (executing && capturedPlan) {
+      const progress = getPlanProgress(capturedPlan);
+      ctx.ui.setStatus("plan-progress", ctx.ui.theme.fg("accent", `📋 ${progress.completed}/${progress.total}`));
+      ctx.ui.setWidget("plan-progress", capturedPlan.steps.map((step) => `${step.completed ? "☑" : "☐"} ${step.text}`));
+    } else {
+      ctx.ui.setStatus("plan-progress", undefined);
+      ctx.ui.setWidget("plan-progress", undefined);
+    }
   }
 
   function persistState(): void {
@@ -57,6 +82,7 @@ export default function planModeExtension(pi: ExtensionAPI): void {
       enabled: planModeEnabled,
       toolsBeforePlanMode,
       capturedPlan,
+      executing,
     });
   }
 
@@ -77,7 +103,22 @@ export default function planModeExtension(pi: ExtensionAPI): void {
       ctx.ui.notify("No captured plan yet.", "info");
       return;
     }
-    ctx.ui.notify(`Captured plan:\n${formatCapturedPlan(capturedPlan)}`, "info");
+    const showCompletion = executing || capturedPlan.steps.some((step) => step.completed === true);
+    ctx.ui.notify(`Captured plan:\n${formatCapturedPlan(capturedPlan, { showCompletion })}`, "info");
+  }
+
+  function startExecution(ctx: ExtensionContext): void {
+    if (!capturedPlan) {
+      ctx.ui.notify("No captured plan to execute.", "info");
+      return;
+    }
+
+    disablePlanMode();
+    executing = true;
+    updateStatus(ctx);
+    persistState();
+
+    pi.sendUserMessage(buildExecutionPrompt(capturedPlan), { deliverAs: "followUp" });
   }
 
   pi.registerCommand("plan", {
@@ -90,12 +131,18 @@ export default function planModeExtension(pi: ExtensionAPI): void {
     handler: async (_args, ctx) => notifyCurrentPlan(ctx),
   });
 
+  pi.registerCommand("plan-execute", {
+    description: "Execute the latest captured plan with progress tracking",
+    handler: async (_args, ctx) => startExecution(ctx),
+  });
+
   pi.on("session_start", async (_event, ctx) => {
     const restored = getLastPlanModeState(ctx.sessionManager.getEntries());
     if (restored) {
       planModeEnabled = restored.enabled;
       toolsBeforePlanMode = restored.toolsBeforePlanMode;
       capturedPlan = restored.capturedPlan;
+      executing = restored.executing === true;
     }
 
     if (pi.getFlag("plan") === true) {
@@ -121,6 +168,16 @@ export default function planModeExtension(pi: ExtensionAPI): void {
   });
 
   pi.on("before_agent_start", async () => {
+    if (executing && capturedPlan) {
+      return {
+        message: {
+          customType: PLAN_EXECUTION_CONTEXT_TYPE,
+          content: buildExecutionContext(capturedPlan),
+          display: false,
+        },
+      };
+    }
+
     if (!planModeEnabled) return;
     return {
       message: {
@@ -137,10 +194,27 @@ export default function planModeExtension(pi: ExtensionAPI): void {
   });
 
   pi.on("agent_end", async (event, ctx) => {
-    if (!planModeEnabled) return;
-
     const text = getLatestAssistantText(event.messages);
-    if (!text) return;
+
+    if (executing && capturedPlan) {
+      if (!text) return;
+      const changed = markCompletedSteps(capturedPlan, extractDoneSteps(text));
+      if (changed === 0) return;
+
+      if (isPlanComplete(capturedPlan)) {
+        executing = false;
+        updateStatus(ctx);
+        persistState();
+        ctx.ui.notify("Plan execution markers complete. Verify results before claiming success.", "info");
+        return;
+      }
+
+      updateStatus(ctx);
+      persistState();
+      return;
+    }
+
+    if (!planModeEnabled || !text) return;
 
     const plan = extractCapturedPlan(text);
     if (!plan) return;
@@ -167,8 +241,36 @@ export default function planModeExtension(pi: ExtensionAPI): void {
       updateStatus(ctx);
       persistState();
       ctx.ui.notify("Plan approved. Plan mode disabled; no execution was started.", "info");
+      return;
+    }
+
+    if (choice === "Execute the plan") {
+      startExecution(ctx);
     }
   });
+}
+
+function buildExecutionPrompt(plan: CapturedPlan): string {
+  const remaining = plan.steps.filter((step) => step.completed !== true);
+  const first = remaining[0];
+  return `Execute the approved plan.
+
+Plan:
+${formatCapturedPlan(plan, { showCompletion: true })}
+
+Start with: ${first?.text ?? "the next remaining step"}
+After completing each step, include [DONE:n] where n is the completed step number.`;
+}
+
+function buildExecutionContext(plan: CapturedPlan): string {
+  const remaining = plan.steps.filter((step) => step.completed !== true);
+  return `[EXECUTING PLAN]
+Follow the approved plan one step at a time.
+After completing step n, include [DONE:n] in your response.
+Do not claim overall success until verification is complete.
+
+Remaining steps:
+${remaining.map((step) => `${step.step}. ${step.text}`).join("\n")}`;
 }
 
 function getLatestAssistantText(messages: readonly unknown[]): string | undefined {
