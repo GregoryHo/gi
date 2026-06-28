@@ -186,11 +186,13 @@ Treat these as layered capabilities, not three unrelated packages:
 
 ```text
 Plan mode
-  -> produces safe plans and user-approved intent
+  -> produces safe plans and explicit main-session execution handoff
+  -> does not own goal loops or worker delegation
 Goal / loop mode
-  -> manages bounded iterative progress
+  -> manages bounded iterative progress and verification policy
+  -> may consume explicit plan artifacts
 Agent workers / sub-agents
-  -> execute or verify isolated subtasks
+  -> execute or verify isolated subtasks when explicitly delegated
 Pi-native sub-agent adapter
   -> optional future worker backend
 ```

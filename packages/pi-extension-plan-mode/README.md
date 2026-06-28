@@ -22,7 +22,13 @@ M3 execution progress handoff is implemented. The package provides read-only pla
 - The capture prompt includes an `Execute the plan` option.
 - Execution progress is tracked with `[DONE:n]` markers and shown in status/widget UI.
 
-## Non-goals in M3
+## Boundary
+
+Plan mode owns safe planning, captured plans, explicit main-session execution handoff, and marker-based progress display.
+
+It does not own goal/loop orchestration or worker delegation. Future goal mode may consume explicit plan artifacts and may delegate to `pi-extension-agent-workers`, but plan mode does not directly depend on or auto-call worker tools.
+
+## Non-goals
 
 - No autonomous retry loop.
 - No verifier loop.

@@ -14,3 +14,5 @@
 - M3 implementation started after user approval. Scope is explicit execution handoff and marker-based progress tracking only; no autonomous loop.
 - M3 implementation completed with `/plan-execute`, execute choice in plan capture UX, execution-context injection, `[DONE:n]` marker tracking, progress status/widget, and completion-state persistence.
 - Verification passed: `npm test --workspace @gregho/pi-extension-plan-mode` (29/29 tests); `npm run typecheck --workspace @gregho/pi-extension-plan-mode`; `npm run pack:dry-run --workspace @gregho/pi-extension-plan-mode`; `npm run typecheck`.
+- M4 completed as a documentation/contract milestone defining plan-mode, future goal-mode, and agent-worker ownership boundaries. No runtime integration was added.
+- M4 verification passed: `git diff --check`; `npm run typecheck --workspace @gregho/pi-extension-plan-mode`.

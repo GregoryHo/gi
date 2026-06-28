@@ -54,11 +54,14 @@ Plan: `m3-execution-progress-handoff.md`.
 
 ### M4 — Goal/worker integration boundary
 
-After a separate goal/loop mode exists:
+Define the boundary before building goal/loop mode:
 
-- Define how goal mode consumes plan-mode artifacts.
-- Define when goal mode may call `agent_worker_*` tools.
+- Define how future goal mode may consume plan-mode artifacts.
+- Define when future goal mode may call `agent_worker_*` tools.
 - Keep plan mode independent from worker runtime internals.
+- Document that plan mode must not auto-call workers or claim marker completion as verification.
+
+Plan: `m4-goal-worker-integration-boundary.md`.
 
 ## Deferred
 

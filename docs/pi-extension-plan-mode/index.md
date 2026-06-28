@@ -3,8 +3,8 @@
 ## Current status
 
 - Package: `packages/pi-extension-plan-mode`
-- Status: M1 and M2 complete; M3 proposed.
-- Active milestone: proposed M3, pending review.
+- Status: M1-M4 complete for the initial planning-mode roadmap.
+- Active milestone: none.
 
 ## Navigation
 
@@ -13,7 +13,8 @@
 - `milestones.md` — proposed milestone sequence.
 - `m1-read-only-plan-mode.md` — M1 SPEC and acceptance criteria.
 - `m2-plan-capture-approval-ux.md` — M2 SPEC and acceptance criteria.
-- `m3-execution-progress-handoff.md` — proposed M3 SPEC and acceptance criteria.
+- `m3-execution-progress-handoff.md` — M3 SPEC and acceptance criteria.
+- `m4-goal-worker-integration-boundary.md` — M4 boundary contract for future goal/worker integrations.
 - `log.md` — append-only decisions and handoff history.
 - `archive.md` — completed/superseded docs index.
 - `versions/README.md` — future versioned planning convention.
