@@ -45,7 +45,7 @@ export function formatCapturedPlan(plan: CapturedPlan, options: FormatCapturedPl
 
 export function extractDoneSteps(text: string): number[] {
   const steps: number[] = [];
-  for (const match of text.matchAll(/\[DONE:(\d+)\]/gi)) {
+  for (const match of stripMarkdownCode(text).matchAll(/\[DONE:(\d+)\]/gi)) {
     const step = Number(match[1]);
     if (Number.isFinite(step) && !steps.includes(step)) steps.push(step);
   }
@@ -72,6 +72,12 @@ export function getPlanProgress(plan: CapturedPlan): { completed: number; total:
     completed: plan.steps.filter((step) => step.completed === true).length,
     total: plan.steps.length,
   };
+}
+
+function stripMarkdownCode(text: string): string {
+  return text
+    .replace(/```[\s\S]*?```/g, "")
+    .replace(/`[^`]*`/g, "");
 }
 
 function cleanPlanStepText(text: string): string {

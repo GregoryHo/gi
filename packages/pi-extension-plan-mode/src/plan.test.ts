@@ -62,6 +62,11 @@ test("extractDoneSteps extracts unique done markers", () => {
   assert.deepEqual(extractDoneSteps("Finished [DONE:2], [DONE:1], and [DONE:2]."), [2, 1]);
 });
 
+test("extractDoneSteps ignores markers inside markdown code spans and blocks", () => {
+  assert.deepEqual(extractDoneSteps("I did not mark `[DONE:10]`."), []);
+  assert.deepEqual(extractDoneSteps("Do not count:\n```text\n[DONE:9]\n```\nBut count [DONE:2]."), [2]);
+});
+
 test("markCompletedSteps marks matching steps only", () => {
   const plan = {
     steps: [
