@@ -3,8 +3,8 @@
 ## Current status
 
 - Package: `packages/pi-extension-plan-mode`
-- Status: scaffolded; no runtime plan mode behavior implemented yet.
-- Active milestone: proposed M1, pending review.
+- Status: M1 and M2 complete; M3 proposed.
+- Active milestone: proposed M3, pending review.
 
 ## Navigation
 
@@ -12,7 +12,8 @@
 - `roadmap.md` — broad product direction.
 - `milestones.md` — proposed milestone sequence.
 - `m1-read-only-plan-mode.md` — M1 SPEC and acceptance criteria.
-- `m2-plan-capture-approval-ux.md` — proposed M2 SPEC and acceptance criteria.
+- `m2-plan-capture-approval-ux.md` — M2 SPEC and acceptance criteria.
+- `m3-execution-progress-handoff.md` — proposed M3 SPEC and acceptance criteria.
 - `log.md` — append-only decisions and handoff history.
 - `archive.md` — completed/superseded docs index.
 - `versions/README.md` — future versioned planning convention.

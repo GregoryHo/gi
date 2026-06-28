@@ -45,9 +45,12 @@ Plan: `m2-plan-capture-approval-ux.md`.
 After plan capture is reliable:
 
 - Convert captured plan into tracked execution steps.
-- Restore pre-plan tools only after explicit user approval.
-- Track `[DONE:n]` markers or a more robust step-completion signal.
+- Restore pre-plan tools only after explicit user execution handoff.
+- Track `[DONE:n]` markers without inferring unmarked completion.
 - Keep execution progress visible without claiming completion prematurely.
+- Do not add autonomous retry, verifier, or worker loops.
+
+Plan: `m3-execution-progress-handoff.md`.
 
 ### M4 — Goal/worker integration boundary
 
