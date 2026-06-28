@@ -255,9 +255,8 @@ export default function planModeExtension(pi: ExtensionAPI): void {
   });
 
   pi.on("agent_end", async (event, ctx) => {
-    const text = getLatestAssistantText(event.messages);
-
     if (executing && capturedPlan) {
+      const text = getAllAssistantText(event.messages);
       if (!text) return;
       const changed = markCompletedSteps(capturedPlan, extractDoneSteps(text));
       if (changed === 0) return;
@@ -282,6 +281,7 @@ export default function planModeExtension(pi: ExtensionAPI): void {
       return;
     }
 
+    const text = getLatestAssistantText(event.messages);
     if (!planModeEnabled || !text) return;
 
     const plan = extractCapturedPlan(text);
@@ -467,6 +467,17 @@ function getLatestAssistantText(messages: readonly unknown[]): string | undefine
     if (text.length > 0) return text;
   }
   return undefined;
+}
+
+function getAllAssistantText(messages: readonly unknown[]): string | undefined {
+  const text = messages
+    .map((message) => {
+      const candidate = message as { role?: unknown; content?: unknown };
+      return candidate?.role === "assistant" ? getTextContent(candidate.content) : "";
+    })
+    .filter((content) => content.length > 0)
+    .join("\n");
+  return text.length > 0 ? text : undefined;
 }
 
 function getTextContent(content: unknown): string {

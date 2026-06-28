@@ -204,6 +204,25 @@ test("done markers update progress and plan-current completion display", async (
   assert.match(harness.notifications.at(-1)?.message ?? "", /2\. ☐ Write tests/);
 });
 
+test("done markers are collected from all assistant messages in an agent_end batch", async () => {
+  const harness = await createHarness({ activeTools: ["read", "edit", "write"], selectResults: ["Execute the plan"] });
+
+  planModeExtension(harness.pi as never);
+  await harness.commands.get("plan")?.handler("", harness.ctx);
+  await harness.event("agent_end")({ messages: [assistantMessage("Plan:\n1. Inspect code\n2. Write tests\n3. Verify")] }, harness.ctx);
+  await harness.event("agent_end")(
+    {
+      messages: [
+        assistantMessage("Finished implementation. [DONE:1] [DONE:2]"),
+        assistantMessage("Running final checks now."),
+      ],
+    },
+    harness.ctx,
+  );
+
+  assert.equal(harness.status["plan-progress"], "📋 2/3");
+});
+
 test("all done markers end execution state", async () => {
   const harness = await createHarness({ activeTools: ["read", "edit", "write"], selectResults: ["Execute the plan"] });
 
