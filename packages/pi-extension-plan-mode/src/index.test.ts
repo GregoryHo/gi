@@ -64,6 +64,32 @@ test("plan mode injects hidden planning context", async () => {
   assert.equal(result.message.customType, "plan-mode-context");
   assert.equal(result.message.display, false);
   assert.match(result.message.content, /\[PLAN MODE ACTIVE\]/);
+  assert.doesNotMatch(result.message.content, /\[ACTIVE PLAN\]/);
+});
+
+test("plan mode injects active plan routing context after capture", async () => {
+  const harness = await createHarness({ activeTools: ["read", "edit", "write"], selectResults: ["Stay in plan mode"] });
+
+  planModeExtension(harness.pi as never);
+  await harness.commands.get("plan")?.handler("", harness.ctx);
+  await harness.event("agent_end")({ messages: [assistantMessage("Plan:\n1. Inspect code\n2. Write tests")] }, harness.ctx);
+
+  const result = await harness.event("before_agent_start")({}, harness.ctx);
+
+  assert.equal(result.message.customType, "plan-mode-context");
+  assert.match(result.message.content, /\[PLAN MODE ACTIVE\]/);
+  assert.match(result.message.content, /\[ACTIVE PLAN\]/);
+  assert.match(result.message.content, /id: plan_/);
+  assert.match(result.message.content, /status: draft/);
+  assert.match(result.message.content, /progress: 0\/2/);
+  assert.match(result.message.content, /distinct new objective/);
+  assert.match(result.message.content, /Do not silently overwrite/);
+  assert.match(result.message.content, /Do not silently switch/);
+  assert.match(result.message.content, /Do not silently complete/);
+  assert.match(result.message.content, /Do not silently abandon/);
+  assert.match(result.message.content, /\/plan-new/);
+  assert.match(result.message.content, /\/plan-history/);
+  assert.match(result.message.content, /\/plan-switch <id>/);
 });
 
 test("context handler removes stale plan-mode context after mode is disabled", async () => {
@@ -188,6 +214,9 @@ test("execution mode injects remaining-step context", async () => {
   assert.equal(result.message.customType, "plan-execution-context");
   assert.match(result.message.content, /\[DONE:n\]/);
   assert.match(result.message.content, /1\. Inspect code/);
+  assert.match(result.message.content, /\[ACTIVE PLAN\]/);
+  assert.match(result.message.content, /progress: 0\/1/);
+  assert.match(result.message.content, /Do not silently overwrite/);
 });
 
 test("done markers update progress and plan-current completion display", async () => {

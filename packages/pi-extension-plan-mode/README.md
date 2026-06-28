@@ -4,7 +4,7 @@ Scaffolded pi package for safe read-only planning before execution.
 
 ## Status
 
-M5 plan artifact lifecycle and session indexing is implemented. The package provides read-only plan mode, captured `Plan:` steps, explicit execution handoff, marker-based progress, durable local plan artifacts, history, switching, complete, and abandon flows.
+M6 natural-language plan routing is implemented. The package provides read-only plan mode, captured `Plan:` steps, explicit execution handoff, marker-based progress, durable local plan artifacts, history/switching, complete/abandon flows, and compact active-plan routing context.
 
 ## Features
 
@@ -28,6 +28,9 @@ M5 plan artifact lifecycle and session indexing is implemented. The package prov
 - `/plan-switch <id>` restores an existing plan.
 - `/plan-new` starts a new plan flow without silently replacing an active plan.
 - `/plan-complete` and `/plan-abandon` persist deterministic recap/status.
+- Hidden context includes a compact `[ACTIVE PLAN]` summary when a plan is active.
+- Routing policy tells the LLM to distinguish refine-current, new objective, resume/switch, and ambiguous plan discussions.
+- New objectives must ask for confirmation via `/plan-new`; routing must not silently overwrite, switch, complete, or abandon plans.
 
 ## Boundary
 
@@ -41,7 +44,8 @@ It does not own goal/loop orchestration or worker delegation. Future goal mode m
 - No verifier loop.
 - No worker/sub-agent integration.
 - No inferred completion without explicit `[DONE:n]` markers.
-- No natural-language plan routing; M6 owns that.
+- No LLM-callable mutation tools for routing.
+- No automatic plan switching based only on semantic similarity.
 
 ## Load while developing
 

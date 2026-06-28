@@ -27,6 +27,7 @@ import {
   markCompletedSteps,
   type CapturedPlan,
 } from "./plan.ts";
+import { formatActivePlanRoutingContext } from "./routing.ts";
 import { getPlanModeToolNames, isReadOnlyBashCommand } from "./safety.ts";
 import {
   filterPlanModeContextMessages,
@@ -233,7 +234,7 @@ export default function planModeExtension(pi: ExtensionAPI): void {
       return {
         message: {
           customType: PLAN_EXECUTION_CONTEXT_TYPE,
-          content: buildExecutionContext(capturedPlan),
+          content: appendRoutingContext(buildExecutionContext(capturedPlan), activeArtifact),
           display: false,
         },
       };
@@ -243,7 +244,7 @@ export default function planModeExtension(pi: ExtensionAPI): void {
     return {
       message: {
         customType: PLAN_MODE_CONTEXT_TYPE,
-        content: PLAN_MODE_INSTRUCTIONS,
+        content: appendRoutingContext(PLAN_MODE_INSTRUCTIONS, activeArtifact),
         display: false,
       },
     };
@@ -492,6 +493,10 @@ function getTextContent(content: unknown): string {
     })
     .filter((text) => text.length > 0)
     .join("\n");
+}
+
+function appendRoutingContext(content: string, activeArtifact: PlanArtifactV1 | undefined): string {
+  return activeArtifact ? `${content}\n\n${formatActivePlanRoutingContext(activeArtifact)}` : content;
 }
 
 function getArtifactRoot(ctx: ExtensionContext): string {

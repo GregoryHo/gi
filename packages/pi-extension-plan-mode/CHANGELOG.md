@@ -9,3 +9,4 @@
 - Implemented M5 plan artifact lifecycle and session indexing with durable local artifacts, `current.json`, `index.json`, `/plan-new`, `/plan-history`, `/plan-switch`, `/plan-complete`, and `/plan-abandon`.
 - Fixed execution progress tracking to collect `[DONE:n]` markers from all assistant messages in an `agent_end` batch, preventing TUI progress from falling behind after tool-heavy turns or compaction.
 - Fixed `/plan-complete` and `/plan-abandon` for sessions that have a restored session-local captured plan but no M5 artifact id yet.
+- Implemented M6 natural-language plan routing context with compact `[ACTIVE PLAN]` summaries and guarded refine/new-objective/resume-switch prompt policy.
