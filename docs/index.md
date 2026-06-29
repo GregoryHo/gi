@@ -9,11 +9,13 @@ This directory contains product/spec planning areas for pi extension packages in
 - `docs/pi-extension-agent-workers/` → `packages/pi-extension-agent-workers/`
 - `docs/pi-extension-agent-lens/` → `packages/pi-extension-agent-lens/`
 - `docs/pi-extension-web-search/` → `packages/pi-extension-web-search/`
+- `docs/pi-extension-plan-mode/` → `packages/pi-extension-plan-mode/`
 
 ## Repo-wide docs
 
 - `extension-development-style.md` — shared architecture and coding style for pi extension packages.
 - `release-policy.md` — package version ownership and tag naming policy for this monorepo.
+- `agent-modes-research-and-roadmap.md` — cross-package research and four-phase route for plan mode, goal/loop mode, and sub-agent mode.
 
 ## Convention
 
