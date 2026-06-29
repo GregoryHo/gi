@@ -11,3 +11,4 @@
 - Fixed `/plan-complete` and `/plan-abandon` for sessions that have a restored session-local captured plan but no M5 artifact id yet.
 - Implemented M6 natural-language plan routing context with compact `[ACTIVE PLAN]` summaries and guarded refine/new-objective/resume-switch prompt policy.
 - Fixed `[DONE:n]` parsing so markers inside Markdown inline code or fenced code blocks are not counted as execution progress.
+- Renamed inactive unfinished plan disposition from archive/keep inactive to pause, with `paused` plan status.

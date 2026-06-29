@@ -54,7 +54,7 @@ const PLAN_CAPTURE_CHOICES = [
   "Execute the plan",
 ];
 
-const PLAN_NEW_DISPOSITION_CHOICES = ["Complete current plan", "Abandon current plan", "Archive/keep inactive", "Cancel"];
+const PLAN_NEW_DISPOSITION_CHOICES = ["Complete current plan", "Abandon current plan", "Pause current plan", "Cancel"];
 
 export default function planModeExtension(pi: ExtensionAPI): void {
   let planModeEnabled = false;
@@ -391,7 +391,7 @@ export default function planModeExtension(pi: ExtensionAPI): void {
       }
       if (disposition === "Complete current plan") activeArtifact = updateArtifact(artifact, "completed", capturedPlan, true);
       if (disposition === "Abandon current plan") activeArtifact = updateArtifact(artifact, "abandoned", capturedPlan, true);
-      if (disposition === "Archive/keep inactive") activeArtifact = updateArtifact(artifact, "archived", capturedPlan, true);
+      if (disposition === "Pause current plan") activeArtifact = updateArtifact(artifact, "paused", capturedPlan, true);
       if (activeArtifact) await saveActiveArtifact(ctx, activeArtifact);
     }
 
@@ -531,5 +531,5 @@ function updateArtifact(
 }
 
 function isTerminalPlanStatus(status: PlanStatus): boolean {
-  return status === "completed" || status === "abandoned" || status === "archived";
+  return status === "paused" || status === "completed" || status === "abandoned";
 }

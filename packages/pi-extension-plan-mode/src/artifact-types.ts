@@ -3,7 +3,7 @@ import type { CapturedPlanStep } from "./plan.ts";
 export const PLAN_ARTIFACT_SOURCE = "pi-extension-plan-mode";
 export const PLAN_ARTIFACT_VERSION = 1;
 
-export type PlanStatus = "draft" | "approved" | "executing" | "completed" | "abandoned" | "archived";
+export type PlanStatus = "draft" | "approved" | "executing" | "paused" | "completed" | "abandoned";
 
 export interface PlanArtifactV1 {
   source: typeof PLAN_ARTIFACT_SOURCE;

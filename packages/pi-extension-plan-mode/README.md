@@ -26,7 +26,7 @@ M6 natural-language plan routing is implemented. The package provides read-only 
 - `index.json` stores compact searchable plan metadata.
 - `/plan-history` and `/plan-history --session` list recent plans.
 - `/plan-switch <id>` restores an existing plan.
-- `/plan-new` starts a new plan flow without silently replacing an active plan.
+- `/plan-new` starts a new plan flow without silently replacing an active plan; unfinished work can be paused.
 - `/plan-complete` and `/plan-abandon` persist deterministic recap/status.
 - Hidden context includes a compact `[ACTIVE PLAN]` summary when a plan is active.
 - Routing policy tells the LLM to distinguish refine-current, new objective, resume/switch, and ambiguous plan discussions.

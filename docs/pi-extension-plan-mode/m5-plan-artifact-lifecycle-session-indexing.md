@@ -73,7 +73,7 @@ interface PlanArtifactV1 {
   version: 1;
   id: string;
   title: string;
-  status: "draft" | "approved" | "executing" | "completed" | "abandoned" | "archived";
+  status: "draft" | "approved" | "executing" | "paused" | "completed" | "abandoned";
   cwd: string;
   session: {
     primarySessionFile?: string;
@@ -110,7 +110,7 @@ interface PlanArtifactV1 {
 - Archive snapshots are created on explicit save, execute, complete, abandon, or `/plan-archive` if added.
 - Existing archived artifacts are immutable except for index repair/migration tools in a future milestone.
 - A new plan must not silently overwrite the previous active plan.
-- If an active plan exists, `/plan-new` must ask for a disposition: complete, abandon, archive/keep inactive, or cancel.
+- If an active plan exists, `/plan-new` must ask for a disposition: complete, abandon, pause, or cancel.
 - Deterministic recap is generated on complete/abandon using current plan state, not an LLM call.
 
 ### Non-goals

@@ -372,6 +372,21 @@ test("plan-new requires disposition before replacing active plan", async () => {
   assert.match(harness.notifications.at(-1)?.message ?? "", /cancelled/i);
 });
 
+test("plan-new can pause the current plan before starting a new plan", async () => {
+  const harness = await createHarness({ activeTools: ["read", "edit", "write"], selectResults: ["Stay in plan mode", "Pause current plan"] });
+
+  planModeExtension(harness.pi as never);
+  await harness.commands.get("plan")?.handler("", harness.ctx);
+  await harness.event("agent_end")({ messages: [assistantMessage("Plan:\n1. Inspect code")] }, harness.ctx);
+
+  await harness.commands.get("plan-new")?.handler("", harness.ctx);
+
+  const index = JSON.parse(await readFile(join(harness.artifactRoot, "index.json"), "utf8"));
+  assert.equal(index.plans[0].status, "paused");
+  assert.deepEqual(JSON.parse(await readFile(join(harness.artifactRoot, "current.json"), "utf8")), {});
+  assert.match(harness.notifications.at(-1)?.message ?? "", /Ready to capture a new plan/);
+});
+
 function assistantMessage(text: string): unknown {
   return { role: "assistant", content: [{ type: "text", text }] };
 }

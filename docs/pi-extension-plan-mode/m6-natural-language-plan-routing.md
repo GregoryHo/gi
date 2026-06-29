@@ -47,7 +47,7 @@ The context must stay compact and should not include full artifact history.
 | --- | --- | --- |
 | Refine current | “把第 2 步改成...”, “這個 plan 加上測試” | refine active plan |
 | New objective | “接下來幫我規劃 goal mode”, “先改做另一個 feature” | propose starting a new plan |
-| Complete then next | “這個完成了，下一個...” | ask whether to complete/archive current then start new |
+| Complete then next | “這個完成了，下一個...” | ask whether to complete/pause current then start new |
 | Resume/switch | “回到剛剛 auth plan” | suggest `/plan-history` or `/plan-switch <id>` |
 | Ambiguous | “那這個呢？” | ask a clarifying question |
 
