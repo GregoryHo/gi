@@ -1,6 +1,6 @@
 {
   "name": "@gregho/pi-extension-plan-mode",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "pi extension package for safe read-only planning before execution.",
   "type": "module",
   "main": "src/index.ts",
