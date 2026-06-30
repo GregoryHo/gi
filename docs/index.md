@@ -10,6 +10,7 @@ This directory contains product/spec planning areas for pi extension packages in
 - `docs/pi-extension-agent-lens/` → `packages/pi-extension-agent-lens/`
 - `docs/pi-extension-web-search/` → `packages/pi-extension-web-search/`
 - `docs/pi-extension-plan-mode/` → `packages/pi-extension-plan-mode/`
+- `docs/pi-extension-goal-mode/` → `packages/pi-extension-goal-mode/`
 
 ## Repo-wide docs
 

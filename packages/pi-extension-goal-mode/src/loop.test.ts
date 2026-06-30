@@ -1,0 +1,254 @@
+import assert from "node:assert/strict";
+import { test } from "node:test";
+
+import { createGoalCommandRuntime } from "./commands.ts";
+import {
+  formatActiveGoalContext,
+  handleGoalAgentEnd,
+  registerGoalLoop,
+} from "./loop.ts";
+import { createGoalState, transitionGoalPhase } from "./state.ts";
+import { markGoalModeInternalMessage } from "./messages.ts";
+
+const NOW = new Date("2026-06-30T02:40:33.000Z");
+const LATER = new Date("2026-06-30T02:41:00.000Z");
+
+function runningGoal() {
+  return transitionGoalPhase(createGoalState({
+    objective: "Ship goal mode M1",
+    acceptanceCriteria: ["tests pass"],
+    now: NOW,
+  }), "running_iteration", NOW);
+}
+
+test("formatActiveGoalContext injects compact goal loop instructions", () => {
+  const context = formatActiveGoalContext(runningGoal());
+
+  assert.match(context, /ACTIVE GOAL/);
+  assert.match(context, /Ship goal mode M1/);
+  assert.match(context, /goal_report/);
+  assert.match(context, /max iterations/i);
+});
+
+test("handleGoalAgentEnd continues after a continue report when limits allow", () => {
+  const runtime = createGoalCommandRuntime({ now: () => LATER });
+  const sentMessages: string[] = [];
+  runtime.activeGoal = {
+    ...transitionGoalPhase(runningGoal(), "verifying", LATER),
+    latestReport: {
+      status: "continue",
+      summary: "Commands done",
+      verification: ["npm test passed"],
+      completedCriteria: ["commands registered"],
+      remainingCriteria: ["loop controller"],
+      nextAction: "Implement loop controller",
+    },
+  };
+
+  const result = handleGoalAgentEnd(runtime, {
+    sendUserMessage(content: string) {
+      sentMessages.push(content);
+    },
+  });
+
+  assert.equal(result.action, "continue");
+  assert.equal(runtime.activeGoal.phase, "running_iteration");
+  assert.equal(runtime.activeGoal.iterationCount, 1);
+  assert.equal(sentMessages.length, 1);
+  assert.match(sentMessages[0] ?? "", /Implement loop controller/);
+});
+
+test("handleGoalAgentEnd does not continue paused or blocked goals", () => {
+  const runtime = createGoalCommandRuntime({ now: () => LATER });
+  const sentMessages: string[] = [];
+  runtime.activeGoal = {
+    ...transitionGoalPhase(runningGoal(), "paused", LATER),
+    latestReport: {
+      status: "continue",
+      summary: "Continue later",
+      verification: ["manual inspection"],
+      completedCriteria: [],
+      remainingCriteria: ["resume"],
+      nextAction: "Resume later",
+    },
+  };
+
+  const paused = handleGoalAgentEnd(runtime, {
+    sendUserMessage(content: string) {
+      sentMessages.push(content);
+    },
+  });
+
+  assert.deepEqual(paused, { action: "none", reason: "not_runnable" });
+  assert.equal(runtime.activeGoal.phase, "paused");
+  assert.equal(sentMessages.length, 0);
+
+  runtime.activeGoal = {
+    ...transitionGoalPhase(transitionGoalPhase(runningGoal(), "verifying", LATER), "blocked", LATER),
+    latestReport: runtime.activeGoal.latestReport,
+  };
+  const blocked = handleGoalAgentEnd(runtime, { sendUserMessage(content: string) { sentMessages.push(content); } });
+
+  assert.deepEqual(blocked, { action: "none", reason: "not_runnable" });
+  assert.equal(runtime.activeGoal.phase, "blocked");
+  assert.equal(sentMessages.length, 0);
+});
+
+test("handleGoalAgentEnd blocks done reports that have no verification evidence", () => {
+  const runtime = createGoalCommandRuntime({ now: () => LATER });
+  const sentMessages: string[] = [];
+  runtime.activeGoal = {
+    ...transitionGoalPhase(runningGoal(), "verifying", LATER),
+    latestReport: {
+      status: "done",
+      summary: "All done",
+      verification: [],
+      completedCriteria: ["all"],
+      remainingCriteria: [],
+    },
+  };
+
+  const result = handleGoalAgentEnd(runtime, {
+    sendUserMessage(content: string) {
+      sentMessages.push(content);
+    },
+  });
+
+  assert.equal(result.action, "blocked");
+  assert.equal(runtime.activeGoal.phase, "blocked");
+  assert.match(runtime.activeGoal.latestReport?.blocker ?? "", /verification/i);
+  assert.equal(sentMessages.length, 0);
+});
+
+test("handleGoalAgentEnd increments failures for missing reports and blocks at the limit", () => {
+  const runtime = createGoalCommandRuntime({ now: () => LATER });
+  runtime.activeGoal = {
+    ...runningGoal(),
+    failureCount: 1,
+    limits: { maxIterations: 8, maxFailures: 2, maxElapsedMs: 30 * 60 * 1000 },
+  };
+
+  const result = handleGoalAgentEnd(runtime, { sendUserMessage() {} });
+
+  assert.equal(result.action, "blocked");
+  assert.equal(runtime.activeGoal.phase, "blocked");
+  assert.equal(runtime.activeGoal.failureCount, 2);
+  assert.match(runtime.activeGoal.latestReport?.blocker ?? "", /missing goal_report/i);
+});
+
+test("registerGoalLoop wires before_agent_start and agent_end handlers", async () => {
+  const handlers = new Map<string, Function>();
+  const runtime = createGoalCommandRuntime({ now: () => LATER });
+  runtime.activeGoal = runningGoal();
+  const pi = {
+    on(event: string, handler: Function) {
+      handlers.set(event, handler);
+    },
+    sendUserMessage() {},
+  };
+
+  registerGoalLoop(pi, runtime);
+
+  assert.equal(handlers.has("before_agent_start"), true);
+  assert.equal(handlers.has("agent_end"), true);
+  assert.equal(handlers.has("input"), true);
+  const beforeResult = await handlers.get("before_agent_start")!({ systemPrompt: "base" }, {});
+  assert.match(beforeResult.systemPrompt, /ACTIVE GOAL/);
+});
+
+test("registerGoalLoop accepts current runnable Goal Mode follow-up and advances expected iteration", async () => {
+  const handlers = new Map<string, Function>();
+  const runtime = createGoalCommandRuntime({ now: () => LATER });
+  runtime.activeGoal = runningGoal();
+  const pi = {
+    on(event: string, handler: Function) {
+      handlers.set(event, handler);
+    },
+    sendUserMessage() {},
+  };
+
+  registerGoalLoop(pi, runtime);
+
+  const result = await handlers.get("input")!({
+    source: "extension",
+    text: markGoalModeInternalMessage("Continue Goal Mode with one bounded iteration.", {
+      goalId: runtime.activeGoal.id,
+      runId: runtime.activeGoal.runId,
+      iterationId: runtime.activeGoal.nextIterationId,
+    }),
+  }, { ui: { notify() {} } });
+
+  assert.deepEqual(result, { action: "transform", text: "Continue Goal Mode with one bounded iteration." });
+  assert.equal(runtime.activeGoal.nextIterationId, 2);
+});
+
+test("registerGoalLoop blocks stale queued Goal Mode follow-ups after stop", async () => {
+  const handlers = new Map<string, Function>();
+  const notifications: string[] = [];
+  const runtime = createGoalCommandRuntime({ now: () => LATER });
+  runtime.activeGoal = { ...runningGoal(), phase: "cancelled" };
+  const pi = {
+    on(event: string, handler: Function) {
+      handlers.set(event, handler);
+    },
+    sendUserMessage() {},
+  };
+
+  registerGoalLoop(pi, runtime);
+
+  const result = await handlers.get("input")!({
+    source: "extension",
+    text: markGoalModeInternalMessage("Continue Goal Mode with one bounded iteration.", {
+      goalId: runtime.activeGoal.id,
+      runId: runtime.activeGoal.runId,
+      iterationId: runtime.activeGoal.nextIterationId,
+    }),
+  }, {
+    ui: {
+      notify(message: string) {
+        notifications.push(message);
+      },
+    },
+  });
+
+  assert.deepEqual(result, { action: "handled" });
+  assert.match(notifications.at(-1) ?? "", /discarded stale/i);
+});
+
+test("registerGoalLoop blocks token mismatched and paused Goal Mode follow-ups", async () => {
+  const handlers = new Map<string, Function>();
+  const notifications: string[] = [];
+  const runtime = createGoalCommandRuntime({ now: () => LATER });
+  runtime.activeGoal = runningGoal();
+  const pi = {
+    on(event: string, handler: Function) {
+      handlers.set(event, handler);
+    },
+    sendUserMessage() {},
+  };
+
+  registerGoalLoop(pi, runtime);
+
+  const wrongToken = await handlers.get("input")!({
+    source: "extension",
+    text: markGoalModeInternalMessage("Continue", {
+      goalId: runtime.activeGoal.id,
+      runId: "old_run",
+      iterationId: runtime.activeGoal.nextIterationId,
+    }),
+  }, { ui: { notify(message: string) { notifications.push(message); } } });
+
+  runtime.activeGoal = transitionGoalPhase(runtime.activeGoal, "paused", LATER);
+  const paused = await handlers.get("input")!({
+    source: "extension",
+    text: markGoalModeInternalMessage("Continue", {
+      goalId: runtime.activeGoal.id,
+      runId: runtime.activeGoal.runId,
+      iterationId: runtime.activeGoal.nextIterationId,
+    }),
+  }, { ui: { notify(message: string) { notifications.push(message); } } });
+
+  assert.deepEqual(wrongToken, { action: "handled" });
+  assert.deepEqual(paused, { action: "handled" });
+  assert.match(notifications.join("\n"), /discarded stale/i);
+});
