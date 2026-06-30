@@ -73,6 +73,37 @@ test("registerWebSearchDoctorCommand registers a user-facing diagnostics command
   assert.match(notifications[0]?.message ?? "", /Web Search doctor/);
 });
 
+test("registerWebSearchDoctorCommand uses the runtime command context for auth diagnosis", async () => {
+  const commands: Array<{ handler: (args: string, ctx: { mode?: string; modelRegistry: { getApiKeyAndHeaders(model: unknown): Promise<{ ok: boolean; apiKey?: string; headers?: Record<string, string> }> }; ui: { notify(message: string, level?: "info" | "error" | "warning"): void } }) => Promise<void> }> = [];
+  const notifications: string[] = [];
+
+  registerWebSearchDoctorCommand({
+    registerCommand(_name, command) {
+      commands.push({ handler: command.handler as (args: string, ctx: { mode?: string; modelRegistry: { getApiKeyAndHeaders(model: unknown): Promise<{ ok: boolean; apiKey?: string; headers?: Record<string, string> }> }; ui: { notify(message: string, level?: "info" | "error" | "warning"): void } }) => Promise<void> });
+    },
+  }, {
+    version: "0.test",
+    env: {},
+  });
+
+  await commands[0]!.handler("", {
+    modelRegistry: {
+      async getApiKeyAndHeaders() {
+        return { ok: true, apiKey: "runtime-secret", headers: {} };
+      },
+    },
+    ui: {
+      notify(message: string) {
+        notifications.push(message);
+      },
+    },
+  });
+
+  assert.equal(notifications.length, 1);
+  assert.match(notifications[0] ?? "", /Search auth: available/);
+  assert.doesNotMatch(notifications[0] ?? "", /runtime-secret/);
+});
+
 test("registerWebSearchDoctorCommand writes to stdout in print mode", async () => {
   const commands: Array<{ handler: (args: string, ctx: { mode?: string; ui: { notify(message: string, level?: "info" | "error" | "warning"): void } }) => Promise<void> }> = [];
   const output: string[] = [];

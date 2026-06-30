@@ -37,7 +37,7 @@ export function registerWebSearchDoctorCommand(pi: CommandRegistry, options: Doc
   pi.registerCommand("web-search-doctor", {
     description: "Diagnose Web Search extension setup and auth status.",
     async handler(_args, ctx) {
-      const report = await buildDoctorReport({ ...options, ctx: options.ctx });
+      const report = await buildDoctorReport({ ...options, ctx: options.ctx ?? (ctx as ExtensionContext) });
       if (ctx.mode === "print") {
         (options.writeOutput ?? console.log)(report);
         return;
