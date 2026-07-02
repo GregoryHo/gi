@@ -29,11 +29,42 @@ test("createGoalState initializes bounded active goal state", () => {
   assert.equal(goal.updatedAt, NOW.toISOString());
   assert.equal(goal.runId, "run_20260630_024033");
   assert.equal(goal.nextIterationId, 1);
+  assert.deepEqual(goal.sourcePlan, undefined);
   assert.deepEqual(goal.limits, DEFAULT_GOAL_LIMITS);
   assert.deepEqual(goal.approvals, {
     writesApproved: false,
     destructiveBashApproved: false,
   });
+});
+
+test("createGoalState preserves optional source plan as advisory context", () => {
+  const goal = createGoalState({
+    objective: "Complete current plan",
+    now: NOW,
+    sourcePlan: {
+      planId: "plan_1",
+      title: "Ship M3",
+      status: "approved",
+      steps: [
+        { step: 1, text: "Inspect plan", completed: true },
+        { step: 2, text: "Start goal" },
+      ],
+    },
+  });
+  const transitioned = transitionGoalPhase(goal, "running_iteration", LATER);
+
+  assert.deepEqual(goal.sourcePlan, {
+    planId: "plan_1",
+    title: "Ship M3",
+    status: "approved",
+    steps: [
+      { step: 1, text: "Inspect plan", completed: true },
+      { step: 2, text: "Start goal" },
+    ],
+  });
+  assert.deepEqual(transitioned.sourcePlan, goal.sourcePlan);
+  assert.notEqual(transitioned.sourcePlan, goal.sourcePlan);
+  assert.notEqual(transitioned.sourcePlan?.steps, goal.sourcePlan?.steps);
 });
 
 test("createGoalState rejects empty objectives", () => {

@@ -4,7 +4,7 @@ Pi extension package for bounded autonomous goal loops.
 
 ## Status
 
-M2 Goal Control Plane is implemented in the working tree.
+M3 Tool-based Plan → Goal Integration is implemented in the working tree.
 
 ## Product intent
 
@@ -17,6 +17,8 @@ plan -> act -> observe -> verify -> continue/block/done
 ```
 
 M2 separates the Goal Mode control plane from the agent turn lifecycle. Goal state, queued follow-ups, and current agent execution are controlled independently so pause/resume/cancel behavior is deterministic.
+
+M3 adds tool-based orchestration: Plan Mode can expose the current plan with `plan_get_current`, and Goal Mode can start bounded loops with `goal_start`. The model composes these tools only when the user's natural-language intent asks for Goal Mode execution.
 
 ## Commands
 
@@ -45,9 +47,18 @@ Each Goal Mode internal follow-up carries token metadata:
 
 The extension accepts queued follow-ups only when the token matches the current runnable goal. Stale follow-ups are discarded before reaching the LLM.
 
-## Tool
+## Tools
 
+- `goal_start` — LLM-callable bounded loop starter. Use only when the user explicitly asks for Goal Mode, bounded autonomous completion, or to use goal to complete work.
 - `goal_report` — LLM-callable structured progress report. Every goal iteration should end with this tool.
+
+When the user asks to use Goal Mode for the current plan, expected tool route is:
+
+```text
+plan_get_current -> goal_start -> goal_report loop
+```
+
+`goal_start` accepts optional `sourcePlan` context. Source plan step numbers/text are preserved, and `completed` markers are advisory only.
 
 `goal_report` records:
 
@@ -77,7 +88,7 @@ For paused goals, `goal_report` may record latest progress but does not resume o
 
 Goal mode owns bounded objective loops, iteration limits, verification policy, and stop/block decisions.
 
-It does not replace plan mode. Later milestones may consume explicit plan-mode artifacts, but goal mode must not reach into plan-mode private closure state.
+It does not replace plan mode. Goal Mode consumes explicit plan data passed to `goal_start`; it must not reach into Plan Mode private closure state. `plan_get_current` alone does not execute a plan or start Goal Mode.
 
 It does not replace agent-workers. Later milestones may delegate bounded subtasks to `agent_worker_*` tools only with explicit user intent and workspace context.
 

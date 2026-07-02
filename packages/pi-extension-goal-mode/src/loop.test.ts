@@ -30,6 +30,28 @@ test("formatActiveGoalContext injects compact goal loop instructions", () => {
   assert.match(context, /max iterations/i);
 });
 
+test("formatActiveGoalContext includes compact source plan context", () => {
+  const goal = runningGoal();
+  goal.sourcePlan = {
+    planId: "plan_1",
+    title: "Ship M3",
+    status: "approved",
+    steps: [
+      { step: 1, text: "Expose current plan", completed: true },
+      { step: 2, text: "Start goal" },
+    ],
+  };
+
+  const context = formatActiveGoalContext(goal);
+
+  assert.match(context, /\[SOURCE PLAN\]/);
+  assert.match(context, /id: plan_1/);
+  assert.match(context, /title: Ship M3/);
+  assert.match(context, /1\. \[advisory completed\] Expose current plan/);
+  assert.match(context, /2\. Start goal/);
+  assert.match(context, /advisory, not verification proof/i);
+});
+
 test("handleGoalAgentEnd continues after a continue report when limits allow", () => {
   const runtime = createGoalCommandRuntime({ now: () => LATER });
   const sentMessages: string[] = [];

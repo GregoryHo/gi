@@ -4,7 +4,7 @@ Scaffolded pi package for safe read-only planning before execution.
 
 ## Status
 
-M6 natural-language plan routing is implemented. The package provides read-only plan mode, captured `Plan:` steps, explicit execution handoff, marker-based progress, durable local plan artifacts, history/switching, complete/abandon flows, and compact active-plan routing context.
+M6 natural-language plan routing plus M3 Goal Mode integration support are implemented. The package provides read-only plan mode, captured `Plan:` steps, explicit execution handoff, marker-based progress, durable local plan artifacts, history/switching, complete/abandon flows, compact active-plan routing context, and a read-only `plan_get_current` tool for tool-based orchestration.
 
 ## Features
 
@@ -31,12 +31,22 @@ M6 natural-language plan routing is implemented. The package provides read-only 
 - Hidden context includes a compact `[ACTIVE PLAN]` summary when a plan is active.
 - Routing policy tells the LLM to distinguish refine-current, new objective, resume/switch, and ambiguous plan discussions.
 - New objectives must ask for confirmation via `/plan-new`; routing must not silently overwrite, switch, complete, or abandon plans.
+- `plan_get_current` exposes the current plan as compact read-only tool data for natural-language tool composition.
 
 ## Boundary
 
 Plan mode owns safe planning, captured plans, explicit main-session execution handoff, and marker-based progress display.
 
-It does not own goal/loop orchestration or worker delegation. Future goal mode may consume explicit plan artifacts and may delegate to `pi-extension-agent-workers`, but plan mode does not directly depend on or auto-call worker tools.
+It does not own goal/loop orchestration or worker delegation. Goal Mode may consume explicit plan data returned by `plan_get_current`, but Plan Mode does not directly depend on Goal Mode, does not auto-call `goal_start`, and does not auto-call worker tools.
+
+Example natural-language route when both extensions are loaded:
+
+```text
+User: Use goal to complete the current plan.
+Agent: plan_get_current -> goal_start -> goal_report loop
+```
+
+Asking to show or inspect the current plan should use `plan_get_current` only and must not start Goal Mode.
 
 ## Non-goals
 

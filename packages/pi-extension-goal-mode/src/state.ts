@@ -24,6 +24,19 @@ export interface GoalReport {
   blocker?: string;
 }
 
+export interface SourcePlanStep {
+  step: number;
+  text: string;
+  completed?: boolean;
+}
+
+export interface SourcePlan {
+  planId: string;
+  title: string;
+  status?: string;
+  steps: SourcePlanStep[];
+}
+
 export interface ActiveGoalState {
   id: string;
   objective: string;
@@ -37,6 +50,7 @@ export interface ActiveGoalState {
   nextIterationId: number;
   limits: GoalLimits;
   approvals: GoalApprovals;
+  sourcePlan?: SourcePlan;
   latestReport?: GoalReport;
 }
 
@@ -45,6 +59,7 @@ export interface CreateGoalStateOptions {
   now: Date;
   acceptanceCriteria?: string[];
   limits?: Partial<GoalLimits>;
+  sourcePlan?: SourcePlan;
 }
 
 export const DEFAULT_GOAL_LIMITS: GoalLimits = {
@@ -85,6 +100,7 @@ export function createGoalState(options: CreateGoalStateOptions): ActiveGoalStat
       writesApproved: false,
       destructiveBashApproved: false,
     },
+    sourcePlan: options.sourcePlan ? copySourcePlan(options.sourcePlan) : undefined,
   };
 }
 
@@ -102,6 +118,7 @@ export function transitionGoalPhase(goal: ActiveGoalState, nextPhase: GoalPhase,
     nextIterationId: goal.nextIterationId,
     limits: { ...goal.limits },
     approvals: { ...goal.approvals },
+    sourcePlan: goal.sourcePlan ? copySourcePlan(goal.sourcePlan) : undefined,
     latestReport: goal.latestReport ? copyGoalReport(goal.latestReport) : undefined,
     phase: nextPhase,
     updatedAt: now.toISOString(),
@@ -139,6 +156,7 @@ export function normalizeGoalStateForRestore(goal: ActiveGoalState | (Omit<Activ
     nextIterationId: goal.nextIterationId ?? 1,
     limits: { ...goal.limits },
     approvals: { ...goal.approvals },
+    sourcePlan: goal.sourcePlan ? copySourcePlan(goal.sourcePlan) : undefined,
     latestReport: goal.latestReport ? copyGoalReport(goal.latestReport) : undefined,
   };
 }
@@ -161,6 +179,13 @@ function slugify(text: string): string {
     .replace(/[^a-z0-9]+/g, "_")
     .replace(/^_+|_+$/g, "")
     .slice(0, 60);
+}
+
+function copySourcePlan(sourcePlan: SourcePlan): SourcePlan {
+  return {
+    ...sourcePlan,
+    steps: sourcePlan.steps.map((step) => ({ ...step })),
+  };
 }
 
 function copyGoalReport(report: GoalReport): GoalReport {

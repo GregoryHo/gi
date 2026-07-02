@@ -4,8 +4,8 @@
 
 - Package: `packages/pi-extension-goal-mode`
 - Package version: `0.0.0`
-- Status: M2 Goal Control Plane implemented and verified in the working tree.
-- Active milestone: M1 — bounded main-session goal loop.
+- Status: M3 Tool-based Plan → Goal Integration implemented and verified in the working tree.
+- Active milestone: M3 — Tool-based Plan → Goal Integration.
 
 ## Product summary
 
@@ -28,6 +28,8 @@ plan -> act -> observe -> verify -> continue/block/done
 - `roadmap.md` — broad product direction and milestone route.
 - `milestones.md` — active milestone tracker.
 - `m1-bounded-main-session-goal-loop.md` — initial runtime milestone plan.
+- `m2-goal-control-plane.md` — pause/resume/cancel and stale follow-up control plane.
+- `m3-tool-based-plan-goal-integration.md` — tool-based Plan Mode → Goal Mode orchestration.
 - `archive.md` — completed/superseded docs index.
 - `versions/README.md` — future versioned planning convention.
 - `log.md` — append-only product/change log.

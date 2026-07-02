@@ -64,6 +64,27 @@ test("registerGoalPersistenceAndUi restores latest goal state on session_start",
   assert.match(statuses.at(-1)?.value ?? "", /Restored goal/);
 });
 
+test("registerGoalPersistenceAndUi restores sourcePlan with goal state", async () => {
+  const { handlers, runtime, ctx } = createHarness();
+  const restored = createGoalState({
+    objective: "Restore sourced goal",
+    now: NOW,
+    sourcePlan: {
+      planId: "plan_1",
+      title: "Ship M3",
+      steps: [{ step: 1, text: "Expose plan" }],
+    },
+  });
+  ctx.sessionManager.getEntries = () => [
+    { type: "custom", customType: GOAL_STATE_ENTRY_TYPE, data: { activeGoal: restored } },
+  ];
+
+  await handlers.get("session_start")!({}, ctx);
+
+  assert.deepEqual(runtime.activeGoal?.sourcePlan, restored.sourcePlan);
+  assert.notEqual(runtime.activeGoal?.sourcePlan, restored.sourcePlan);
+});
+
 test("registerGoalPersistenceAndUi normalizes legacy stopped state to cancelled on restore", async () => {
   const { handlers, runtime, ctx } = createHarness();
   const legacyStopped = { ...createGoalState({ objective: "Legacy stopped", now: NOW }), phase: "stopped" };

@@ -62,9 +62,29 @@ export function formatActiveGoalContext(goal: ActiveGoalState): string {
     `max failures: ${goal.limits.maxFailures}`,
     `max elapsed ms: ${goal.limits.maxElapsedMs}`,
     goal.acceptanceCriteria.length > 0 ? `acceptance criteria: ${goal.acceptanceCriteria.join("; ")}` : "acceptance criteria: not specified",
+    ...formatSourcePlanContext(goal),
     "Loop contract: work on one bounded iteration, verify with concrete evidence, then call goal_report.",
     "goal_report status must be continue, blocked, or done. Do not claim done without verification evidence.",
   ].join("\n");
+}
+
+function formatSourcePlanContext(goal: ActiveGoalState): string[] {
+  if (!goal.sourcePlan) return [];
+  const steps = goal.sourcePlan.steps.slice(0, 8).map((step) => {
+    const prefix = step.completed ? "[advisory completed] " : "";
+    return `${step.step}. ${prefix}${step.text}`;
+  });
+  const remainingCount = goal.sourcePlan.steps.length - steps.length;
+  return [
+    "[SOURCE PLAN]",
+    `id: ${goal.sourcePlan.planId}`,
+    `title: ${goal.sourcePlan.title}`,
+    ...(goal.sourcePlan.status ? [`status: ${goal.sourcePlan.status}`] : []),
+    "steps:",
+    ...steps,
+    ...(remainingCount > 0 ? [`... ${remainingCount} more step(s)`] : []),
+    "Plan completed markers are advisory, not verification proof. Verify concrete results before reporting done.",
+  ];
 }
 
 export function handleGoalAgentEnd(runtime: GoalCommandRuntime, sender: GoalLoopSender): GoalLoopResult {

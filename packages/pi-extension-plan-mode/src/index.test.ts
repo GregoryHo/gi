@@ -162,6 +162,62 @@ test("plan-current shows latest captured plan with artifact metadata", async () 
   assert.match(message, /1\. Inspect code/);
 });
 
+test("plan_get_current guidelines describe read-only plan-to-goal routing", async () => {
+  const harness = await createHarness({ activeTools: ["read", "edit", "write"] });
+
+  planModeExtension(harness.pi as never);
+  const tool = harness.tools.get("plan_get_current");
+
+  assert.match(tool?.promptSnippet ?? "", /without changing plan state/i);
+  assert.match(tool?.promptGuidelines?.join("\n") ?? "", /does not execute/i);
+  assert.match(tool?.promptGuidelines?.join("\n") ?? "", /goal_start/i);
+});
+
+test("plan_get_current returns found false without a current plan", async () => {
+  const harness = await createHarness({ activeTools: ["read", "edit", "write"] });
+
+  planModeExtension(harness.pi as never);
+  const result = await harness.tools.get("plan_get_current")?.execute("call_1", {}, undefined, undefined, harness.ctx);
+
+  assert.equal(result.details.found, false);
+  assert.match(result.content[0].text, /No current plan/i);
+});
+
+test("plan_get_current returns compact current artifact data without internals", async () => {
+  const harness = await createHarness({ activeTools: ["read", "edit", "write"], selectResults: ["Stay in plan mode"] });
+
+  planModeExtension(harness.pi as never);
+  await harness.commands.get("plan")?.handler("", harness.ctx);
+  await harness.event("agent_end")({ messages: [assistantMessage("Plan:\n1. Inspect code\n2. Write tests")] }, harness.ctx);
+  const result = await harness.tools.get("plan_get_current")?.execute("call_1", {}, undefined, undefined, harness.ctx);
+
+  assert.equal(result.details.found, true);
+  assert.match(result.details.planId, /^plan_/);
+  assert.equal(result.details.title, "Inspect code");
+  assert.equal(result.details.status, "draft");
+  assert.equal(result.details.cwd, "/repo");
+  assert.deepEqual(result.details.steps, [
+    { step: 1, text: "Inspect code" },
+    { step: 2, text: "Write tests" },
+  ]);
+  assert.equal("artifactPath" in result.details, false);
+  assert.equal("session" in result.details, false);
+});
+
+test("plan_get_current does not mutate current artifact", async () => {
+  const harness = await createHarness({ activeTools: ["read", "edit", "write"], selectResults: ["Stay in plan mode"] });
+
+  planModeExtension(harness.pi as never);
+  await harness.commands.get("plan")?.handler("", harness.ctx);
+  await harness.event("agent_end")({ messages: [assistantMessage("Plan:\n1. Inspect code")] }, harness.ctx);
+  const before = await readFile(join(harness.artifactRoot, "current.json"), "utf8");
+
+  await harness.tools.get("plan_get_current")?.execute("call_1", {}, undefined, undefined, harness.ctx);
+  const after = await readFile(join(harness.artifactRoot, "current.json"), "utf8");
+
+  assert.equal(after, before);
+});
+
 test("plan-execute without a captured plan reports no plan", async () => {
   const harness = await createHarness({ activeTools: ["read", "edit", "write"] });
 
@@ -395,6 +451,12 @@ interface FakeCommand {
   handler: (args: string, ctx: FakeContext) => Promise<void> | void;
 }
 
+interface FakeTool {
+  promptSnippet?: string;
+  promptGuidelines?: string[];
+  execute: (toolCallId: string, params: any, signal?: AbortSignal, onUpdate?: unknown, ctx?: FakeContext) => Promise<any> | any;
+}
+
 interface FakeContext {
   cwd: string;
   hasUI: boolean;
@@ -424,6 +486,7 @@ async function createHarness(options: HarnessOptions): Promise<{
   pi: object;
   ctx: FakeContext;
   commands: Map<string, FakeCommand>;
+  tools: Map<string, FakeTool>;
   status: Record<string, string | undefined>;
   notifications: Array<{ message: string; level?: string }>;
   widgets: Record<string, string[] | undefined>;
@@ -435,6 +498,7 @@ async function createHarness(options: HarnessOptions): Promise<{
   event: (name: string) => (...args: any[]) => Promise<any> | any;
 }> {
   const commands = new Map<string, FakeCommand>();
+  const tools = new Map<string, FakeTool>();
   const events = new Map<string, Array<(...args: any[]) => Promise<any> | any>>();
   const status: Record<string, string | undefined> = {};
   const notifications: Array<{ message: string; level?: string }> = [];
@@ -458,6 +522,9 @@ async function createHarness(options: HarnessOptions): Promise<{
     registerFlag() {},
     registerCommand(name: string, command: FakeCommand) {
       commands.set(name, command);
+    },
+    registerTool(tool: FakeTool & { name: string }) {
+      tools.set(tool.name, tool);
     },
     on(name: string, handler: (...args: any[]) => Promise<any> | any) {
       events.set(name, [...(events.get(name) ?? []), handler]);
@@ -507,6 +574,7 @@ async function createHarness(options: HarnessOptions): Promise<{
     pi,
     ctx,
     commands,
+    tools,
     status,
     notifications,
     widgets,

@@ -45,14 +45,18 @@ After M1 acceptance, clarify loop-control semantics before adding integrations:
 
 Plan: `m2-goal-control-plane.md`.
 
-### M3 — Plan artifact consumption
+### M3 — Tool-based Plan → Goal Integration
 
 After control-plane semantics are stable:
 
-- Explicitly start goals from plan-mode artifacts.
-- Preserve plan step text and numbering.
+- Expose current Plan Mode artifacts through read-only tools.
+- Start Goal Mode loops through explicit goal tools, not command coupling.
+- Let the model compose `plan_get_current -> goal_start` only when user intent asks for Goal Mode execution.
+- Preserve plan step text and numbering as source context.
 - Treat plan completion markers as advisory, not verification proof.
 - Track goal-specific acceptance and verification state separately.
+
+Plan: `m3-tool-based-plan-goal-integration.md`.
 
 ### M4 — Worker-assisted goal loops
 

@@ -1,4 +1,5 @@
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import { Type } from "typebox";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
@@ -14,6 +15,7 @@ import {
   getNextSessionPlanNumber,
   getPlanModeProjectDir,
   listPlanIndexEntries,
+  readCurrentPlanPointer,
   readPlanArtifact,
   writeCurrentPlanPointer,
   writePlanArtifact,
@@ -191,6 +193,27 @@ export default function planModeExtension(pi: ExtensionAPI): void {
   pi.registerCommand("plan-new", {
     description: "Start a new active plan flow",
     handler: async (_args, ctx) => startNewPlanFlow(ctx),
+  });
+
+  pi.registerTool({
+    name: "plan_get_current",
+    label: "Get Current Plan",
+    description: "Return the current Plan Mode artifact as compact read-only data. Does not execute the plan or start Goal Mode.",
+    promptSnippet: "Read the current Plan Mode plan artifact without changing plan state",
+    promptGuidelines: [
+      "Use plan_get_current when the user asks to inspect, show, or use the current plan as data.",
+      "Calling plan_get_current does not execute the plan and must not imply Goal Mode should start.",
+      "If the user explicitly asks to use Goal Mode to complete the current plan, call plan_get_current first, then pass the returned plan data to goal_start.",
+    ],
+    parameters: Type.Object({}),
+    async execute(_toolCallId, _params, _signal, _onUpdate, ctx) {
+      const artifact = await getCurrentPlanForTool(ctx);
+      if (!artifact) {
+        return toolResult("No current plan found.", { found: false });
+      }
+      const details = compactPlanToolDetails(artifact);
+      return toolResult(`Current plan: ${artifact.title} (${artifact.status}).`, details);
+    },
   });
 
   pi.on("session_start", async (_event, ctx) => {
@@ -432,10 +455,42 @@ export default function planModeExtension(pi: ExtensionAPI): void {
     return activeArtifact;
   }
 
+  async function getCurrentPlanForTool(ctx: ExtensionContext): Promise<PlanArtifactV1 | undefined> {
+    const root = getArtifactRoot(ctx);
+    const pointer = await readCurrentPlanPointer(root);
+    if (pointer.activePlanId) {
+      const artifact = await readPlanArtifact(root, pointer.activePlanId);
+      if (artifact) return artifact;
+    }
+    return getActiveArtifact(ctx);
+  }
+
   async function saveActiveArtifact(ctx: ExtensionContext, artifact: PlanArtifactV1): Promise<void> {
     await writePlanArtifact(getArtifactRoot(ctx), artifact);
     await writeCurrentPlanPointer(getArtifactRoot(ctx), { activePlanId: artifact.id });
   }
+}
+
+function compactPlanToolDetails(artifact: PlanArtifactV1): Record<string, unknown> {
+  return {
+    found: true,
+    planId: artifact.id,
+    title: artifact.title,
+    status: artifact.status,
+    cwd: artifact.cwd,
+    steps: artifact.steps.map((step) => ({
+      step: step.step,
+      text: step.text,
+      ...(step.completed === undefined ? {} : { completed: step.completed }),
+    })),
+  };
+}
+
+function toolResult(text: string, details: Record<string, unknown>) {
+  return {
+    content: [{ type: "text" as const, text }],
+    details,
+  };
 }
 
 function buildExecutionPrompt(plan: CapturedPlan): string {
