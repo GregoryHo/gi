@@ -99,8 +99,9 @@ export function handleGoalAgentEnd(runtime: GoalCommandRuntime, sender: GoalLoop
     runtime.activeIteration = undefined;
     return { action: "none", reason: "not_runnable" };
   }
-  if (!runtime.activeIteration) return { action: "none", reason: "no_active_iteration" };
-  if (!isCurrentActiveGoalIteration(goal, runtime.activeIteration)) {
+  const hasDirectReport = goal.phase === "verifying" && !!goal.latestReport;
+  if (!runtime.activeIteration && !hasDirectReport) return { action: "none", reason: "no_active_iteration" };
+  if (runtime.activeIteration && !isCurrentActiveGoalIteration(goal, runtime.activeIteration)) {
     runtime.activeIteration = undefined;
     return { action: "none", reason: "stale_active_iteration" };
   }

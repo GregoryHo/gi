@@ -49,6 +49,19 @@ test("formatGoalStatusLine renders compact footer status", () => {
   assert.match(formatGoalStatusLine(goal), /0\/8/);
 });
 
+test("formatGoalStatusLine truncates long objectives for the footer", () => {
+  const goal = transitionGoalPhase(createGoalState({
+		objective: "Complete the current plan: manually test Plan Mode and Goal Mode interaction scenarios in an isolated disposable fixture, then roll back any test changes.",
+		now: NOW,
+  }), "running_iteration", NOW);
+
+  const status = formatGoalStatusLine(goal);
+
+  assert.equal(status.length <= 96, true);
+  assert.match(status, /…$/);
+  assert.doesNotMatch(status, /then roll back any test changes/);
+});
+
 test("registerGoalPersistenceAndUi restores latest goal state on session_start", async () => {
   const { handlers, runtime, statuses, ctx } = createHarness();
   const restored = createGoalState({ objective: "Restored goal", now: NOW });
@@ -95,6 +108,29 @@ test("registerGoalPersistenceAndUi normalizes legacy stopped state to cancelled 
   await handlers.get("session_start")!({}, ctx);
 
   assert.equal(runtime.activeGoal?.phase, "cancelled");
+});
+
+test("registerGoalPersistenceAndUi settles restored verifying done reports and clears status", async () => {
+  const { handlers, runtime, statuses, ctx } = createHarness();
+  const restored = {
+		...transitionGoalPhase(createGoalState({ objective: "Finished goal", now: NOW }), "running_iteration", NOW),
+		phase: "verifying" as const,
+		latestReport: {
+			status: "done" as const,
+			summary: "Finished",
+			verification: ["tests passed"],
+			completedCriteria: ["all done"],
+			remainingCriteria: [],
+		},
+  };
+  ctx.sessionManager.getEntries = () => [
+		{ type: "custom", customType: GOAL_STATE_ENTRY_TYPE, data: { activeGoal: restored } },
+  ];
+
+  await handlers.get("session_start")!({}, ctx);
+
+  assert.equal(runtime.activeGoal?.phase, "done");
+  assert.deepEqual(statuses.at(-1), { key: "goal-mode", value: undefined });
 });
 
 test("runtime onChange persists active goal and updates status", async () => {

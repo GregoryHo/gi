@@ -134,6 +134,26 @@ test("handleGoalAgentEnd ignores ordinary turns without an active Goal Mode iter
   assert.equal(runtime.activeGoal.latestReport, undefined);
 });
 
+test("handleGoalAgentEnd finalizes reported verifying goals without an active iteration", () => {
+  const runtime = createGoalCommandRuntime({ now: () => LATER });
+  runtime.activeGoal = {
+		...transitionGoalPhase(runningGoal(), "verifying", LATER),
+		latestReport: {
+			status: "done",
+			summary: "Fixture deleted",
+			verification: ["rollback command reported success"],
+			completedCriteria: ["rolled back"],
+			remainingCriteria: [],
+		},
+  };
+
+  const result = handleGoalAgentEnd(runtime, { sendUserMessage() {} });
+
+  assert.equal(result.action, "done");
+  assert.equal(runtime.activeGoal.phase, "done");
+  assert.equal(runtime.activeIteration, undefined);
+});
+
 test("handleGoalAgentEnd blocks done reports that have no verification evidence", () => {
   const runtime = createGoalCommandRuntime({ now: () => LATER });
   const sentMessages: string[] = [];
