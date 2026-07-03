@@ -29,10 +29,12 @@ export function registerGoalLoop(pi: GoalLoopAPI, runtime: GoalCommandRuntime): 
       ctx.ui?.notify?.("Discarded stale Goal Mode follow-up because no runnable matching goal is active.", "info");
       return { action: "handled" };
     }
+    const acceptedGoal = goal.phase === "planning" ? transitionGoalPhase(goal, "running_iteration", runtime.now()) : goal;
     runtime.activeGoal = {
-      ...goal,
+      ...acceptedGoal,
       nextIterationId: goal.nextIterationId + 1,
     };
+    runtime.activeIteration = { ...internalMessage.metadata };
     notifyGoalChanged(runtime);
     return { action: "transform", text: internalMessage.text };
   });
@@ -89,8 +91,20 @@ function formatSourcePlanContext(goal: ActiveGoalState): string[] {
 
 export function handleGoalAgentEnd(runtime: GoalCommandRuntime, sender: GoalLoopSender): GoalLoopResult {
   const goal = runtime.activeGoal;
-  if (!goal || isTerminalGoalPhase(goal.phase)) return { action: "none", reason: "no_active_goal" };
-  if (!isRunnableGoalPhase(goal.phase)) return { action: "none", reason: "not_runnable" };
+  if (!goal || isTerminalGoalPhase(goal.phase)) {
+    runtime.activeIteration = undefined;
+    return { action: "none", reason: "no_active_goal" };
+  }
+  if (!isRunnableGoalPhase(goal.phase)) {
+    runtime.activeIteration = undefined;
+    return { action: "none", reason: "not_runnable" };
+  }
+  if (!runtime.activeIteration) return { action: "none", reason: "no_active_iteration" };
+  if (!isCurrentActiveGoalIteration(goal, runtime.activeIteration)) {
+    runtime.activeIteration = undefined;
+    return { action: "none", reason: "stale_active_iteration" };
+  }
+  runtime.activeIteration = undefined;
 
   if (!goal.latestReport) {
     runtime.activeGoal = recordMissingReport(goal, runtime.now());
@@ -152,6 +166,10 @@ export function handleGoalAgentEnd(runtime: GoalCommandRuntime, sender: GoalLoop
 
 function isCurrentGoalFollowUp(goal: ActiveGoalState, metadata: { goalId: string; runId: string; iterationId: number }): boolean {
   return metadata.goalId === goal.id && metadata.runId === goal.runId && metadata.iterationId === goal.nextIterationId;
+}
+
+function isCurrentActiveGoalIteration(goal: ActiveGoalState, metadata: { goalId: string; runId: string; iterationId: number }): boolean {
+  return metadata.goalId === goal.id && metadata.runId === goal.runId;
 }
 
 function recordMissingReport(goal: ActiveGoalState, now: Date): ActiveGoalState {

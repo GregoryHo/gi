@@ -1,4 +1,4 @@
-import { markGoalModeInternalMessage } from "./messages.ts";
+import { markGoalModeInternalMessage, type GoalModeInternalMessageMetadata } from "./messages.ts";
 import type { ActiveGoalState } from "./state.ts";
 import { createGoalState, isResumableGoalPhase, isRunnableGoalPhase, isTerminalGoalPhase, renewGoalRun, transitionGoalPhase } from "./state.ts";
 
@@ -22,6 +22,7 @@ interface GoalCommandContext {
 
 export interface GoalCommandRuntime {
   activeGoal?: ActiveGoalState;
+  activeIteration?: GoalModeInternalMessageMetadata;
   now(): Date;
   onChange?(): void;
 }
