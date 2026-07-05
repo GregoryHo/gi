@@ -162,15 +162,63 @@ test("plan-current shows latest captured plan with artifact metadata", async () 
   assert.match(message, /1\. Inspect code/);
 });
 
-test("plan_get_current guidelines describe read-only plan-to-goal routing", async () => {
+test("plan_get_current guidelines are read-only and extension-independent", async () => {
   const harness = await createHarness({ activeTools: ["read", "edit", "write"] });
 
   planModeExtension(harness.pi as never);
   const tool = harness.tools.get("plan_get_current");
+  const guidelines = tool?.promptGuidelines?.join("\n") ?? "";
 
   assert.match(tool?.promptSnippet ?? "", /without changing plan state/i);
-  assert.match(tool?.promptGuidelines?.join("\n") ?? "", /does not execute/i);
-  assert.match(tool?.promptGuidelines?.join("\n") ?? "", /goal_start/i);
+  assert.match(guidelines, /does not execute/i);
+  assert.doesNotMatch(guidelines, /goal_start|Goal Mode/i);
+});
+
+test("plan_control guidelines describe only Plan Mode control", async () => {
+  const harness = await createHarness({ activeTools: ["read", "edit", "write"] });
+
+  planModeExtension(harness.pi as never);
+  const tool = harness.tools.get("plan_control");
+  const guidelines = tool?.promptGuidelines?.join("\n") ?? "";
+
+  assert.match(guidelines, /enable or disable Plan Mode/i);
+  assert.match(guidelines, /does not execute plans/i);
+  assert.doesNotMatch(guidelines, /goal_start|Goal Mode/i);
+});
+
+test("plan_control enables and disables Plan Mode without starting execution", async () => {
+  const harness = await createHarness({ activeTools: ["read", "edit", "write"] });
+
+  planModeExtension(harness.pi as never);
+  const enableResult = await harness.tools.get("plan_control")?.execute("call_1", { action: "enable" }, undefined, undefined, harness.ctx);
+  const disabledTools = harness.activeTools;
+  const disableResult = await harness.tools.get("plan_control")?.execute("call_2", { action: "disable" }, undefined, undefined, harness.ctx);
+
+  assert.equal(enableResult.details.accepted, true);
+  assert.equal(enableResult.details.enabled, true);
+  assert.equal(harness.status["plan-mode"], undefined);
+  assert.equal(disableResult.details.accepted, true);
+  assert.equal(disableResult.details.enabled, false);
+  assert.deepEqual(disabledTools.includes("edit"), false);
+  assert.deepEqual(harness.activeTools, ["read", "edit", "write"]);
+  assert.deepEqual(harness.sentUserMessages, []);
+});
+
+test("plan_control disable removes Plan Mode bash gate without mutating plan artifact", async () => {
+  const harness = await createHarness({ activeTools: ["read", "edit", "write"], selectResults: ["Stay in plan mode"] });
+
+  planModeExtension(harness.pi as never);
+  await harness.commands.get("plan")?.handler("", harness.ctx);
+  await harness.event("agent_end")({ messages: [assistantMessage("Plan:\n1. Inspect code")] }, harness.ctx);
+  const before = await readFile(join(harness.artifactRoot, "current.json"), "utf8");
+
+  await harness.tools.get("plan_control")?.execute("call_1", { action: "disable" }, undefined, undefined, harness.ctx);
+  const bashAfterDisable = await harness.event("tool_call")({ toolName: "bash", input: { command: "npm test -w @gregho/pi-extension-goal-mode" } });
+  const after = await readFile(join(harness.artifactRoot, "current.json"), "utf8");
+
+  assert.equal(bashAfterDisable, undefined);
+  assert.equal(after, before);
+  assert.deepEqual(harness.sentUserMessages, []);
 });
 
 test("plan_get_current returns found false without a current plan", async () => {

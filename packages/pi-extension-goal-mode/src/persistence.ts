@@ -1,6 +1,7 @@
 import type { GoalCommandRuntime } from "./commands.ts";
 import type { ActiveGoalState } from "./state.ts";
-import { isTerminalGoalPhase, normalizeGoalStateForRestore } from "./state.ts";
+import { isTerminalGoalPhase, normalizeGoalStateForRestore, transitionGoalPhase } from "./state.ts";
+import { buildMissingVerificationBlocker, isGoalReportAcceptableForDone } from "./verification.ts";
 
 export const GOAL_STATE_ENTRY_TYPE = "goal-mode-state";
 
@@ -43,13 +44,34 @@ export function registerGoalPersistenceAndUi(pi: GoalPersistenceAPI, runtime: Go
 export function restoreLatestGoalState(entries: readonly unknown[]): ActiveGoalState | undefined {
   for (const entry of [...entries].reverse()) {
     if (!isGoalStateEntry(entry)) continue;
-    return normalizeGoalStateForRestore(entry.data.activeGoal);
+		return settleRestoredGoalState(normalizeGoalStateForRestore(entry.data.activeGoal));
   }
   return undefined;
 }
 
 export function formatGoalStatusLine(goal: ActiveGoalState): string {
-  return `goal: ${goal.phase} ${goal.iterationCount}/${goal.limits.maxIterations} ${goal.objective}`;
+  return `goal: ${goal.phase} ${goal.iterationCount}/${goal.limits.maxIterations} ${truncateObjective(goal.objective)}`;
+}
+
+function settleRestoredGoalState(goal: ActiveGoalState): ActiveGoalState {
+  if (goal.phase !== "verifying" || !goal.latestReport) return goal;
+  const now = new Date(goal.updatedAt);
+  if (goal.latestReport.status === "blocked") return transitionGoalPhase(goal, "blocked", now);
+  if (goal.latestReport.status !== "done") return goal;
+  if (isGoalReportAcceptableForDone(goal.latestReport)) return transitionGoalPhase(goal, "done", now);
+  return {
+		...transitionGoalPhase(goal, "blocked", now),
+		latestReport: {
+			...goal.latestReport,
+			status: "blocked",
+			blocker: buildMissingVerificationBlocker(),
+		},
+  };
+}
+
+function truncateObjective(objective: string): string {
+  const maxLength = 64;
+  return objective.length <= maxLength ? objective : `${objective.slice(0, maxLength - 1)}…`;
 }
 
 function isGoalStateEntry(entry: unknown): entry is { type: "custom"; customType: typeof GOAL_STATE_ENTRY_TYPE; data: { activeGoal: ActiveGoalState } } {

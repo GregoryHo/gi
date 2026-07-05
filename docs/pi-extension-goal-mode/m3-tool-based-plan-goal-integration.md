@@ -26,7 +26,7 @@ plan_get_current -> goal_start -> goal_report loop
 - Goal Mode must not silently inspect Plan Mode private closure state.
 - Worker integration remains out of scope.
 
-### Plan Mode tool
+### Plan Mode tools
 
 Add `plan_get_current` as a read-only tool.
 

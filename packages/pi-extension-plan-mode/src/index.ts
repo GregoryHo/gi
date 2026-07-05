@@ -196,14 +196,40 @@ export default function planModeExtension(pi: ExtensionAPI): void {
   });
 
   pi.registerTool({
+    name: "plan_control",
+    label: "Control Plan Mode",
+    description: "Enable or disable Plan Mode read-only gates. Does not execute plans or start other extensions.",
+    promptSnippet: "Control Plan Mode itself when the user asks to enable or disable planning gates",
+    promptGuidelines: [
+      "Use plan_control when the user explicitly asks to enable or disable Plan Mode.",
+      "Do not use plan_control when the user only asks to inspect or show the current plan.",
+      "plan_control does not execute plans, start goals, or delegate work; it only controls Plan Mode's own read-only gate.",
+    ],
+    parameters: Type.Object({
+      action: Type.String({ description: "One of: enable, disable." }),
+    }),
+    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+      const action = normalizePlanControlAction((params as { action?: unknown }).action);
+      if (action === "enable") enablePlanMode();
+      else disablePlanMode();
+      updateStatus(ctx);
+      persistState();
+      return toolResult(`Plan Mode ${action === "enable" ? "enabled" : "disabled"}.`, {
+        accepted: true,
+        enabled: planModeEnabled,
+      });
+    },
+  });
+
+  pi.registerTool({
     name: "plan_get_current",
     label: "Get Current Plan",
     description: "Return the current Plan Mode artifact as compact read-only data. Does not execute the plan or start Goal Mode.",
     promptSnippet: "Read the current Plan Mode plan artifact without changing plan state",
     promptGuidelines: [
       "Use plan_get_current when the user asks to inspect, show, or use the current plan as data.",
-      "Calling plan_get_current does not execute the plan and must not imply Goal Mode should start.",
-      "If the user explicitly asks to use Goal Mode to complete the current plan, call plan_get_current first, then pass the returned plan data to goal_start.",
+      "Calling plan_get_current does not execute the plan or change any plan state.",
+      "Do not use plan_get_current as permission to execute work; it only returns compact plan data.",
     ],
     parameters: Type.Object({}),
     async execute(_toolCallId, _params, _signal, _onUpdate, ctx) {
@@ -215,6 +241,7 @@ export default function planModeExtension(pi: ExtensionAPI): void {
       return toolResult(`Current plan: ${artifact.title} (${artifact.status}).`, details);
     },
   });
+
 
   pi.on("session_start", async (_event, ctx) => {
     const restored = getLastPlanModeState(ctx.sessionManager.getEntries());
@@ -484,6 +511,11 @@ function compactPlanToolDetails(artifact: PlanArtifactV1): Record<string, unknow
       ...(step.completed === undefined ? {} : { completed: step.completed }),
     })),
   };
+}
+
+function normalizePlanControlAction(value: unknown): "enable" | "disable" {
+  if (value === "enable" || value === "disable") return value;
+  throw new Error("plan_control action must be one of: enable, disable.");
 }
 
 function toolResult(text: string, details: Record<string, unknown>) {
