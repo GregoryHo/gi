@@ -4,8 +4,8 @@
 
 - Package: `packages/pi-extension-goal-mode`
 - Package version: `0.0.0`
-- Status: M3 Tool-based Plan → Goal Integration implemented and verified in the working tree.
-- Active milestone: M3 — Tool-based Plan → Goal Integration.
+- Status: M3 Tool-based Plan → Goal Integration implemented and verified; M4 Worker-assisted goal loops is planned for the next implementation slice.
+- Active milestone: M4 — Worker-assisted goal loops (planned; implementation not started).
 
 ## Product summary
 
@@ -30,6 +30,7 @@ plan -> act -> observe -> verify -> continue/block/done
 - `m1-bounded-main-session-goal-loop.md` — initial runtime milestone plan.
 - `m2-goal-control-plane.md` — pause/resume/cancel and stale follow-up control plane.
 - `m3-tool-based-plan-goal-integration.md` — tool-based Plan Mode → Goal Mode orchestration.
+- `m4-worker-assisted-goal-loops.md` — planned worker-assisted Goal Mode loops through Agent Workers tools.
 - `archive.md` — completed/superseded docs index.
 - `versions/README.md` — future versioned planning convention.
 - `log.md` — append-only product/change log.

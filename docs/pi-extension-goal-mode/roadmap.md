@@ -67,6 +67,8 @@ After main-session loops and plan-artifact consumption are stable:
 - Consume worker output as compact evidence, not raw logs.
 - Do not bypass `agent-workers` confirmation or workspace collision rules.
 
+Plan: `m4-worker-assisted-goal-loops.md`.
+
 ### M5 — Pi-native child-agent backend exploration
 
 Future optional work:

@@ -15,3 +15,7 @@
 - M3 implementation added `plan_get_current`, `goal_start`, optional `sourcePlan` state, compact source-plan goal context, and tool guidelines for `plan_get_current -> goal_start` orchestration without automatic command coupling.
 - M3.1 fix removed the incorrect cross-extension handoff direction from docs/code to preserve independent extension boundaries. Accepted initial Goal Mode follow-ups still move from `planning` to `running_iteration` for accurate TUI status.
 - M3 verification passed: `npm test --workspace @gregho/pi-extension-plan-mode` (55/55 tests); `npm run typecheck --workspace @gregho/pi-extension-plan-mode`; `npm run pack:dry-run --workspace @gregho/pi-extension-plan-mode`; `npm test --workspace @gregho/pi-extension-goal-mode` (55/55 tests); `npm run typecheck --workspace @gregho/pi-extension-goal-mode`; `npm run pack:dry-run --workspace @gregho/pi-extension-goal-mode`; `npm run typecheck`.
+
+## 2026-07-06
+
+- M4 planning drafted on branch `feat/goal-worker-assisted-loops`. Decision: worker-assisted goal loops should remain tool-based and package-independent; Goal Mode may carry an explicit worker delegation policy, but Agent Workers continues to own worker execution, confirmation, workspace preflight, concurrency, and summaries.
