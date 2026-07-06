@@ -11,7 +11,7 @@ M7 natural Plan Mode tool flow plus M3 Goal Mode integration support are impleme
 - `/plan` toggles read-only plan mode.
 - `--plan` starts with plan mode active.
 - Built-in `edit` and `write` tools are disabled while planning.
-- `bash` is restricted to conservative read-only inspection commands while planning.
+- `bash` is restricted to conservative read-only inspection commands while planning, including safe read-only `&&`/`;` command chains.
 - Hidden plan-mode instructions are injected before agent turns.
 - The TUI footer shows a compact plan-mode status.
 - Session custom entries restore mode state after reload/resume.

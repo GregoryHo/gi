@@ -32,3 +32,8 @@
 
 - M7 implementation started after Plan Mode UX feedback. Scope is natural plan recording through a safe `plan_record` tool so users do not need to manually invoke `/plan-new` for ordinary new planning requests. Existing `/plan-new` remains a manual fallback, and active plans still require explicit disposition before replacement.
 - M7 implementation completed with `plan_record`, safe active-plan disposition handling, natural routing guidance, completed-plan context filtering, README updates, and temp smoke verification. Verification passed: `npm test --workspace @gregho/pi-extension-plan-mode` (63/63 tests); `npm run typecheck --workspace @gregho/pi-extension-plan-mode`; `npm run typecheck`; temp smoke in `/tmp/pi-plan-natural-flow-smoke` confirmed `plan_control -> plan_record`, `plan_get_current` returned `found:true`, and rollback deleted the fixture.
+
+## 2026-07-06
+
+- Fixed Plan Mode read-only bash allowlist after UX feedback: safe read-only `&&`/`;` chains now pass only when every segment is allowlisted, and `git branch` is limited to no-arg listing or `--show-current` so branch creation remains blocked.
+- Regression verification passed: `npm test --workspace @gregho/pi-extension-plan-mode` (64/64 tests); `npm run typecheck --workspace @gregho/pi-extension-plan-mode`; `npm run pack:dry-run --workspace @gregho/pi-extension-plan-mode`; `npm run typecheck`.
