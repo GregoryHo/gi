@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Fixed Plan Mode bash gating to allow safe read-only command chains such as `git status --short --branch && git branch --show-current`, while blocking branch-creation commands.
 - Added read-only `plan_get_current` tool for tool-based Plan Mode → Goal Mode orchestration without command coupling or automatic execution.
 
 ## 0.1.0 - 2026-06-29

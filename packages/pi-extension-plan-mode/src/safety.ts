@@ -14,11 +14,13 @@ const DANGEROUS_PATTERNS = [
   />>/,
 ];
 
-const AMBIGUOUS_SHELL_OPERATORS = [/;/, /&&/, /\|\|/, /\|/];
+const UNSUPPORTED_SHELL_OPERATORS = [/\|\|/, /\|/];
+const SAFE_CHAIN_SEPARATOR = /(?:&&|;)/;
 
 const READ_ONLY_PATTERNS = [
   /^\s*(pwd|ls|cat|head|tail|less|more|grep|rg|find|fd|wc|sort|uniq|diff|file|stat|du|df|tree|which|whereis|type|env|printenv|uname|whoami|id|date|ps)\b/i,
-  /^\s*git\s+(status|log|diff|show|branch|remote)(\s|$)/i,
+  /^\s*git\s+(status|log|diff|show|remote)(\s|$)/i,
+  /^\s*git\s+branch\s*(--show-current)?\s*$/i,
   /^\s*git\s+config\s+--get\b/i,
   /^\s*git\s+ls-/i,
   /^\s*npm\s+(list|ls|view|info|search|outdated|audit)(\s|$)/i,
@@ -32,9 +34,16 @@ export function getPlanModeToolNames(activeToolNames: readonly string[]): string
 export function isReadOnlyBashCommand(command: string): boolean {
   const trimmed = command.trim();
   if (trimmed.length === 0) return false;
-  if (DANGEROUS_PATTERNS.some((pattern) => pattern.test(trimmed))) return false;
-  if (AMBIGUOUS_SHELL_OPERATORS.some((pattern) => pattern.test(trimmed))) return false;
-  return READ_ONLY_PATTERNS.some((pattern) => pattern.test(trimmed));
+  if (UNSUPPORTED_SHELL_OPERATORS.some((pattern) => pattern.test(trimmed))) return false;
+
+  const commands = trimmed.split(SAFE_CHAIN_SEPARATOR).map((part) => part.trim());
+  return commands.length > 0 && commands.every(isReadOnlySimpleCommand);
+}
+
+function isReadOnlySimpleCommand(command: string): boolean {
+  if (command.length === 0) return false;
+  if (DANGEROUS_PATTERNS.some((pattern) => pattern.test(command))) return false;
+  return READ_ONLY_PATTERNS.some((pattern) => pattern.test(command));
 }
 
 function unique(values: readonly string[]): string[] {
