@@ -83,6 +83,8 @@ export interface AsyncWorkerRunContext {
   task: string;
   cwd: string;
   options: WorkerRunOptions;
+  readOnly?: boolean;
+  canModifyWorkspace?: boolean;
   signal: AbortSignal;
   emitEvent(event: WorkerEvent): void;
   writeOutput(stream: "stdout" | "stderr", line: string): void;

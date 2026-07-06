@@ -23,6 +23,7 @@
     "src/adapters/cli-utils.ts",
     "src/adapters/codex-cli.ts",
     "src/adapters/demo.ts",
+    "src/adapters/pi-sdk.ts",
     "src/commands/args.ts",
     "src/commands/format.ts",
     "src/commands/index.ts",

@@ -6,6 +6,7 @@ import { once } from "node:events";
 import { createClaudeCodeAdapter } from "../adapters/claude-code.ts";
 import { createCodexCliAdapter } from "../adapters/codex-cli.ts";
 import { createDemoAdapter } from "../adapters/demo.ts";
+import { createPiSdkAdapter } from "../adapters/pi-sdk.ts";
 import { ensureLogDirectory, getDefaultArtifactRoot, getRunLogPath } from "../state/logs.ts";
 import { RunArtifactIndex, type RunHistoryListOptions, workerRunToHistoryEntry } from "../state/run-index.ts";
 import { textPreview, unknownUsage, type WorkerEvent } from "./worker-events.ts";
@@ -40,7 +41,7 @@ export class WorkerManager {
   constructor(options: WorkerManagerOptions = {}) {
     this.artifactRoot = options.artifactRoot ?? getDefaultArtifactRoot();
     this.adapters = new Map(
-      (options.adapters ?? [createDemoAdapter(), createClaudeCodeAdapter(), createCodexCliAdapter()]).map((adapter) => [
+      (options.adapters ?? [createDemoAdapter(), createClaudeCodeAdapter(), createCodexCliAdapter(), createPiSdkAdapter()]).map((adapter) => [
         adapter.name,
         adapter,
       ]),
@@ -196,6 +197,8 @@ export class WorkerManager {
           task: input.task,
           cwd: input.cwd,
           options: { durationMs: input.durationMs },
+          readOnly: run.readOnly,
+          canModifyWorkspace: run.canModifyWorkspace,
           signal: abortController.signal,
           emitEvent: (event) => applyWorkerEvents(run, [event]),
           writeOutput,
