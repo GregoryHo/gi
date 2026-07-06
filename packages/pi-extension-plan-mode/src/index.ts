@@ -242,6 +242,31 @@ export default function planModeExtension(pi: ExtensionAPI): void {
     },
   });
 
+	pi.registerTool({
+		name: "plan_record",
+		label: "Record Plan",
+		description: "Create or refine a Plan Mode artifact from structured plan steps. Requires explicit disposition before replacing an active plan.",
+		promptSnippet: "Record a new or refined plan while Plan Mode is active",
+		promptGuidelines: [
+			"Use plan_record when Plan Mode is active and the user asks you to generate or refine a plan.",
+			"Use intent refine_current when the user is refining the current objective; preserve the current plan id.",
+			"Use intent new for a distinct new objective only when no active plan would be silently overwritten.",
+			"If an active plan exists, ask a natural disposition question and pass activePlanDisposition before replacing it.",
+			"Do not ask the user to run /plan-new for ordinary new planning requests; use this tool when safe.",
+		],
+		parameters: Type.Object({
+			intent: Type.String({ description: "One of: new, refine_current." }),
+			title: Type.String({ description: "Compact plan title." }),
+			steps: Type.Array(Type.Object({
+				step: Type.Number({ description: "Original step number." }),
+				text: Type.String({ description: "Plan step text." }),
+			}), { description: "Numbered plan steps." }),
+			activePlanDisposition: Type.Optional(Type.String({ description: "When replacing an active plan, one of: complete, abandon, pause." })),
+		}),
+		async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+			return recordPlanFromTool(params, ctx);
+		},
+	});
 
   pi.on("session_start", async (_event, ctx) => {
     const restored = getLastPlanModeState(ctx.sessionManager.getEntries());
@@ -456,6 +481,58 @@ export default function planModeExtension(pi: ExtensionAPI): void {
     ctx.ui.notify("Ready to capture a new plan.", "info");
   }
 
+	async function recordPlanFromTool(params: unknown, ctx: ExtensionContext) {
+		const record = normalizePlanRecordParams(params);
+		const plan: CapturedPlan = { steps: record.steps };
+		const existing = await getActiveArtifact(ctx);
+
+		if (record.intent === "refine_current") {
+			if (!existing) return toolResult("No current plan to refine.", { accepted: false, reason: "no_current_plan" });
+			capturedPlan = plan;
+			activeArtifact = { ...updateArtifact(existing, existing.status, plan), title: record.title };
+			activePlanId = activeArtifact.id;
+			executing = false;
+			await saveActiveArtifact(ctx, activeArtifact);
+			enablePlanMode();
+			updateStatus(ctx);
+			persistState();
+			return toolResult(`Plan refined: ${activeArtifact.title}.`, { accepted: true, ...compactPlanToolDetails(activeArtifact) });
+		}
+
+		if (existing && isActivePlanStatus(existing.status)) {
+			if (!record.activePlanDisposition) {
+				return toolResult("Active plan requires a disposition before recording a new plan.", {
+					accepted: false,
+					reason: "needs_disposition",
+					currentPlan: compactPlanToolDetails(existing),
+					allowedDispositions: ["complete", "abandon", "pause"],
+				});
+			}
+			activeArtifact = updateArtifact(existing, dispositionToPlanStatus(record.activePlanDisposition), capturedPlan, true);
+			await saveActiveArtifact(ctx, activeArtifact);
+		}
+
+		capturedPlan = plan;
+		executing = false;
+		const root = getArtifactRoot(ctx);
+		const sessionFile = getSessionFile(ctx);
+		activeArtifact = createPlanArtifact({
+			now: new Date(),
+			cwd: ctx.cwd,
+			title: record.title,
+			steps: plan.steps,
+			sessionFile,
+			sessionPlanNumber: await getNextSessionPlanNumber(root, sessionFile),
+			previousPlanId: await getLatestSessionPlanId(root, sessionFile),
+		});
+		activePlanId = activeArtifact.id;
+		await saveActiveArtifact(ctx, activeArtifact);
+		enablePlanMode();
+		updateStatus(ctx);
+		persistState();
+		return toolResult(`Plan recorded: ${activeArtifact.title}.`, { accepted: true, ...compactPlanToolDetails(activeArtifact) });
+	}
+
   async function ensureActiveArtifact(ctx: ExtensionContext, plan: CapturedPlan): Promise<PlanArtifactV1> {
     if (activeArtifact && activePlanId === activeArtifact.id && !isTerminalPlanStatus(activeArtifact.status)) return activeArtifact;
 
@@ -516,6 +593,56 @@ function compactPlanToolDetails(artifact: PlanArtifactV1): Record<string, unknow
 function normalizePlanControlAction(value: unknown): "enable" | "disable" {
   if (value === "enable" || value === "disable") return value;
   throw new Error("plan_control action must be one of: enable, disable.");
+}
+
+interface PlanRecordParams {
+  intent: "new" | "refine_current";
+  title: string;
+  steps: Array<{ step: number; text: string }>;
+  activePlanDisposition?: "complete" | "abandon" | "pause";
+}
+
+function normalizePlanRecordParams(value: unknown): PlanRecordParams {
+	if (!value || typeof value !== "object") throw new Error("plan_record params must be an object.");
+	const candidate = value as { intent?: unknown; title?: unknown; steps?: unknown; activePlanDisposition?: unknown };
+	const intent = normalizePlanRecordIntent(candidate.intent);
+	const title = nonEmptyString(candidate.title, "title");
+	const steps = normalizePlanRecordSteps(candidate.steps);
+	const activePlanDisposition = candidate.activePlanDisposition === undefined
+		? undefined
+		: normalizePlanDisposition(candidate.activePlanDisposition);
+	return { intent, title, steps, ...(activePlanDisposition ? { activePlanDisposition } : {}) };
+}
+
+function normalizePlanRecordIntent(value: unknown): PlanRecordParams["intent"] {
+	if (value === "new" || value === "refine_current") return value;
+	throw new Error("plan_record intent must be one of: new, refine_current.");
+}
+
+function normalizePlanDisposition(value: unknown): NonNullable<PlanRecordParams["activePlanDisposition"]> {
+	if (value === "complete" || value === "abandon" || value === "pause") return value;
+	throw new Error("plan_record activePlanDisposition must be one of: complete, abandon, pause.");
+}
+
+function normalizePlanRecordSteps(value: unknown): PlanRecordParams["steps"] {
+	if (!Array.isArray(value) || value.length === 0) throw new Error("plan_record steps must be a non-empty array.");
+	return value.map((item, index) => {
+		if (!item || typeof item !== "object") throw new Error(`plan_record steps[${index}] must be an object.`);
+		const step = item as { step?: unknown; text?: unknown };
+		if (typeof step.step !== "number" || !Number.isFinite(step.step)) throw new Error(`plan_record steps[${index}].step must be a number.`);
+		return { step: step.step, text: nonEmptyString(step.text, `steps[${index}].text`) };
+	});
+}
+
+function dispositionToPlanStatus(disposition: NonNullable<PlanRecordParams["activePlanDisposition"]>): PlanStatus {
+  if (disposition === "complete") return "completed";
+  if (disposition === "abandon") return "abandoned";
+  return "paused";
+}
+
+function nonEmptyString(value: unknown, key: string): string {
+  if (typeof value !== "string" || !value.trim()) throw new Error(`plan_record ${key} must be a non-empty string.`);
+  return value.trim();
 }
 
 function toolResult(text: string, details: Record<string, unknown>) {
@@ -583,7 +710,7 @@ function getTextContent(content: unknown): string {
 }
 
 function appendRoutingContext(content: string, activeArtifact: PlanArtifactV1 | undefined): string {
-  return activeArtifact ? `${content}\n\n${formatActivePlanRoutingContext(activeArtifact)}` : content;
+  return activeArtifact && isActivePlanStatus(activeArtifact.status) ? `${content}\n\n${formatActivePlanRoutingContext(activeArtifact)}` : content;
 }
 
 function getArtifactRoot(ctx: ExtensionContext): string {

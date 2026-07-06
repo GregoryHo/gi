@@ -4,7 +4,7 @@ Scaffolded pi package for safe read-only planning before execution.
 
 ## Status
 
-M6 natural-language plan routing plus M3 Goal Mode integration support are implemented. The package provides read-only plan mode, captured `Plan:` steps, explicit execution handoff, marker-based progress, durable local plan artifacts, history/switching, complete/abandon flows, compact active-plan routing context, and a read-only `plan_get_current` tool for tool-based orchestration.
+M7 natural Plan Mode tool flow plus M3 Goal Mode integration support are implemented. The package provides read-only plan mode, captured `Plan:` steps, explicit execution handoff, marker-based progress, durable local plan artifacts, history/switching, complete/abandon flows, compact active-plan routing context, `plan_record` for natural structured plan creation/refinement, and `plan_get_current` for read-only tool-based orchestration.
 
 ## Features
 
@@ -30,7 +30,8 @@ M6 natural-language plan routing plus M3 Goal Mode integration support are imple
 - `/plan-complete` and `/plan-abandon` persist deterministic recap/status.
 - Hidden context includes a compact `[ACTIVE PLAN]` summary when a plan is active.
 - Routing policy tells the LLM to distinguish refine-current, new objective, resume/switch, and ambiguous plan discussions.
-- New objectives must ask for confirmation via `/plan-new`; routing must not silently overwrite, switch, complete, or abandon plans.
+- Natural new objectives use `plan_record` when safe; if an active plan exists, the agent asks a natural disposition question instead of telling users to run `/plan-new`.
+- `plan_record` creates or refines structured plan artifacts while preserving active-plan replacement safety.
 - `plan_get_current` exposes the current plan as compact read-only tool data for natural-language tool composition.
 
 ## Boundary
@@ -38,6 +39,14 @@ M6 natural-language plan routing plus M3 Goal Mode integration support are imple
 Plan mode owns safe planning, captured plans, explicit main-session execution handoff, and marker-based progress display.
 
 It does not own goal/loop orchestration or worker delegation. Goal Mode may consume explicit plan data returned by `plan_get_current`, but Plan Mode does not directly depend on Goal Mode, does not auto-call `goal_start`, and does not auto-call worker tools.
+
+Example natural planning route:
+
+```text
+User: /plan
+User: Plan Phase 3 worker-assisted goal loops.
+Agent: plan_record({ intent: "new", title, steps })
+```
 
 Example natural-language route when both extensions are loaded:
 
@@ -54,7 +63,7 @@ Asking to show or inspect the current plan should use `plan_get_current` only an
 - No verifier loop.
 - No worker/sub-agent integration.
 - No inferred completion without explicit `[DONE:n]` markers.
-- No LLM-callable mutation tools for routing.
+- No unsafe LLM-callable mutation tools; `plan_record` fails closed before replacing active plans.
 - No automatic plan switching based only on semantic similarity.
 
 ## Load while developing

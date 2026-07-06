@@ -28,8 +28,9 @@ ${buildPlanRoutingPolicy()}`;
 
 export function buildPlanRoutingPolicy(): string {
   return `Routing rules:
-- If the user refines this objective, update/refine the active plan and preserve the same active plan id.
-- If the user asks for a distinct new objective, ask whether to start a new plan with /plan-new before changing state.
+- If the user refines this objective, use plan_record with intent refine_current and preserve the same active plan id.
+- If the user asks for a distinct new objective, use plan_record with intent new only when no active plan would be overwritten.
+- If a distinct new objective would replace an active plan, ask a natural disposition question first: complete, abandon, pause, or keep the current plan.
 - If the user references a previous objective, suggest /plan-history or /plan-switch <id> instead of guessing.
 - If the user intent is ambiguous, ask a clarifying question.
 - Do not silently overwrite the active plan.

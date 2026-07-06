@@ -10,6 +10,7 @@
 | M4 — Goal/worker integration boundary | Complete | `m4-goal-worker-integration-boundary.md` |
 | M5 — Plan artifact lifecycle and session indexing | Complete | `m5-plan-artifact-lifecycle-session-indexing.md` |
 | M6 — Natural-language plan routing | Complete | `m6-natural-language-plan-routing.md` |
+| M7 — Natural Plan Mode tool flow | Complete | `m7-natural-plan-tools.md` |
 
 ## Review gate
 

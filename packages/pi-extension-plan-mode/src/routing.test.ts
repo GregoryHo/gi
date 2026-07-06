@@ -65,7 +65,9 @@ test("buildPlanRoutingPolicy includes guarded natural-language routing rules", (
   assert.match(policy, /Do not silently switch/i);
   assert.match(policy, /Do not silently complete/i);
   assert.match(policy, /Do not silently abandon/i);
-  assert.match(policy, /\/plan-new/);
+  assert.match(policy, /plan_record/);
+  assert.match(policy, /natural disposition/i);
+  assert.doesNotMatch(policy, /\/plan-new/);
   assert.match(policy, /\/plan-history/);
   assert.match(policy, /\/plan-switch <id>/);
 });
