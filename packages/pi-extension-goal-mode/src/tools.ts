@@ -3,7 +3,7 @@ import { Type } from "typebox";
 
 import { markGoalModeInternalMessage } from "./messages.ts";
 import { notifyGoalChanged, type GoalCommandRuntime } from "./commands.ts";
-import type { GoalReport, GoalReportStatus, SourcePlan } from "./state.ts";
+import type { GoalReport, GoalReportStatus, SourcePlan, WorkerDelegationPolicy, WorkerDelegationProfile } from "./state.ts";
 import { createGoalState, isResumableGoalPhase, isRunnableGoalPhase, isTerminalGoalPhase, renewGoalRun, transitionGoalPhase, type ActiveGoalState } from "./state.ts";
 
 type ToolDefinition = Parameters<ExtensionAPI["registerTool"]>[0];
@@ -22,6 +22,7 @@ interface GoalStartToolParams {
   objective?: unknown;
   acceptanceCriteria?: unknown;
   sourcePlan?: unknown;
+  workerDelegation?: unknown;
 }
 
 interface GoalControlToolParams {
@@ -51,10 +52,18 @@ const sourcePlanParameters = Type.Object({
   steps: Type.Array(sourcePlanStepParameters, { description: "Source plan steps with original numbering and text." }),
 });
 
+const workerDelegationParameters = Type.Object({
+	enabled: Type.Boolean({ description: "Whether the user explicitly approved worker assistance for this goal." }),
+	workspace: Type.Optional(Type.String({ description: "Explicit worker cwd/workspace to pass to agent_worker_start when available." })),
+	allowedProfiles: Type.Optional(Type.Array(Type.String(), { description: "Allowed worker profiles: planner, reviewer, verifier, implementer." })),
+	purpose: Type.Optional(Type.String({ description: "Compact reason for worker delegation." })),
+});
+
 const goalStartParameters = Type.Object({
   objective: Type.String({ description: "Goal objective to run as a bounded Goal Mode loop." }),
   acceptanceCriteria: Type.Optional(Type.Array(Type.String(), { description: "Goal-specific acceptance criteria." })),
   sourcePlan: Type.Optional(sourcePlanParameters),
+	workerDelegation: Type.Optional(workerDelegationParameters),
 });
 
 const goalControlParameters = Type.Object({
@@ -132,7 +141,9 @@ export function registerGoalReportTool(pi: GoalToolRegistry, runtime: GoalComman
     promptGuidelines: [
       "Use goal_start only when the user explicitly asks for Goal Mode, bounded autonomous completion, or to use goal to complete work.",
       "If plan-like data is already available, pass it as sourcePlan so Goal Mode can keep it as advisory context.",
-      "Do not treat sourcePlan completed markers as verification proof; Goal Mode still requires concrete verification before done.",
+			"Pass workerDelegation only when the user explicitly asks for or approves worker assistance; do not opportunistically start workers.",
+			"For workerDelegation, prefer planner, reviewer, or verifier for read-only assistance; implementer requires explicit workspace/scope and Agent Workers confirmation.",
+			"Do not treat sourcePlan completed markers or worker summaries as verification proof; Goal Mode still requires concrete verification before done.",
     ],
     parameters: goalStartParameters,
     async execute(_toolCallId, params): Promise<GoalToolResult> {
@@ -151,6 +162,7 @@ export function registerGoalReportTool(pi: GoalToolRegistry, runtime: GoalComman
         now: runtime.now(),
         acceptanceCriteria: startParams.acceptanceCriteria,
         sourcePlan: startParams.sourcePlan,
+				workerDelegation: startParams.workerDelegation,
       });
       notifyGoalChanged(runtime);
       queueGoalStart(pi, runtime.activeGoal);
@@ -277,6 +289,7 @@ function goalStatusDetails(goal: ActiveGoalState): Record<string, unknown> {
     limits: { ...goal.limits },
     acceptanceCriteria: [...goal.acceptanceCriteria],
     sourcePlan: goal.sourcePlan ? copySourcePlan(goal.sourcePlan) : undefined,
+		workerDelegation: goal.workerDelegation ? copyWorkerDelegation(goal.workerDelegation) : undefined,
     latestReport: goal.latestReport ? copyGoalReport(goal.latestReport) : undefined,
     blocker: goal.latestReport?.blocker,
     nextAllowedActions: nextAllowedActions(goal),
@@ -290,11 +303,12 @@ function nextAllowedActions(goal: ActiveGoalState): string[] {
   return ["pause", "cancel"];
 }
 
-export function normalizeGoalStartParams(params: GoalStartToolParams): { objective: string; acceptanceCriteria?: string[]; sourcePlan?: SourcePlan } {
+export function normalizeGoalStartParams(params: GoalStartToolParams): { objective: string; acceptanceCriteria?: string[]; sourcePlan?: SourcePlan; workerDelegation?: WorkerDelegationPolicy } {
   return {
     objective: nonEmptyString(params.objective, "objective"),
     acceptanceCriteria: params.acceptanceCriteria === undefined ? undefined : stringArray(params.acceptanceCriteria, "acceptanceCriteria"),
     sourcePlan: params.sourcePlan === undefined ? undefined : normalizeSourcePlan(params.sourcePlan),
+		workerDelegation: params.workerDelegation === undefined ? undefined : normalizeWorkerDelegation(params.workerDelegation),
   };
 }
 
@@ -325,6 +339,13 @@ function copySourcePlan(sourcePlan: SourcePlan): SourcePlan {
   };
 }
 
+function copyWorkerDelegation(workerDelegation: WorkerDelegationPolicy): WorkerDelegationPolicy {
+	return {
+		...workerDelegation,
+		allowedProfiles: workerDelegation.allowedProfiles ? [...workerDelegation.allowedProfiles] : undefined,
+	};
+}
+
 function copyGoalReport(report: GoalReport): GoalReport {
   return {
     ...report,
@@ -344,6 +365,32 @@ function normalizeSourcePlan(value: unknown): SourcePlan {
     ...(status ? { status } : {}),
     steps: normalizeSourcePlanSteps(source.steps),
   };
+}
+
+function normalizeWorkerDelegation(value: unknown): WorkerDelegationPolicy {
+	if (!value || typeof value !== "object") throw new Error("goal_start workerDelegation must be an object.");
+	const source = value as { enabled?: unknown; workspace?: unknown; allowedProfiles?: unknown; purpose?: unknown };
+	if (typeof source.enabled !== "boolean") throw new Error("goal_start workerDelegation.enabled must be a boolean.");
+	const workspace = source.workspace === undefined ? undefined : nonEmptyString(source.workspace, "workerDelegation.workspace");
+	const purpose = source.purpose === undefined ? undefined : nonEmptyString(source.purpose, "workerDelegation.purpose");
+	const allowedProfiles = source.allowedProfiles === undefined ? undefined : normalizeWorkerDelegationProfiles(source.allowedProfiles);
+	return {
+		enabled: source.enabled,
+		...(workspace ? { workspace } : {}),
+		...(allowedProfiles ? { allowedProfiles } : {}),
+		...(purpose ? { purpose } : {}),
+	};
+}
+
+function normalizeWorkerDelegationProfiles(value: unknown): WorkerDelegationProfile[] {
+	if (!Array.isArray(value)) throw new Error("goal_start workerDelegation.allowedProfiles must be an array.");
+	const allowed = new Set<WorkerDelegationProfile>(["planner", "reviewer", "verifier", "implementer"]);
+	return value.map((item, index) => {
+		if (typeof item !== "string") throw new Error(`goal_start workerDelegation.allowedProfiles[${index}] must be a string.`);
+		const profile = item.trim();
+		if (!allowed.has(profile as WorkerDelegationProfile)) throw new Error(`goal_start workerDelegation.allowedProfiles[${index}] must be one of: planner, reviewer, verifier, implementer.`);
+		return profile as WorkerDelegationProfile;
+	});
 }
 
 function normalizeSourcePlanSteps(value: unknown): SourcePlan["steps"] {

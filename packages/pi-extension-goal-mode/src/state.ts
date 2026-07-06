@@ -37,6 +37,15 @@ export interface SourcePlan {
   steps: SourcePlanStep[];
 }
 
+export type WorkerDelegationProfile = "planner" | "reviewer" | "verifier" | "implementer";
+
+export interface WorkerDelegationPolicy {
+	enabled: boolean;
+	workspace?: string;
+	allowedProfiles?: WorkerDelegationProfile[];
+	purpose?: string;
+}
+
 export interface ActiveGoalState {
   id: string;
   objective: string;
@@ -51,6 +60,7 @@ export interface ActiveGoalState {
   limits: GoalLimits;
   approvals: GoalApprovals;
   sourcePlan?: SourcePlan;
+  workerDelegation?: WorkerDelegationPolicy;
   latestReport?: GoalReport;
 }
 
@@ -60,6 +70,7 @@ export interface CreateGoalStateOptions {
   acceptanceCriteria?: string[];
   limits?: Partial<GoalLimits>;
   sourcePlan?: SourcePlan;
+  workerDelegation?: WorkerDelegationPolicy;
 }
 
 export const DEFAULT_GOAL_LIMITS: GoalLimits = {
@@ -101,6 +112,7 @@ export function createGoalState(options: CreateGoalStateOptions): ActiveGoalStat
       destructiveBashApproved: false,
     },
     sourcePlan: options.sourcePlan ? copySourcePlan(options.sourcePlan) : undefined,
+		workerDelegation: options.workerDelegation ? copyWorkerDelegation(options.workerDelegation) : undefined,
   };
 }
 
@@ -119,6 +131,7 @@ export function transitionGoalPhase(goal: ActiveGoalState, nextPhase: GoalPhase,
     limits: { ...goal.limits },
     approvals: { ...goal.approvals },
     sourcePlan: goal.sourcePlan ? copySourcePlan(goal.sourcePlan) : undefined,
+		workerDelegation: goal.workerDelegation ? copyWorkerDelegation(goal.workerDelegation) : undefined,
     latestReport: goal.latestReport ? copyGoalReport(goal.latestReport) : undefined,
     phase: nextPhase,
     updatedAt: now.toISOString(),
@@ -157,6 +170,7 @@ export function normalizeGoalStateForRestore(goal: ActiveGoalState | (Omit<Activ
     limits: { ...goal.limits },
     approvals: { ...goal.approvals },
     sourcePlan: goal.sourcePlan ? copySourcePlan(goal.sourcePlan) : undefined,
+		workerDelegation: goal.workerDelegation ? copyWorkerDelegation(goal.workerDelegation) : undefined,
     latestReport: goal.latestReport ? copyGoalReport(goal.latestReport) : undefined,
   };
 }
@@ -186,6 +200,13 @@ function copySourcePlan(sourcePlan: SourcePlan): SourcePlan {
     ...sourcePlan,
     steps: sourcePlan.steps.map((step) => ({ ...step })),
   };
+}
+
+function copyWorkerDelegation(workerDelegation: WorkerDelegationPolicy): WorkerDelegationPolicy {
+	return {
+		...workerDelegation,
+		allowedProfiles: workerDelegation.allowedProfiles ? [...workerDelegation.allowedProfiles] : undefined,
+	};
 }
 
 function copyGoalReport(report: GoalReport): GoalReport {

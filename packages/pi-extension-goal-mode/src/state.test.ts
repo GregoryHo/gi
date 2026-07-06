@@ -67,6 +67,33 @@ test("createGoalState preserves optional source plan as advisory context", () =>
   assert.notEqual(transitioned.sourcePlan?.steps, goal.sourcePlan?.steps);
 });
 
+test("createGoalState preserves optional worker delegation policy", () => {
+	const goal = createGoalState({
+		objective: "Complete with worker verification",
+		now: NOW,
+		workerDelegation: {
+			enabled: true,
+			workspace: "/tmp/project",
+			allowedProfiles: ["verifier", "reviewer"],
+			purpose: "independent verification",
+		},
+	});
+	const transitioned = transitionGoalPhase(goal, "running_iteration", LATER);
+	const restored = normalizeGoalStateForRestore(transitioned);
+
+	assert.deepEqual(goal.workerDelegation, {
+		enabled: true,
+		workspace: "/tmp/project",
+		allowedProfiles: ["verifier", "reviewer"],
+		purpose: "independent verification",
+	});
+	assert.deepEqual(transitioned.workerDelegation, goal.workerDelegation);
+	assert.notEqual(transitioned.workerDelegation, goal.workerDelegation);
+	assert.notEqual(transitioned.workerDelegation?.allowedProfiles, goal.workerDelegation?.allowedProfiles);
+	assert.deepEqual(restored.workerDelegation, goal.workerDelegation);
+	assert.notEqual(restored.workerDelegation, goal.workerDelegation);
+});
+
 test("createGoalState rejects empty objectives", () => {
   assert.throws(() => createGoalState({ objective: "   ", now: NOW }), /objective/i);
 });

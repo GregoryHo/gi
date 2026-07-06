@@ -65,6 +65,7 @@ export function formatActiveGoalContext(goal: ActiveGoalState): string {
     `max elapsed ms: ${goal.limits.maxElapsedMs}`,
     goal.acceptanceCriteria.length > 0 ? `acceptance criteria: ${goal.acceptanceCriteria.join("; ")}` : "acceptance criteria: not specified",
     ...formatSourcePlanContext(goal),
+		...formatWorkerDelegationContext(goal),
     "Loop contract: work on one bounded iteration, verify with concrete evidence, then call goal_report.",
     "goal_report status must be continue, blocked, or done. Do not claim done without verification evidence.",
   ].join("\n");
@@ -87,6 +88,22 @@ function formatSourcePlanContext(goal: ActiveGoalState): string[] {
     ...(remainingCount > 0 ? [`... ${remainingCount} more step(s)`] : []),
     "Plan completed markers are advisory, not verification proof. Verify concrete results before reporting done.",
   ];
+}
+
+function formatWorkerDelegationContext(goal: ActiveGoalState): string[] {
+	if (!goal.workerDelegation?.enabled) return [];
+	const profiles = goal.workerDelegation.allowedProfiles?.join(", ") ?? "planner, reviewer, verifier";
+	return [
+		"[WORKER DELEGATION]",
+		...(goal.workerDelegation.purpose ? [`purpose: ${goal.workerDelegation.purpose}`] : []),
+		`allowed profiles: ${profiles}`,
+		...(goal.workerDelegation.workspace ? [`workspace: ${goal.workerDelegation.workspace}`] : []),
+		"Use agent_worker_start only for bounded subtasks explicitly allowed by the user.",
+		"Use agent_worker_wait or agent_worker_status before relying on worker results.",
+		"Worker summaries are evidence for goal_report, not automatic proof of completion.",
+		"The implementer profile requires explicit workspace/scope and Agent Workers confirmation.",
+		"Do not bypass Agent Workers confirmation, workspace preflight, or workspace-collision rules.",
+	];
 }
 
 export function handleGoalAgentEnd(runtime: GoalCommandRuntime, sender: GoalLoopSender): GoalLoopResult {

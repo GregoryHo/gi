@@ -52,6 +52,28 @@ test("formatActiveGoalContext includes compact source plan context", () => {
   assert.match(context, /advisory, not verification proof/i);
 });
 
+test("formatActiveGoalContext includes worker delegation guidance only when enabled", () => {
+	const plainContext = formatActiveGoalContext(runningGoal());
+	const goal = runningGoal();
+	goal.workerDelegation = {
+		enabled: true,
+		workspace: "/tmp/project",
+		allowedProfiles: ["verifier", "reviewer"],
+		purpose: "independent verification",
+	};
+
+	const context = formatActiveGoalContext(goal);
+
+	assert.doesNotMatch(plainContext, /\[WORKER DELEGATION\]/);
+	assert.match(context, /\[WORKER DELEGATION\]/);
+	assert.match(context, /allowed profiles: verifier, reviewer/);
+	assert.match(context, /workspace: \/tmp\/project/);
+	assert.match(context, /agent_worker_start/);
+	assert.match(context, /agent_worker_(wait|status)/);
+	assert.match(context, /worker summaries are evidence/i);
+	assert.match(context, /implementer.*explicit workspace.*confirmation/i);
+});
+
 test("handleGoalAgentEnd continues after a continue report when limits allow", () => {
   const runtime = createGoalCommandRuntime({ now: () => LATER });
   const sentMessages: string[] = [];
