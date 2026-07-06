@@ -1,4 +1,4 @@
-import type { WorkerAdapter } from "../core/worker-types.ts";
+import type { ProcessWorkerAdapter } from "../core/worker-types.ts";
 
 const DEFAULT_DURATION_MS = 250;
 
@@ -12,7 +12,7 @@ setTimeout(() => {
 }, durationMs);
 `;
 
-export function createDemoAdapter(options: { nodePath?: string } = {}): WorkerAdapter {
+export function createDemoAdapter(options: { nodePath?: string } = {}): ProcessWorkerAdapter {
   return {
     name: "demo",
     createSpawnSpec(task, cwd, runOptions = {}) {

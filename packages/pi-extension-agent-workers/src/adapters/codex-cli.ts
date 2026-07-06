@@ -1,4 +1,4 @@
-import type { WorkerAdapter } from "../core/worker-types.ts";
+import type { ProcessWorkerAdapter } from "../core/worker-types.ts";
 import { textPreview, toNumber, type WorkerEvent, type WorkerUsage } from "../core/worker-events.ts";
 import { isCommandAvailable, type CommandAvailabilityCheck } from "./cli-utils.ts";
 
@@ -7,7 +7,7 @@ interface CodexCliAdapterOptions {
   isCommandAvailable?: CommandAvailabilityCheck;
 }
 
-export function createCodexCliAdapter(options: CodexCliAdapterOptions = {}): WorkerAdapter {
+export function createCodexCliAdapter(options: CodexCliAdapterOptions = {}): ProcessWorkerAdapter {
   const executable = options.executable ?? "codex";
   const commandAvailable = options.isCommandAvailable ?? isCommandAvailable;
 

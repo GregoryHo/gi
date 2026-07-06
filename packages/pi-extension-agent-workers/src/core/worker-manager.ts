@@ -20,7 +20,8 @@ interface WorkerManagerOptions {
 
 interface RunRecord {
   run: WorkerRun;
-  child: ChildProcessLike;
+  child?: ChildProcessLike;
+  abortController?: AbortController;
   completion: Promise<WorkerRun>;
   resolveCompletion: (run: WorkerRun) => void;
   index: RunArtifactIndex;
@@ -87,13 +88,23 @@ export class WorkerManager {
     const logPath = getRunLogPath(this.artifactRoot, id);
     await ensureLogDirectory(logPath);
 
-    const spec = adapter.createSpawnSpec(input.task, input.cwd, { durationMs: input.durationMs });
     const startedAt = Date.now();
-    const child = this.spawn(spec.command, spec.args, {
-      cwd: spec.cwd,
-      shell: false,
-      stdio: ["ignore", "pipe", "pipe"],
-    });
+    const logStream = createWriteStream(logPath, { flags: "a", mode: 0o600 });
+
+    let child: ChildProcessLike | undefined;
+    let abortController: AbortController | undefined;
+    if (adapter.createSpawnSpec) {
+      const spec = adapter.createSpawnSpec(input.task, input.cwd, { durationMs: input.durationMs });
+      child = this.spawn(spec.command, spec.args, {
+        cwd: spec.cwd,
+        shell: false,
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+    } else if (adapter.runTask) {
+      abortController = new AbortController();
+    } else {
+      throw new Error(`Worker adapter ${adapter.name} cannot start runs.`);
+    }
 
     const run: WorkerRun = {
       id,
@@ -101,7 +112,7 @@ export class WorkerManager {
       taskPreview: input.taskPreview ?? previewTask(input.task),
       ...(input.originalTaskPreview === undefined ? {} : { originalTaskPreview: input.originalTaskPreview }),
       cwd: input.cwd,
-      pid: child.pid,
+      ...(child?.pid === undefined ? {} : { pid: child.pid }),
       status: "running",
       ...(input.profile ? { profile: input.profile } : {}),
       ...(input.mode ? { mode: input.mode } : {}),
@@ -126,7 +137,8 @@ export class WorkerManager {
     });
     const record: RunRecord = {
       run,
-      child,
+      ...(child ? { child } : {}),
+      ...(abortController ? { abortController } : {}),
       completion,
       resolveCompletion,
       index: this.index,
@@ -136,19 +148,6 @@ export class WorkerManager {
     await this.index.upsertRun(run);
     this.notifyRunChange(run);
 
-    if (input.timeoutMs !== undefined) {
-      record.timeout = setTimeout(() => {
-        if (record.run.status !== "running" && record.run.status !== "queued") return;
-        record.run.status = "timed_out";
-        record.run.statusReason = "timed_out";
-        record.run.lastActivityAt = Date.now();
-        void record.index.upsertRun(record.run).catch(() => undefined);
-        this.notifyRunChange(record.run);
-        record.child.kill("SIGTERM");
-      }, input.timeoutMs);
-    }
-
-    const logStream = createWriteStream(logPath, { flags: "a", mode: 0o600 });
     const writeOutput = (stream: "stdout" | "stderr", chunk: Buffer | string) => {
       run.lastActivityAt = Date.now();
       const text = chunk.toString();
@@ -159,24 +158,65 @@ export class WorkerManager {
       }
     };
 
-    child.stdout?.on("data", (chunk) => writeOutput("stdout", chunk));
-    child.stderr?.on("data", (chunk) => writeOutput("stderr", chunk));
+    if (input.timeoutMs !== undefined) {
+      record.timeout = setTimeout(() => {
+        if (record.run.status !== "running" && record.run.status !== "queued") return;
+        record.run.status = "timed_out";
+        record.run.statusReason = "timed_out";
+        record.run.lastActivityAt = Date.now();
+        void record.index.upsertRun(record.run).catch(() => undefined);
+        this.notifyRunChange(record.run);
+        record.child?.kill("SIGTERM");
+        record.abortController?.abort();
+      }, input.timeoutMs);
+    }
 
-    child.on("error", (error) => {
-      writeOutput("stderr", error instanceof Error ? error.message : String(error));
-      record.run.statusReason = "spawn_error";
-      finishRun(record, "failed", undefined, logStream);
-    });
+    if (child) {
+      child.stdout?.on("data", (chunk) => writeOutput("stdout", chunk));
+      child.stderr?.on("data", (chunk) => writeOutput("stderr", chunk));
 
-    child.on("close", (code) => {
-      const status: WorkerStatus =
-        run.status === "timed_out" ? "timed_out" : run.status === "cancelled" ? "cancelled" : code === 0 ? "completed" : "failed";
-      if (!record.run.statusReason) {
-        record.run.statusReason =
-          status === "timed_out" ? "timed_out" : status === "cancelled" ? "cancelled" : status === "completed" ? "exit_zero" : "exit_nonzero";
-      }
-      finishRun(record, status, code ?? undefined, logStream);
-    });
+      child.on("error", (error) => {
+        writeOutput("stderr", error instanceof Error ? error.message : String(error));
+        record.run.statusReason = "spawn_error";
+        finishRun(record, "failed", undefined, logStream);
+      });
+
+      child.on("close", (code) => {
+        const status: WorkerStatus =
+          run.status === "timed_out" ? "timed_out" : run.status === "cancelled" ? "cancelled" : code === 0 ? "completed" : "failed";
+        if (!record.run.statusReason) {
+          record.run.statusReason =
+            status === "timed_out" ? "timed_out" : status === "cancelled" ? "cancelled" : status === "completed" ? "exit_zero" : "exit_nonzero";
+        }
+        finishRun(record, status, code ?? undefined, logStream);
+      });
+    } else if (adapter.runTask && abortController) {
+      void adapter
+        .runTask({
+          task: input.task,
+          cwd: input.cwd,
+          options: { durationMs: input.durationMs },
+          signal: abortController.signal,
+          emitEvent: (event) => applyWorkerEvents(run, [event]),
+          writeOutput,
+        })
+        .then((result) => {
+          const code = result.exitCode ?? 0;
+          const status: WorkerStatus =
+            run.status === "timed_out" ? "timed_out" : run.status === "cancelled" ? "cancelled" : code === 0 ? "completed" : "failed";
+          if (!record.run.statusReason) {
+            record.run.statusReason =
+              status === "timed_out" ? "timed_out" : status === "cancelled" ? "cancelled" : status === "completed" ? "exit_zero" : "exit_nonzero";
+          }
+          finishRun(record, status, code, logStream);
+        })
+        .catch((error) => {
+          writeOutput("stderr", error instanceof Error ? error.message : String(error));
+          const status: WorkerStatus = run.status === "timed_out" ? "timed_out" : run.status === "cancelled" ? "cancelled" : "failed";
+          if (!record.run.statusReason) record.run.statusReason = status === "failed" ? "spawn_error" : status;
+          finishRun(record, status, undefined, logStream);
+        });
+    }
 
     return { ...run };
   }
@@ -220,7 +260,8 @@ export class WorkerManager {
     record.run.lastActivityAt = Date.now();
     void record.index.upsertRun(record.run).catch(() => undefined);
     this.notifyRunChange(record.run);
-    record.child.kill("SIGTERM");
+    record.child?.kill("SIGTERM");
+    record.abortController?.abort();
     return { ...record.run };
   }
 

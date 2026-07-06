@@ -113,6 +113,49 @@ test("WorkerManager indexes run metadata on start and terminal update", async ()
   });
 });
 
+test("WorkerManager runs async adapters without spawning a subprocess", async () => {
+  await withTempDir(async (artifactRoot) => {
+    let spawned = false;
+    const adapter: WorkerAdapter = {
+      name: "async-test",
+      async runTask({ task, cwd, emitEvent, writeOutput }) {
+        assert.equal(task, "hello async worker");
+        assert.equal(cwd, "/tmp/project");
+        writeOutput("stdout", "async log line");
+        emitEvent({ type: "activity", label: "async activity", timestamp: Date.now() });
+        emitEvent({ type: "final", text: "ASYNC OK", timestamp: Date.now() });
+        emitEvent({ type: "usage", usage: { source: "reported", inputTokens: 3, outputTokens: 4 }, timestamp: Date.now() });
+        return { exitCode: 0 };
+      },
+    };
+    const manager = new WorkerManager({
+      artifactRoot,
+      adapters: [adapter],
+      spawn: () => {
+        spawned = true;
+        return new FakeChildProcess(9999);
+      },
+    });
+
+    const run = await manager.startRun({ adapter: "async-test", task: "hello async worker", cwd: "/tmp/project" });
+    assert.equal(run.status, "running");
+    assert.equal(run.pid, undefined);
+
+    const finished = await manager.waitForRun(run.id);
+    assert.equal(spawned, false);
+    assert.equal(finished.status, "completed");
+    assert.equal(finished.exitCode, 0);
+    assert.equal(finished.usage.source, "reported");
+    assert.equal(finished.usage.inputTokens, 3);
+    assert.equal(finished.usage.outputTokens, 4);
+    assert.deepEqual(finished.activity, ["async activity"]);
+    assert.equal(finished.finalTextPreview, "ASYNC OK");
+
+    const log = await readFile(finished.logPath, "utf8");
+    assert.match(log, /\[stdout\] async log line/);
+  });
+});
+
 test("WorkerManager starts one run, records lifecycle state, and captures logs", async () => {
   await withTempDir(async (artifactRoot) => {
     const child = new FakeChildProcess(4242);

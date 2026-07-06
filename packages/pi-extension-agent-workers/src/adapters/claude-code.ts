@@ -1,4 +1,4 @@
-import type { WorkerAdapter } from "../core/worker-types.ts";
+import type { ProcessWorkerAdapter } from "../core/worker-types.ts";
 import { textPreview, toNumber, type WorkerEvent, type WorkerUsage } from "../core/worker-events.ts";
 import { isCommandAvailable, type CommandAvailabilityCheck } from "./cli-utils.ts";
 
@@ -7,7 +7,7 @@ interface ClaudeCodeAdapterOptions {
   isCommandAvailable?: CommandAvailabilityCheck;
 }
 
-export function createClaudeCodeAdapter(options: ClaudeCodeAdapterOptions = {}): WorkerAdapter {
+export function createClaudeCodeAdapter(options: ClaudeCodeAdapterOptions = {}): ProcessWorkerAdapter {
   const executable = options.executable ?? "claude";
   const commandAvailable = options.isCommandAvailable ?? isCommandAvailable;
 

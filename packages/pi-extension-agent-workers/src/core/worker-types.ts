@@ -79,11 +79,33 @@ export interface WorkerRunOptions {
   durationMs?: number;
 }
 
+export interface AsyncWorkerRunContext {
+  task: string;
+  cwd: string;
+  options: WorkerRunOptions;
+  signal: AbortSignal;
+  emitEvent(event: WorkerEvent): void;
+  writeOutput(stream: "stdout" | "stderr", line: string): void;
+}
+
+export interface AsyncWorkerRunResult {
+  exitCode?: number;
+}
+
 export interface WorkerAdapter {
   name: string;
-  createSpawnSpec(task: string, cwd: string, options?: WorkerRunOptions): WorkerSpawnSpec;
+  createSpawnSpec?(task: string, cwd: string, options?: WorkerRunOptions): WorkerSpawnSpec;
+  runTask?(context: AsyncWorkerRunContext): Promise<AsyncWorkerRunResult>;
   parseOutputLine?(line: string, stream: "stdout" | "stderr", timestamp: number): WorkerEvent[];
   validate?(): void | Promise<void>;
+}
+
+export interface ProcessWorkerAdapter extends WorkerAdapter {
+  createSpawnSpec(task: string, cwd: string, options?: WorkerRunOptions): WorkerSpawnSpec;
+}
+
+export interface AsyncWorkerAdapter extends WorkerAdapter {
+  runTask(context: AsyncWorkerRunContext): Promise<AsyncWorkerRunResult>;
 }
 
 export interface ChildProcessLike extends EventEmitter {
