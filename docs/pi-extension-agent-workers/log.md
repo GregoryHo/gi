@@ -2,6 +2,10 @@
 
 Append important planning decisions, milestone starts/completions, verification evidence, and handoff notes here.
 
+## 2026-07-06
+
+- Started active v0.4.0 versioned planning area under `versions/0.4.0/` on branch `feature/pi-native-agent-worker-adapter`. M1 scopes Phase 4 pi-native sub-agent behavior as a `pi-sdk` worker adapter inside `pi-extension-agent-workers`, preserving the existing generic worker runtime rather than creating a separate package.
+
 ## 2026-05-25
 
 - Created initial docs and package scaffold on branch `feature/pi-extension-agent-workers`.

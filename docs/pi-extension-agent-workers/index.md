@@ -10,7 +10,12 @@
 
 ## Active planning version
 
-None. Start future product iterations under `versions/<semver>/` before implementation.
+- Version: `0.4.0`
+- Status: Active planning / implementation
+- Version docs: `versions/0.4.0/`
+- Theme: pi SDK-backed worker adapter for local pi-native sub-agent behavior without requiring external Claude Code or Codex CLI worker processes.
+
+v0.4.0 is scoped to extending `pi-extension-agent-workers` with a `pi-sdk` adapter while preserving existing worker safety defaults, profile semantics, history/widget behavior, and external CLI adapter support.
 
 v0.3.1 removed the temporary `/worker-ui-poc` runtime command after v0.3.0 promoted the accepted compact card widget direction into the default worker widget, fixed stale `M1 commands` wording, and normalizes orphaned historical active runs as stale failed history so widgets do not show them as indefinitely running.
 
@@ -39,6 +44,10 @@ Future product iterations should use versioned docs under `versions/<semver>/` b
 - `milestones.md` — historical milestone tracker through `v0.2.0`.
 - `archive.md` — completed/superseded docs index, including root-level milestone plans through `v0.2.0`.
 - `versions/README.md` — convention for future versioned planning docs.
+- `versions/0.4.0/index.md` — active v0.4.0 planning index.
+- `versions/0.4.0/milestones.md` — active v0.4.0 milestone tracker.
+- `versions/0.4.0/log.md` — v0.4.0 planning/change log.
+- `versions/0.4.0/m1-pi-sdk-worker-adapter.md` — pi SDK-backed worker adapter MVP plan.
 - `versions/0.3.1/index.md` — sealed v0.3.1 patch planning/release index.
 - `versions/0.3.1/milestones.md` — sealed v0.3.1 milestone tracker.
 - `versions/0.3.1/log.md` — v0.3.1 planning/change log.
