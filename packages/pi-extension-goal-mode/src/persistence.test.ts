@@ -98,6 +98,28 @@ test("registerGoalPersistenceAndUi restores sourcePlan with goal state", async (
   assert.notEqual(runtime.activeGoal?.sourcePlan, restored.sourcePlan);
 });
 
+test("registerGoalPersistenceAndUi restores workerDelegation with goal state", async () => {
+	const { handlers, runtime, ctx } = createHarness();
+	const restored = createGoalState({
+		objective: "Restore worker-assisted goal",
+		now: NOW,
+		workerDelegation: {
+			enabled: true,
+			workspace: "/tmp/project",
+			allowedProfiles: ["verifier"],
+			purpose: "independent verification",
+		},
+	});
+	ctx.sessionManager.getEntries = () => [
+		{ type: "custom", customType: GOAL_STATE_ENTRY_TYPE, data: { activeGoal: restored } },
+	];
+
+	await handlers.get("session_start")!({}, ctx);
+
+	assert.deepEqual(runtime.activeGoal?.workerDelegation, restored.workerDelegation);
+	assert.notEqual(runtime.activeGoal?.workerDelegation, restored.workerDelegation);
+});
+
 test("registerGoalPersistenceAndUi normalizes legacy stopped state to cancelled on restore", async () => {
   const { handlers, runtime, ctx } = createHarness();
   const legacyStopped = { ...createGoalState({ objective: "Legacy stopped", now: NOW }), phase: "stopped" };

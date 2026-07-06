@@ -197,6 +197,39 @@ test("goal_start starts a bounded goal, queues first iteration, and preserves so
   assert.equal(result.details?.goalId, runtime.activeGoal?.id);
 });
 
+test("goal_start starts a bounded goal with worker delegation and goal_status exposes it", async () => {
+	const { tools, runtime } = createHarness(() => NOW);
+	const workerDelegation = {
+		enabled: true,
+		workspace: "/tmp/project",
+		allowedProfiles: ["verifier"],
+		purpose: "independent verification",
+	};
+
+	const result = await tools.get("goal_start")!.execute("call_1", {
+		objective: "Use goal with verifier worker",
+		workerDelegation,
+	});
+	const status = await tools.get("goal_status")!.execute("call_2", {});
+
+	assert.equal(result.details?.accepted, true);
+	assert.deepEqual(runtime.activeGoal?.workerDelegation, workerDelegation);
+	assert.deepEqual(status.details?.workerDelegation, workerDelegation);
+});
+
+test("goal_start rejects invalid worker delegation profiles", async () => {
+	const { tools, runtime } = createHarness(() => NOW);
+
+	await assert.rejects(() => tools.get("goal_start")!.execute("call_1", {
+		objective: "Use goal with unsafe worker profile",
+		workerDelegation: {
+			enabled: true,
+			allowedProfiles: ["admin"],
+		},
+	}), /workerDelegation\.allowedProfiles/);
+	assert.equal(runtime.activeGoal, undefined);
+});
+
 test("goal_start rejects active and resumable goals", async () => {
   const { tools, runtime, sentMessages } = createHarness(() => NOW);
   runtime.activeGoal = createGoalState({ objective: "Existing goal", now: NOW });

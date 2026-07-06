@@ -60,12 +60,13 @@ Plan: `m3-tool-based-plan-goal-integration.md`.
 
 ### M4 — Worker-assisted goal loops
 
-After main-session loops and plan-artifact consumption are stable:
+Implemented after main-session loops and plan-artifact consumption stabilized:
 
 - Use `agent_worker_start` with `planner`, `reviewer`, or `verifier` only after explicit user intent.
 - Use `implementer` only with explicit workspace/scope and confirmation.
 - Consume worker output as compact evidence, not raw logs.
 - Do not bypass `agent-workers` confirmation or workspace collision rules.
+- Preserve package independence: Goal Mode stores policy/guidance, while Agent Workers owns execution and safety checks.
 
 Plan: `m4-worker-assisted-goal-loops.md`.
 

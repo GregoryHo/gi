@@ -194,16 +194,31 @@ Use an isolated temp folder for any write-capable scenarios.
 6. Verify worker result summaries appear as compact `goal_report.verification` evidence.
 7. Verify Goal Mode still blocks `done` reports without verification evidence.
 
-## Status tracking
+## Implementation result
 
-When implementation starts:
+M4 is implemented locally on `feat/goal-worker-assisted-loops`.
 
-- Update `milestones.md` M4 status to `In progress`.
-- Append a start note to `log.md`.
+Implemented behavior:
 
-When implementation completes:
+- `goal_start` accepts optional explicit `workerDelegation` policy.
+- Goal state preserves, copies, persists, and restores worker delegation policy.
+- `goal_status` exposes compact worker delegation details when present.
+- Active goal context renders `[WORKER DELEGATION]` only when `workerDelegation.enabled` is true.
+- Context/guidelines prefer read-only planner/reviewer/verifier workers, require explicit workspace/scope plus Agent Workers confirmation for implementer workers, and treat worker summaries as evidence rather than automatic proof.
+- Goal Mode keeps package independence and does not import Agent Workers internals.
 
-- Run the verification commands and manual smoke checks above.
-- Update `milestones.md` M4 status to `Done`.
-- Append verification evidence to `log.md`.
-- Update README/CHANGELOG with worker-assisted goal behavior.
+Verification evidence:
+
+- `npm test --workspace @gregho/pi-extension-goal-mode` — 72/72 tests passed.
+- `npm run typecheck --workspace @gregho/pi-extension-goal-mode` — passed.
+- `npm run pack:dry-run --workspace @gregho/pi-extension-goal-mode` — passed.
+- `npm test --workspace @gregho/pi-extension-agent-workers` — 120/120 tests passed.
+- `npm run typecheck --workspace @gregho/pi-extension-agent-workers` — passed.
+- `npm run typecheck` — passed.
+- Manual smoke in `/tmp/pi-goal-worker-m4-smoke-47788` passed and fixture rollback printed `TEMP_ROLLBACK_OK /tmp/pi-goal-worker-m4-smoke-47788`.
+
+Manual smoke coverage:
+
+- Normal Goal Mode prompt did not call `agent_worker_*`.
+- Explicit verifier delegation followed `goal_start -> agent_worker_start -> agent_worker_wait/status -> goal_report` using a demo read-only verifier worker.
+- Implementer delegation without explicit workspace/scope blocked and did not call `agent_worker_start`.

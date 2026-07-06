@@ -19,3 +19,6 @@
 ## 2026-07-06
 
 - M4 planning drafted on branch `feat/goal-worker-assisted-loops`. Decision: worker-assisted goal loops should remain tool-based and package-independent; Goal Mode may carry an explicit worker delegation policy, but Agent Workers continues to own worker execution, confirmation, workspace preflight, concurrency, and summaries.
+- M4 implementation added optional `goal_start.workerDelegation`, worker delegation state persistence/status exposure, compact `[WORKER DELEGATION]` context, profile validation, and safe tool-use guidance without importing Agent Workers internals.
+- M4 automated verification passed: `npm test --workspace @gregho/pi-extension-goal-mode` (72/72 tests); `npm run typecheck --workspace @gregho/pi-extension-goal-mode`; `npm run pack:dry-run --workspace @gregho/pi-extension-goal-mode`; `npm test --workspace @gregho/pi-extension-agent-workers` (120/120 tests); `npm run typecheck --workspace @gregho/pi-extension-agent-workers`; `npm run typecheck`.
+- M4 manual smoke passed in isolated temp fixture `/tmp/pi-goal-worker-m4-smoke-47788` and was rolled back. Verified: ordinary Goal Mode prompt did not call `agent_worker_*`; explicit verifier delegation followed `goal_start -> agent_worker_start -> agent_worker_wait/status -> goal_report`; implementer delegation without explicit workspace blocked without starting a worker.
