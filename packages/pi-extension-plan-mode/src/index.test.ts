@@ -87,7 +87,9 @@ test("plan mode injects active plan routing context after capture", async () => 
   assert.match(result.message.content, /Do not silently switch/);
   assert.match(result.message.content, /Do not silently complete/);
   assert.match(result.message.content, /Do not silently abandon/);
-  assert.match(result.message.content, /\/plan-new/);
+  assert.match(result.message.content, /plan_record/);
+  assert.match(result.message.content, /natural disposition/i);
+  assert.doesNotMatch(result.message.content, /\/plan-new/);
   assert.match(result.message.content, /\/plan-history/);
   assert.match(result.message.content, /\/plan-switch <id>/);
 });
@@ -102,6 +104,23 @@ test("context handler removes stale plan-mode context after mode is disabled", a
   });
 
   assert.deepEqual(result, { messages: [keep] });
+});
+
+
+test("plan mode omits active routing context after plan completion", async () => {
+  const harness = await createHarness({ activeTools: ["read", "edit", "write"], selectResults: ["Stay in plan mode"] });
+
+  planModeExtension(harness.pi as never);
+  await harness.commands.get("plan")?.handler("", harness.ctx);
+  await harness.event("agent_end")({ messages: [assistantMessage("Plan:\n1. Inspect code")] }, harness.ctx);
+  await harness.commands.get("plan-complete")?.handler("", harness.ctx);
+
+  const current = await harness.tools.get("plan_get_current")?.execute("call_1", {}, undefined, undefined, harness.ctx);
+  const context = await harness.event("before_agent_start")({}, harness.ctx);
+
+  assert.equal(current.details.found, true);
+  assert.equal(current.details.status, "completed");
+  assert.doesNotMatch(context.message.content, /\[ACTIVE PLAN\]/);
 });
 
 test("agent_end captures a plan and stay choice preserves plan mode", async () => {
@@ -263,7 +282,99 @@ test("plan_get_current does not mutate current artifact", async () => {
   await harness.tools.get("plan_get_current")?.execute("call_1", {}, undefined, undefined, harness.ctx);
   const after = await readFile(join(harness.artifactRoot, "current.json"), "utf8");
 
+	assert.equal(after, before);
+});
+
+test("plan_record creates a new current plan from structured steps", async () => {
+	const harness = await createHarness({ activeTools: ["read", "edit", "write"] });
+
+	planModeExtension(harness.pi as never);
+	const result = await harness.tools.get("plan_record")?.execute("call_1", {
+		intent: "new",
+		title: "Natural planning flow",
+		steps: [
+			{ step: 1, text: "Add a plan tool" },
+			{ step: 2, text: "Verify natural routing" },
+		],
+	}, undefined, undefined, harness.ctx);
+	const current = JSON.parse(await readFile(join(harness.artifactRoot, "current.json"), "utf8"));
+
+	assert.equal(result.details.accepted, true);
+	assert.equal(result.details.title, "Natural planning flow");
+	assert.equal(result.details.status, "draft");
+	assert.match(current.activePlanId, /^plan_/);
+	assert.equal(harness.status["plan-mode"], "⏸ plan");
+});
+
+test("plan_record rejects new objectives over active plans without disposition", async () => {
+	const harness = await createHarness({ activeTools: ["read", "edit", "write"] });
+
+	planModeExtension(harness.pi as never);
+	await harness.tools.get("plan_record")?.execute("call_1", {
+		intent: "new",
+		title: "First plan",
+		steps: [{ step: 1, text: "Keep me" }],
+	}, undefined, undefined, harness.ctx);
+	const before = JSON.parse(await readFile(join(harness.artifactRoot, "current.json"), "utf8")).activePlanId;
+
+	const result = await harness.tools.get("plan_record")?.execute("call_2", {
+		intent: "new",
+		title: "Second plan",
+		steps: [{ step: 1, text: "Replace me" }],
+	}, undefined, undefined, harness.ctx);
+	const after = JSON.parse(await readFile(join(harness.artifactRoot, "current.json"), "utf8")).activePlanId;
+
+	assert.equal(result.details.accepted, false);
+	assert.equal(result.details.reason, "needs_disposition");
+	assert.equal(after, before);
+});
+
+test("plan_record pauses an active plan before recording a new objective", async () => {
+	const harness = await createHarness({ activeTools: ["read", "edit", "write"] });
+
+	planModeExtension(harness.pi as never);
+	await harness.tools.get("plan_record")?.execute("call_1", {
+		intent: "new",
+		title: "First plan",
+		steps: [{ step: 1, text: "Keep me" }],
+	}, undefined, undefined, harness.ctx);
+
+	const result = await harness.tools.get("plan_record")?.execute("call_2", {
+		intent: "new",
+		activePlanDisposition: "pause",
+		title: "Second plan",
+		steps: [{ step: 1, text: "Record naturally" }],
+	}, undefined, undefined, harness.ctx);
+	const index = JSON.parse(await readFile(join(harness.artifactRoot, "index.json"), "utf8"));
+
+	assert.equal(result.details.accepted, true);
+	assert.equal(result.details.title, "Second plan");
+	assert.equal(index.plans[0].status, "paused");
+	assert.equal(index.plans[1].status, "draft");
+});
+
+test("plan_record refines the current plan while preserving its id", async () => {
+	const harness = await createHarness({ activeTools: ["read", "edit", "write"] });
+
+	planModeExtension(harness.pi as never);
+	await harness.tools.get("plan_record")?.execute("call_1", {
+		intent: "new",
+		title: "Original plan",
+		steps: [{ step: 1, text: "Original step" }],
+	}, undefined, undefined, harness.ctx);
+	const before = JSON.parse(await readFile(join(harness.artifactRoot, "current.json"), "utf8")).activePlanId;
+
+	const result = await harness.tools.get("plan_record")?.execute("call_2", {
+		intent: "refine_current",
+		title: "Refined plan",
+		steps: [{ step: 1, text: "Refined step" }],
+	}, undefined, undefined, harness.ctx);
+	const after = JSON.parse(await readFile(join(harness.artifactRoot, "current.json"), "utf8")).activePlanId;
+
+	assert.equal(result.details.accepted, true);
+	assert.equal(result.details.planId, before);
   assert.equal(after, before);
+  assert.deepEqual(result.details.steps, [{ step: 1, text: "Refined step" }]);
 });
 
 test("plan-execute without a captured plan reports no plan", async () => {
