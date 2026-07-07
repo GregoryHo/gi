@@ -10,13 +10,15 @@ The key design rule: **agent-workers stays domain-independent**. Other extension
 - `agent_worker_start` — start one worker using a profile or explicit adapter.
 - `agent_worker_status` — inspect one run or all runs.
 - `agent_worker_cancel` — cancel one run.
+- `agent_worker_wait` — wait for one in-memory run with an optional caller wait limit.
+- `agent_worker_list_runs` — list compact current-workspace or all-workspace run history.
 
 ## Output fields
 
 Tool and status output is intentionally compact:
 
 - `runId` — stable id for follow-up status/cancel/log requests.
-- `status` — `running`, `completed`, `failed`, or `cancelled`.
+- `status` — `running`, `completed`, `failed`, `cancelled`, or `timed_out`.
 - `usage.source` — `reported`, `estimated`, or `unknown`; missing usage is unknown, not zero.
 - `activity` — compact recent worker activity summary.
 - `finalText` / `final` — final text preview when the adapter emits one.
@@ -48,10 +50,12 @@ Worker output includes `cwd`. Confirm it is the intended product repository befo
 ## Safety notes
 
 - Real Claude/Codex workers may read or modify files according to their own CLI policy.
+- The `pi-sdk` adapter is also a real adapter: it runs a local pi SDK child session, requires confirmation by default, and may use read/write tools according to the resolved worker safety metadata.
 - Start real workers only when the user clearly requested delegation or after confirmation.
 - The extension does not add dangerous permission or sandbox bypass flags by default.
 - Runtime logs stay local under `~/.pi/agent/agent-workers/runs/<runId>/` and may include prompts, repository context, command output, or account metadata.
 - Do not present `usage.source: unknown` as zero usage.
+- In the v0.4.0 MVP, `pi-sdk` child sessions use a minimal child resource loader: no nested `agent-workers` tools, no project-local child extension discovery, and no long-lived child sessions.
 
 ## Recipe: safe demo worker smoke
 
@@ -175,6 +179,47 @@ Equivalent manual command fallback:
 /worker-run --adapter codex-cli Implement the current milestone. Keep changes focused on the documented acceptance criteria. Report completion, tests run, and any blockers.
 /worker-status <runId>
 ```
+
+## Recipe: pi-native SDK worker smoke
+
+Use this when model credentials are available and you want to validate the local pi SDK-backed adapter without invoking an external worker CLI.
+
+Manual command:
+
+```text
+/worker-run --adapter pi-sdk --yes Reply with OK only.
+```
+
+Expected LLM tool sequence:
+
+```json
+agent_worker_start({
+  "adapter": "pi-sdk",
+  "task": "Reply with OK only.",
+  "confirmedRealWorker": true
+})
+```
+
+Then:
+
+```json
+agent_worker_status({
+  "runId": "<runId from start>"
+})
+```
+
+Expected result:
+
+- adapter is `pi-sdk`.
+- status becomes `completed` if model credentials are available.
+- output includes compact `activity` and possibly `finalText` / reported usage when the child session emits them.
+- no external `claude-code` or `codex` subprocess is started.
+
+Notes:
+
+- `pi-sdk` is confirmation-gated like other real adapters.
+- Read-only runs expose only `read`, `grep`, `find`, and `ls` to the child session.
+- Write-capable runs expose `bash`, `edit`, and `write` only after existing confirmation and workspace-collision rules apply.
 
 ## Recipe: Jira focused issue planning
 

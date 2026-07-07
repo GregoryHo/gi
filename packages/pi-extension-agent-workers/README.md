@@ -4,7 +4,7 @@ pi package for supervising delegated AI agent worker CLI processes such as Claud
 
 ## Status
 
-v0.3.1 is the current local release. It keeps the v0.3.0 workspace-aware worker UI/config surface, removes the temporary `/worker-ui-poc` command after its PoC findings were promoted into the default widget, and marks orphaned historical active runs as stale instead of indefinitely running. Roadmap and milestone docs live in [`../../docs/pi-extension-agent-workers`](../../docs/pi-extension-agent-workers).
+v0.3.1 is the current local release. The active v0.4.0 implementation branch adds an unreleased `pi-sdk` worker adapter for local pi SDK child sessions while preserving the existing demo, Claude Code, and Codex CLI adapters. Roadmap and milestone docs live in [`../../docs/pi-extension-agent-workers`](../../docs/pi-extension-agent-workers).
 
 ## Goal
 
@@ -25,6 +25,7 @@ The first iterations focus on generic worker supervision only:
 - M13 — allow up to 6 active workers with conservative workspace collision rules.
 - v0.3.0 — workspace-scoped history/config, original task previews, custom profiles, UI capability PoC, and compact refreshing default widget.
 - v0.3.1 — remove the temporary `/worker-ui-poc` command and PoC-only runtime source after the default widget shipped, fix stale historical active runs in history/widget displays, and remove stale `M1 commands` wording.
+- v0.4.0 — add an unreleased `pi-sdk` async adapter that runs bounded local pi SDK child sessions without requiring an external worker CLI process.
 
 Cross-extension delegation through LLM tools and recipes is supported while this package remains domain-independent.
 
@@ -63,13 +64,14 @@ Worker commands:
 - `/worker-run [--adapter demo] [--duration-ms 10000] [--timeout-ms <ms>] <task>` — start one safe demo worker process. `--duration-ms` is optional and capped at 60000 ms for manual cancellation testing. `--timeout-ms` enforces a run deadline.
 - `/worker-run --adapter claude-code <task>` — start Claude Code with non-interactive `stream-json` output.
 - `/worker-run --adapter codex-cli <task>` — start Codex CLI with `exec --json` output.
+- `/worker-run --adapter pi-sdk <task>` — start a bounded local pi SDK child session using an isolated in-memory session and compact worker result capture.
 - `/worker-status [id]` — show rich compact status for all in-memory runs or one run.
 - `/worker-history [--all] [--limit <n>]` — show recent compact run history, including informational historical runs after restart; defaults to the current workspace.
 - `/worker-wait <id> [--wait-ms <ms>]` — wait for one in-memory worker to finish; caller wait timeout does not cancel the run.
 - `/worker-log <id>` — show the run log tail.
 - `/worker-kill <id>` — cancel a running worker.
 
-Real adapters require explicit confirmation in UI, or `--yes` in non-UI mode. Confirmation includes the effective worker workspace. All adapters use explicit argv with `shell: false`.
+Real adapters (`claude-code`, `codex-cli`, and `pi-sdk`) require explicit confirmation in UI, or `--yes` in non-UI mode. Confirmation includes the effective worker workspace. Subprocess adapters use explicit argv with `shell: false`; `pi-sdk` runs in memory without a child process.
 
 Workspace custom profiles can be added to the local workspace config JSON under `profiles`. Example:
 
@@ -91,9 +93,9 @@ Workspace custom profiles can be added to the local workspace config JSON under 
 }
 ```
 
-Custom profiles cannot override built-in profile names. Real-adapter custom profiles must set `requireConfirmation: true`.
+Custom profiles cannot override built-in profile names. Real-adapter custom profiles, including `pi-sdk`, must set `requireConfirmation: true`.
 
-M2/M3 parser integration normalizes final text, activity summaries, and reported usage without exposing raw event payloads in status output. M4 exports a reusable service API for other packages or orchestration layers without coupling those domains into this core extension.
+M2/M3 parser integration normalizes final text, activity summaries, and reported usage without exposing raw event payloads in status output. M4 exports a reusable service API for other packages or orchestration layers without coupling those domains into this core extension. The unreleased v0.4.0 `pi-sdk` adapter maps child assistant final text and usage events into the same compact worker summaries.
 
 ## LLM tools
 
@@ -122,6 +124,7 @@ Common patterns:
 - Focused implementation: use `profile: "implementer"` only after workspace/scope are clear and confirmation is appropriate.
 - Independent verification: use `profile: "verifier"` to check acceptance criteria without modifying files.
 - Standalone implementation: use `agent_worker_start` with `adapter: "codex-cli"` after clear user intent or confirmation.
+- Pi-native delegation: use `agent_worker_start` or `/worker-run` with `adapter: "pi-sdk"` when you want a local pi SDK child session rather than an external CLI worker.
 - Jira + workers: use Jira tools such as `jira_get_focused_issue` first, then pass the compact issue context to `agent_worker_start` as a generic task.
 
 Interpretation tips:
@@ -138,12 +141,14 @@ Interpretation tips:
 ## Safety boundaries
 
 - Do not default to dangerous permission or sandbox bypass modes for external CLIs.
+- `pi-sdk` child sessions use a minimal child resource loader in this MVP: no nested `agent-workers` tools, no project-local child extension discovery, no long-lived child sessions, and no cloud execution added by this package.
 - Validate the worker workspace before delegating product/Jira work; preflight warnings are advisory and do not hard-block.
 - Runtime artifacts must live in ignored local directories or under `~/.pi/agent/agent-workers/`.
 - Token and cost metrics must be marked as reported, estimated, or unknown; missing usage is shown as unknown, not zero.
 - Up to 6 workers may run concurrently when safety rules allow it.
 - Read-only workers may share a workspace. Write-capable workers are blocked from sharing the same git root/workspace while another write-capable worker is active.
 - Write-capable or destructive worker modes require explicit user confirmation.
+- `pi-sdk` read-only runs expose only `read`, `grep`, `find`, and `ls`; write-capable `pi-sdk` runs expose `bash`, `edit`, and `write` only after the same confirmation and workspace-collision safety rules apply.
 
 ## Development verification
 

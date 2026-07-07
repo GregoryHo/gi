@@ -109,4 +109,13 @@ At completion:
 
 ## Completion notes
 
-Not complete yet.
+Implementation progress as of 2026-07-07:
+
+- Added async/in-memory adapter support alongside subprocess adapters.
+- Added `src/adapters/pi-sdk.ts` using `createAgentSession()` with isolated in-memory sessions and a minimal child resource loader.
+- Wired `pi-sdk` through command parsing/help, LLM tool schema, workspace config defaults, custom profile validation, request/service types, and default `WorkerManager` registration.
+- Preserved safety defaults: `pi-sdk` is treated as a real adapter requiring confirmation by default; read-only runs expose only `read`, `grep`, `find`, and `ls`; write-capable runs expose `bash`, `edit`, and `write` only after existing confirmation/workspace safety applies.
+- Added tests for async adapter success/failure/cancel/timeout paths, pi-sdk tool-scope selection, child final/usage shaping, and public adapter surface wiring.
+- Updated README, CHANGELOG, orchestration recipes, and v0.4.0 docs with behavior, non-goals, safety boundaries, and usage notes.
+
+Not sealed yet: final full verification, pack dry-run, repo typecheck, non-interactive load smoke, and optional manual `pi-sdk` smoke remain to be recorded before M1 is marked Done.

@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### Added
+
+- Added an unreleased `pi-sdk` worker adapter backed by local pi SDK child sessions, including async adapter runtime support, compact final/usage event shaping, confirmation-gated public surfaces, and conservative read-only/write-capable tool scopes.
+- Added async adapter lifecycle coverage for success, failure, cancellation, and timeout paths.
+
+### Changed
+
+- Worker adapter handling now supports both subprocess-backed adapters and in-memory async adapters without removing the existing `demo`, `claude-code`, or `codex-cli` adapters.
+
 ## 0.3.1 - 2026-05-29
 
 ### Fixed

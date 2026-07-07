@@ -6,6 +6,10 @@ Append important planning decisions, milestone starts/completions, verification 
 
 - Started active v0.4.0 versioned planning area under `versions/0.4.0/` on branch `feature/pi-native-agent-worker-adapter`. M1 scopes Phase 4 pi-native sub-agent behavior as a `pi-sdk` worker adapter inside `pi-extension-agent-workers`, preserving the existing generic worker runtime rather than creating a separate package.
 
+## 2026-07-07
+
+- Implemented and documented the main v0.4.0 M1 `pi-sdk` adapter slices: async adapter runtime support, pi SDK child-session adapter, public adapter wiring, confirmation-gated real-adapter classification, conservative child tool scopes, and async terminal-path tests. README, CHANGELOG, orchestration recipes, and v0.4.0 docs now describe behavior, non-goals, safety boundaries, and usage. M1 remains unsealed pending full verification evidence.
+
 ## 2026-05-25
 
 - Created initial docs and package scaffold on branch `feature/pi-extension-agent-workers`.
