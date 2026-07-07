@@ -65,6 +65,10 @@ test("validateCustomWorkerProfiles rejects unsafe or colliding profiles", () => 
     () => validateCustomWorkerProfiles([{ name: "unsafe", description: "x", adapter: "claude-code", mode: "review", requireConfirmation: false, readOnly: true, canModifyWorkspace: false, recommendedUse: "x" }]),
     /must require confirmation/,
   );
+  assert.throws(
+    () => validateCustomWorkerProfiles([{ name: "unsafe-sdk", description: "x", adapter: "pi-sdk", mode: "review", requireConfirmation: false, readOnly: true, canModifyWorkspace: false, recommendedUse: "x" }]),
+    /must require confirmation/,
+  );
 });
 
 test("getWorkerProfiles merges built-ins with custom profiles", () => {

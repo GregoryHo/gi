@@ -65,6 +65,12 @@ test("parseWorkerRunArgs accepts explicit real worker adapters", () => {
     task: "review change",
     confirmedRealWorker: true,
   });
+  assert.deepEqual(parseWorkerRunArgs("--adapter pi-sdk --yes plan with local sdk"), {
+    ok: true,
+    adapter: "pi-sdk",
+    task: "plan with local sdk",
+    confirmedRealWorker: true,
+  });
 });
 
 test("parseWorkerRunArgs accepts explicit cwd", () => {
@@ -128,6 +134,7 @@ test("getAgentWorkersHelpLines lists M3 commands and real worker safety", () => 
   assert.ok(lines.some((line) => line.includes("--profile verifier")));
   assert.ok(lines.some((line) => line.includes("claude-code")));
   assert.ok(lines.some((line) => line.includes("codex-cli")));
+  assert.ok(lines.some((line) => line.includes("pi-sdk")));
   assert.ok(lines.some((line) => line.includes("confirmation")));
   assert.ok(lines.some((line) => line.includes("usage.source = unknown")));
   assert.equal(lines.some((line) => line.includes("worker-ui-poc")), false);

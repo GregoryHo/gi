@@ -57,6 +57,11 @@ test("AgentWorkerService classifies profile and direct real-adapter safety", () 
   assert.equal(directReal.readOnly, false);
   assert.equal(directReal.canModifyWorkspace, true);
 
+  const piSdk = service.resolveRequest({ adapter: "pi-sdk", task: "custom" });
+  assert.equal(piSdk.requireConfirmation, true);
+  assert.equal(piSdk.readOnly, false);
+  assert.equal(piSdk.canModifyWorkspace, true);
+
   const demo = service.resolveRequest({ adapter: "demo", task: "demo" });
   assert.equal(demo.readOnly, true);
   assert.equal(demo.canModifyWorkspace, false);

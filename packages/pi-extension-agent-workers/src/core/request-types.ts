@@ -3,7 +3,7 @@ import type { WorkerStatus } from "./worker-types.ts";
 
 export type WorkerMode = "plan" | "review" | "implement" | "custom";
 
-export type WorkerAdapterName = "demo" | "claude-code" | "codex-cli";
+export type WorkerAdapterName = "demo" | "claude-code" | "codex-cli" | "pi-sdk";
 
 export interface WorkerRequest {
   adapter?: WorkerAdapterName;

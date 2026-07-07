@@ -102,6 +102,7 @@ test("readWorkspaceConfig rejects malformed local config", async () => {
 
 test("validateWorkspaceConfigPatch accepts only safe known values", () => {
   assert.deepEqual(validateWorkspaceConfigPatch("defaultAdapter", "demo"), { defaultAdapter: "demo" });
+  assert.deepEqual(validateWorkspaceConfigPatch("defaultAdapter", "pi-sdk"), { defaultAdapter: "pi-sdk" });
   assert.deepEqual(validateWorkspaceConfigPatch("defaultProfile", "reviewer"), { defaultProfile: "reviewer" });
   assert.deepEqual(validateWorkspaceConfigPatch("defaultTimeoutMs", "1000"), { defaultTimeoutMs: 1000 });
   assert.deepEqual(validateWorkspaceConfigPatch("historyScope", "all"), { historyScope: "all" });

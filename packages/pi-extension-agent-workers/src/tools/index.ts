@@ -60,7 +60,7 @@ export function registerAgentWorkerTools(pi: ExtensionAPI, service = new AgentWo
     parameters: Type.Object({
       profile: Type.Optional(Type.String({ description: "Optional worker profile, for example planner or reviewer." })),
       adapter: Type.Optional(
-        StringEnum(["demo", "claude-code", "codex-cli"] as const, { description: "Optional explicit worker adapter." }),
+        StringEnum(["demo", "claude-code", "codex-cli", "pi-sdk"] as const, { description: "Optional explicit worker adapter." }),
       ),
       task: Type.String({ description: "Task or prompt to delegate to the worker." }),
       systemPrompt: Type.Optional(Type.String({ description: "Optional system prompt to wrap around the task." })),
@@ -257,7 +257,7 @@ export function workerRunSummary(run: WorkerRun): Record<string, unknown> {
 }
 
 function requiresConfirmation(request: ResolvedWorkerRequest): boolean {
-  return request.requireConfirmation || request.adapter === "claude-code" || request.adapter === "codex-cli";
+  return request.requireConfirmation || request.adapter === "claude-code" || request.adapter === "codex-cli" || request.adapter === "pi-sdk";
 }
 
 async function confirmWorkerStart(request: ResolvedWorkerRequest, ctx: ToolContextLike): Promise<boolean> {

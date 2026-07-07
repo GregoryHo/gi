@@ -41,7 +41,7 @@ test("registerAgentWorkerTools uses Google-compatible string enum schemas", () =
 
   registerAgentWorkerTools(pi, createFakeService());
 
-  assert.deepEqual(getToolStringEnum(tools.get("agent_worker_start"), "adapter"), ["demo", "claude-code", "codex-cli"]);
+  assert.deepEqual(getToolStringEnum(tools.get("agent_worker_start"), "adapter"), ["demo", "claude-code", "codex-cli", "pi-sdk"]);
   assert.deepEqual(getToolStringEnum(tools.get("agent_worker_start"), "mode"), ["plan", "review", "implement", "custom"]);
   assert.deepEqual(getToolStringEnum(tools.get("agent_worker_list_runs"), "scope"), ["current", "all"]);
 });
@@ -224,8 +224,8 @@ function createFakeService(options: { requireConfirmation?: boolean; history?: A
       task: request.task,
       cwd: request.cwd ?? "/tmp/project",
       requireConfirmation: options.resolvedFromConfig?.requireConfirmation ?? options.requireConfirmation ?? false,
-      readOnly: adapter !== "claude-code" && adapter !== "codex-cli",
-      canModifyWorkspace: adapter === "claude-code" || adapter === "codex-cli",
+      readOnly: adapter !== "claude-code" && adapter !== "codex-cli" && adapter !== "pi-sdk",
+      canModifyWorkspace: adapter === "claude-code" || adapter === "codex-cli" || adapter === "pi-sdk",
     };
   };
 

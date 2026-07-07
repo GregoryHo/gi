@@ -80,7 +80,7 @@ export function validateWorkspaceConfigPatch(key: string, rawValue: string): Wor
     case "defaultProfile":
       return { defaultProfile: nonEmptyString(rawValue, key) };
     case "defaultAdapter":
-      if (!isWorkerAdapterName(rawValue)) throw new Error("defaultAdapter must be one of: demo, claude-code, codex-cli.");
+      if (!isWorkerAdapterName(rawValue)) throw new Error("defaultAdapter must be one of: demo, claude-code, codex-cli, pi-sdk.");
       return { defaultAdapter: rawValue };
     case "defaultTimeoutMs":
       return { defaultTimeoutMs: parseBoundedInteger(rawValue, key, 1, MAX_TIMEOUT_MS) };
@@ -124,7 +124,7 @@ function normalizeConfig(raw: unknown, ref: WorkspaceConfigRef): WorkspaceAgentW
 function validateConfigPatch(patch: WorkspaceAgentWorkerConfigPatch): void {
   if (patch.defaultProfile !== undefined) nonEmptyString(patch.defaultProfile, "defaultProfile");
   if (patch.defaultAdapter !== undefined && !isWorkerAdapterName(patch.defaultAdapter)) {
-    throw new Error("defaultAdapter must be one of: demo, claude-code, codex-cli.");
+    throw new Error("defaultAdapter must be one of: demo, claude-code, codex-cli, pi-sdk.");
   }
   if (patch.defaultTimeoutMs !== undefined) validateInteger(patch.defaultTimeoutMs, "defaultTimeoutMs", 1, MAX_TIMEOUT_MS);
   if (patch.historyScope !== undefined && patch.historyScope !== "current" && patch.historyScope !== "all") {
@@ -159,7 +159,7 @@ function nonEmptyString(value: string, key: string): string {
 }
 
 function isWorkerAdapterName(value: string): value is WorkerAdapterName {
-  return value === "demo" || value === "claude-code" || value === "codex-cli";
+  return value === "demo" || value === "claude-code" || value === "codex-cli" || value === "pi-sdk";
 }
 
 function scopeHash(scopeKey: string): string {

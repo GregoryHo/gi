@@ -90,7 +90,7 @@ export function parseWorkerRunArgs(args: string): ParsedWorkerRunArgs {
   }
 
   if (adapter !== undefined && !isWorkerAdapterName(adapter)) {
-    return { ok: false, message: `Unknown adapter: ${adapter}. Available adapters: demo, claude-code, codex-cli.` };
+    return { ok: false, message: `Unknown adapter: ${adapter}. Available adapters: demo, claude-code, codex-cli, pi-sdk.` };
   }
 
   const task = parts.slice(index).join(" ").trim();
@@ -160,13 +160,13 @@ export function parseWorkerWaitArgs(args: string): ParsedWorkerWaitArgs {
 }
 
 function isWorkerAdapterName(adapter: string): adapter is WorkerAdapterName {
-  return adapter === "demo" || adapter === "claude-code" || adapter === "codex-cli";
+  return adapter === "demo" || adapter === "claude-code" || adapter === "codex-cli" || adapter === "pi-sdk";
 }
 
 function workerRunUsage(): ParsedWorkerRunArgs {
   return {
     ok: false,
-    message: "Usage: /worker-run [--cwd <path>] [--pick-cwd] [--adapter demo|claude-code|codex-cli] [--profile planner|reviewer|implementer|verifier] [--duration-ms 10000] [--timeout-ms <ms>] [--yes] <task>",
+    message: "Usage: /worker-run [--cwd <path>] [--pick-cwd] [--adapter demo|claude-code|codex-cli|pi-sdk] [--profile planner|reviewer|implementer|verifier] [--duration-ms 10000] [--timeout-ms <ms>] [--yes] <task>",
   };
 }
 

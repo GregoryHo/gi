@@ -227,5 +227,5 @@ function formatPromptedTask(systemPrompt: string, task: string): string {
 }
 
 function isRealAdapter(adapter: WorkerRequest["adapter"]): boolean {
-  return adapter === "claude-code" || adapter === "codex-cli";
+  return adapter === "claude-code" || adapter === "codex-cli" || adapter === "pi-sdk";
 }

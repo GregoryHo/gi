@@ -143,8 +143,8 @@ function validateBoolean(value: unknown, key: string): boolean {
 }
 
 function validateAdapter(value: unknown, key: string): WorkerAdapterName {
-  if (value === "demo" || value === "claude-code" || value === "codex-cli") return value;
-  throw new Error(`${key} must be one of: demo, claude-code, codex-cli.`);
+  if (value === "demo" || value === "claude-code" || value === "codex-cli" || value === "pi-sdk") return value;
+  throw new Error(`${key} must be one of: demo, claude-code, codex-cli, pi-sdk.`);
 }
 
 function validateMode(value: unknown, key: string): WorkerMode {
@@ -160,5 +160,5 @@ function validateTimeout(value: unknown, key: string): number {
 }
 
 function isRealAdapter(adapter: WorkerAdapterName): boolean {
-  return adapter === "claude-code" || adapter === "codex-cli";
+  return adapter === "claude-code" || adapter === "codex-cli" || adapter === "pi-sdk";
 }
