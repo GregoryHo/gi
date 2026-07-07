@@ -2,7 +2,7 @@
 
 | Milestone | Status | Goal | Notes |
 | --- | --- | --- | --- |
-| M1 Pi SDK-backed worker adapter MVP | In progress | Add a local pi SDK-backed worker adapter while preserving existing worker safety and CLI adapter behavior | Plan: `m1-pi-sdk-worker-adapter.md` |
+| M1 Pi SDK-backed worker adapter MVP | Done | Add a local pi SDK-backed worker adapter while preserving existing worker safety and CLI adapter behavior | Verification passed; plan: `m1-pi-sdk-worker-adapter.md` |
 
 ## Completion criteria
 

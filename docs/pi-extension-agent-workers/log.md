@@ -8,7 +8,8 @@ Append important planning decisions, milestone starts/completions, verification 
 
 ## 2026-07-07
 
-- Implemented and documented the main v0.4.0 M1 `pi-sdk` adapter slices: async adapter runtime support, pi SDK child-session adapter, public adapter wiring, confirmation-gated real-adapter classification, conservative child tool scopes, and async terminal-path tests. README, CHANGELOG, orchestration recipes, and v0.4.0 docs now describe behavior, non-goals, safety boundaries, and usage. M1 remains unsealed pending full verification evidence.
+- Implemented and documented the main v0.4.0 M1 `pi-sdk` adapter slices: async adapter runtime support, pi SDK child-session adapter, public adapter wiring, confirmation-gated real-adapter classification, conservative child tool scopes, and async terminal-path tests. README, CHANGELOG, orchestration recipes, and v0.4.0 docs now describe behavior, non-goals, safety boundaries, and usage.
+- Completed v0.4.0 M1 verification. Passed: `npm test --workspace @gregho/pi-extension-agent-workers` (127 tests), `npm run typecheck --workspace @gregho/pi-extension-agent-workers`, `npm run pack:dry-run --workspace @gregho/pi-extension-agent-workers`, `npm run typecheck`, and `pi -e ./packages/pi-extension-agent-workers --no-session -p "/agent-workers"`. Optional manual `pi-sdk` model smoke was not run to avoid invoking model credentials without explicit smoke confirmation.
 
 ## 2026-05-25
 

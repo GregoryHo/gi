@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress.
+Done.
 
 ## SPEC
 
@@ -117,5 +117,10 @@ Implementation progress as of 2026-07-07:
 - Preserved safety defaults: `pi-sdk` is treated as a real adapter requiring confirmation by default; read-only runs expose only `read`, `grep`, `find`, and `ls`; write-capable runs expose `bash`, `edit`, and `write` only after existing confirmation/workspace safety applies.
 - Added tests for async adapter success/failure/cancel/timeout paths, pi-sdk tool-scope selection, child final/usage shaping, and public adapter surface wiring.
 - Updated README, CHANGELOG, orchestration recipes, and v0.4.0 docs with behavior, non-goals, safety boundaries, and usage notes.
-
-Not sealed yet: final full verification, pack dry-run, repo typecheck, non-interactive load smoke, and optional manual `pi-sdk` smoke remain to be recorded before M1 is marked Done.
+- Final verification passed:
+  - `npm test --workspace @gregho/pi-extension-agent-workers` — 127 tests passed.
+  - `npm run typecheck --workspace @gregho/pi-extension-agent-workers` — passed.
+  - `npm run pack:dry-run --workspace @gregho/pi-extension-agent-workers` — passed and included `src/adapters/pi-sdk.ts` in `gregho-pi-extension-agent-workers-0.3.1.tgz` dry-run contents.
+  - `npm run typecheck` — passed across workspaces.
+  - `pi -e ./packages/pi-extension-agent-workers --no-session -p "/agent-workers"` — exited successfully.
+- Optional manual `pi-sdk` model smoke was not run in this verification slice to avoid invoking model credentials without an explicit credential/smoke confirmation.
