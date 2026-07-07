@@ -156,6 +156,80 @@ test("WorkerManager runs async adapters without spawning a subprocess", async ()
   });
 });
 
+test("WorkerManager marks async adapter errors as adapter failures", async () => {
+  await withTempDir(async (artifactRoot) => {
+    const adapter: WorkerAdapter = {
+      name: "async-fail",
+      async runTask() {
+        throw new Error("async boom");
+      },
+    };
+    const manager = new WorkerManager({ artifactRoot, adapters: [adapter] });
+
+    const run = await manager.startRun({ adapter: "async-fail", task: "fail async", cwd: "/tmp/project" });
+    const finished = await manager.waitForRun(run.id);
+
+    assert.equal(finished.status, "failed");
+    assert.equal(finished.statusReason, "adapter_error");
+    const log = await readFile(finished.logPath, "utf8");
+    assert.match(log, /\[stderr\] async boom/);
+  });
+});
+
+test("WorkerManager cancels async adapters with an abort signal", async () => {
+  await withTempDir(async (artifactRoot) => {
+    let signalAborted = false;
+    const adapter: WorkerAdapter = {
+      name: "async-cancel",
+      async runTask({ signal }) {
+        await new Promise<void>((resolve) => {
+          signal.addEventListener("abort", () => {
+            signalAborted = true;
+            resolve();
+          }, { once: true });
+        });
+        return { exitCode: 0 };
+      },
+    };
+    const manager = new WorkerManager({ artifactRoot, adapters: [adapter] });
+
+    const run = await manager.startRun({ adapter: "async-cancel", task: "cancel async", cwd: "/tmp/project" });
+    const cancelled = manager.cancelRun(run.id);
+    const finished = await manager.waitForRun(run.id);
+
+    assert.equal(cancelled.status, "cancelled");
+    assert.equal(signalAborted, true);
+    assert.equal(finished.status, "cancelled");
+    assert.equal(finished.statusReason, "cancelled");
+  });
+});
+
+test("WorkerManager times out async adapters with an abort signal", async () => {
+  await withTempDir(async (artifactRoot) => {
+    let signalAborted = false;
+    const adapter: WorkerAdapter = {
+      name: "async-timeout",
+      async runTask({ signal }) {
+        await new Promise<void>((resolve) => {
+          signal.addEventListener("abort", () => {
+            signalAborted = true;
+            resolve();
+          }, { once: true });
+        });
+        return { exitCode: 0 };
+      },
+    };
+    const manager = new WorkerManager({ artifactRoot, adapters: [adapter] });
+
+    const run = await manager.startRun({ adapter: "async-timeout", task: "timeout async", cwd: "/tmp/project", timeoutMs: 5 });
+    const finished = await manager.waitForRun(run.id);
+
+    assert.equal(signalAborted, true);
+    assert.equal(finished.status, "timed_out");
+    assert.equal(finished.statusReason, "timed_out");
+  });
+});
+
 test("WorkerManager starts one run, records lifecycle state, and captures logs", async () => {
   await withTempDir(async (artifactRoot) => {
     const child = new FakeChildProcess(4242);

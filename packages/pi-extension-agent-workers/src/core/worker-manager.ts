@@ -216,7 +216,7 @@ export class WorkerManager {
         .catch((error) => {
           writeOutput("stderr", error instanceof Error ? error.message : String(error));
           const status: WorkerStatus = run.status === "timed_out" ? "timed_out" : run.status === "cancelled" ? "cancelled" : "failed";
-          if (!record.run.statusReason) record.run.statusReason = status === "failed" ? "spawn_error" : status;
+          if (!record.run.statusReason) record.run.statusReason = status === "failed" ? "adapter_error" : status;
           finishRun(record, status, undefined, logStream);
         });
     }
