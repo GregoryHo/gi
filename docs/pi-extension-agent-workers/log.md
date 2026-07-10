@@ -9,7 +9,8 @@ Append important planning decisions, milestone starts/completions, verification 
 ## 2026-07-07
 
 - Implemented and documented the main v0.4.0 M1 `pi-sdk` adapter slices: async adapter runtime support, pi SDK child-session adapter, public adapter wiring, confirmation-gated real-adapter classification, conservative child tool scopes, and async terminal-path tests. README, CHANGELOG, orchestration recipes, and v0.4.0 docs now describe behavior, non-goals, safety boundaries, and usage.
-- Completed v0.4.0 M1 verification. Passed: `npm test --workspace @gregho/pi-extension-agent-workers` (127 tests), `npm run typecheck --workspace @gregho/pi-extension-agent-workers`, `npm run pack:dry-run --workspace @gregho/pi-extension-agent-workers`, `npm run typecheck`, and `pi -e ./packages/pi-extension-agent-workers --no-session -p "/agent-workers"`. Optional manual `pi-sdk` model smoke was not run to avoid invoking model credentials without explicit smoke confirmation.
+- Completed v0.4.0 M1 verification. Passed: `npm test --workspace @gregho/pi-extension-agent-workers` (127 tests), `npm run typecheck --workspace @gregho/pi-extension-agent-workers`, `npm run pack:dry-run --workspace @gregho/pi-extension-agent-workers`, `npm run typecheck`, and `pi -e ./packages/pi-extension-agent-workers --no-session -p "/agent-workers"`.
+- Manual interactive `pi-sdk` smoke passed after explicit model-use invocation: `/worker-run --adapter pi-sdk --yes Reply with OK only.` produced `run_1783409485446_445c9626`; the local run index records `completed`, `exit_zero`, `exitCode: 0`, `finalText: OK`, `usage.source: reported`, elapsed `2350ms`, and the log contains `[stdout] pi-sdk child session completed`.
 
 ## 2026-05-25
 
