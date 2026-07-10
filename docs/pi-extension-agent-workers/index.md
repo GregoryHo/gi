@@ -10,7 +10,10 @@
 
 ## Active planning version
 
-None. Future product iterations should start a new `versions/<semver>/` folder before implementation.
+- Version: `0.5.0`
+- Status: Proposed / not started
+- Version docs: `versions/0.5.0/`
+- Theme: post-MVP `pi-sdk` adapter hardening and boundary tests.
 
 v0.4.0 extends `pi-extension-agent-workers` with a `pi-sdk` adapter while preserving existing worker safety defaults, profile semantics, history/widget behavior, and external CLI adapter support.
 
@@ -41,8 +44,12 @@ Future product iterations should use versioned docs under `versions/<semver>/` b
 - `milestones.md` — historical milestone tracker through `v0.2.0`.
 - `archive.md` — completed/superseded docs index, including root-level milestone plans through `v0.2.0`.
 - `versions/README.md` — convention for future versioned planning docs.
-- `versions/0.4.0/index.md` — active v0.4.0 planning index.
-- `versions/0.4.0/milestones.md` — active v0.4.0 milestone tracker.
+- `versions/0.5.0/index.md` — proposed v0.5.0 hardening planning index.
+- `versions/0.5.0/milestones.md` — proposed v0.5.0 milestone tracker.
+- `versions/0.5.0/log.md` — v0.5.0 planning/change log.
+- `versions/0.5.0/m1-pi-sdk-hardening.md` — pi SDK hardening and boundary tests plan.
+- `versions/0.4.0/index.md` — sealed v0.4.0 planning/release index.
+- `versions/0.4.0/milestones.md` — sealed v0.4.0 milestone tracker.
 - `versions/0.4.0/log.md` — v0.4.0 planning/change log.
 - `versions/0.4.0/m1-pi-sdk-worker-adapter.md` — pi SDK-backed worker adapter MVP plan.
 - `versions/0.3.1/index.md` — sealed v0.3.1 patch planning/release index.
