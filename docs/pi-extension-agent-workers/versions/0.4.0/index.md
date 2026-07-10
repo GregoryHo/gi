@@ -4,7 +4,7 @@
 
 - Version: `0.4.0`
 - Package: `packages/pi-extension-agent-workers`
-- Status: Active planning / implementation
+- Status: Released / sealed local package release
 - Branch: `feature/pi-native-agent-worker-adapter`
 
 ## Theme

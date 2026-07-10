@@ -1,7 +1,7 @@
 {
   "name": "@gregho/pi-extension-agent-workers",
-  "version": "0.3.1",
-  "description": "pi extension package for supervising delegated AI agent worker CLI processes.",
+  "version": "0.4.0",
+  "description": "pi extension package for supervising delegated AI agent workers, including CLI processes and pi SDK child sessions.",
   "type": "module",
   "main": "src/index.ts",
   "exports": {
@@ -16,7 +16,8 @@
     "agent-workers",
     "worker-supervision",
     "claude-code",
-    "codex-cli"
+    "codex-cli",
+    "pi-sdk"
   ],
   "files": [
     "src/adapters/claude-code.ts",

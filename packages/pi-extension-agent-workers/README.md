@@ -4,7 +4,7 @@ pi package for supervising delegated AI agent worker CLI processes such as Claud
 
 ## Status
 
-v0.3.1 is the current local release. The active v0.4.0 implementation branch adds an unreleased `pi-sdk` worker adapter for local pi SDK child sessions while preserving the existing demo, Claude Code, and Codex CLI adapters. Roadmap and milestone docs live in [`../../docs/pi-extension-agent-workers`](../../docs/pi-extension-agent-workers).
+v0.4.0 is the current local release. It adds the `pi-sdk` worker adapter for local pi SDK child sessions while preserving the existing demo, Claude Code, and Codex CLI adapters. Roadmap and milestone docs live in [`../../docs/pi-extension-agent-workers`](../../docs/pi-extension-agent-workers).
 
 ## Goal
 
@@ -25,7 +25,7 @@ The first iterations focus on generic worker supervision only:
 - M13 — allow up to 6 active workers with conservative workspace collision rules.
 - v0.3.0 — workspace-scoped history/config, original task previews, custom profiles, UI capability PoC, and compact refreshing default widget.
 - v0.3.1 — remove the temporary `/worker-ui-poc` command and PoC-only runtime source after the default widget shipped, fix stale historical active runs in history/widget displays, and remove stale `M1 commands` wording.
-- v0.4.0 — add an unreleased `pi-sdk` async adapter that runs bounded local pi SDK child sessions without requiring an external worker CLI process.
+- v0.4.0 — add a `pi-sdk` async adapter that runs bounded local pi SDK child sessions without requiring an external worker CLI process.
 
 Cross-extension delegation through LLM tools and recipes is supported while this package remains domain-independent.
 
@@ -95,7 +95,7 @@ Workspace custom profiles can be added to the local workspace config JSON under 
 
 Custom profiles cannot override built-in profile names. Real-adapter custom profiles, including `pi-sdk`, must set `requireConfirmation: true`.
 
-M2/M3 parser integration normalizes final text, activity summaries, and reported usage without exposing raw event payloads in status output. M4 exports a reusable service API for other packages or orchestration layers without coupling those domains into this core extension. The unreleased v0.4.0 `pi-sdk` adapter maps child assistant final text and usage events into the same compact worker summaries.
+M2/M3 parser integration normalizes final text, activity summaries, and reported usage without exposing raw event payloads in status output. M4 exports a reusable service API for other packages or orchestration layers without coupling those domains into this core extension. The v0.4.0 `pi-sdk` adapter maps child assistant final text and usage events into the same compact worker summaries.
 
 ## LLM tools
 

@@ -120,7 +120,7 @@ Implementation progress as of 2026-07-07:
 - Final verification passed:
   - `npm test --workspace @gregho/pi-extension-agent-workers` — 127 tests passed.
   - `npm run typecheck --workspace @gregho/pi-extension-agent-workers` — passed.
-  - `npm run pack:dry-run --workspace @gregho/pi-extension-agent-workers` — passed and included `src/adapters/pi-sdk.ts` in `gregho-pi-extension-agent-workers-0.3.1.tgz` dry-run contents.
+  - `npm run pack:dry-run --workspace @gregho/pi-extension-agent-workers` — passed and included `src/adapters/pi-sdk.ts` in `gregho-pi-extension-agent-workers-0.4.0.tgz` dry-run contents.
   - `npm run typecheck` — passed across workspaces.
   - `pi -e ./packages/pi-extension-agent-workers --no-session -p "/agent-workers"` — exited successfully.
 - Manual interactive `pi-sdk` smoke passed after the automated verification slice: `/worker-run --adapter pi-sdk --yes Reply with OK only.` started `run_1783409485446_445c9626` in `/Users/gregho/GitHub/AI/gi`; the local run index records `status: completed`, `statusReason: exit_zero`, `exitCode: 0`, `finalText: OK`, `usage.source: reported`, elapsed `2350ms`, and log `/Users/gregho/.pi/agent/agent-workers/runs/run_1783409485446_445c9626/output.log` contains `[stdout] pi-sdk child session completed`.

@@ -2,6 +2,15 @@
 
 Completed or superseded planning docs are indexed here for traceability.
 
+## v0.4.0 versioned planning era
+
+Sealed version docs:
+
+- `versions/0.4.0/index.md`
+- `versions/0.4.0/milestones.md`
+- `versions/0.4.0/log.md`
+- `versions/0.4.0/m1-pi-sdk-worker-adapter.md`
+
 ## v0.3.1 patch planning era
 
 Sealed version docs:

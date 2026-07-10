@@ -2,20 +2,17 @@
 
 ## Current stable version
 
-- Version: `0.3.1`
+- Version: `0.4.0`
 - Package: `packages/pi-extension-agent-workers`
-- Status: Patch release sealed in docs.
-- Version docs: `versions/0.3.1/` is indexed in `archive.md`.
-- Current package version: `0.3.1`
+- Status: Released / sealed local package release.
+- Version docs: `versions/0.4.0/` is indexed in `archive.md`.
+- Current package version: `0.4.0`
 
 ## Active planning version
 
-- Version: `0.4.0`
-- Status: Active planning / implementation
-- Version docs: `versions/0.4.0/`
-- Theme: pi SDK-backed worker adapter for local pi-native sub-agent behavior without requiring external Claude Code or Codex CLI worker processes.
+None. Future product iterations should start a new `versions/<semver>/` folder before implementation.
 
-v0.4.0 is scoped to extending `pi-extension-agent-workers` with a `pi-sdk` adapter while preserving existing worker safety defaults, profile semantics, history/widget behavior, and external CLI adapter support.
+v0.4.0 extends `pi-extension-agent-workers` with a `pi-sdk` adapter while preserving existing worker safety defaults, profile semantics, history/widget behavior, and external CLI adapter support.
 
 v0.3.1 removed the temporary `/worker-ui-poc` runtime command after v0.3.0 promoted the accepted compact card widget direction into the default worker widget, fixed stale `M1 commands` wording, and normalizes orphaned historical active runs as stale failed history so widgets do not show them as indefinitely running.
 
@@ -69,7 +66,7 @@ Rationale:
 - The name describes delegated AI agent CLI processes supervised by pi.
 - It follows the repo convention where `docs/<package-name>/` exactly matches `packages/<package-name>/`.
 
-## 0.1.0 through 0.3.1 contents
+## 0.1.0 through 0.4.0 contents
 
 Implemented package capabilities:
 
@@ -81,11 +78,12 @@ Implemented package capabilities:
 - M14 — v0.2.0 release preparation.
 - v0.3.0 — workspace-scoped history/config, original task previews, custom profiles, UI capability PoC, and compact refreshing default widget.
 - v0.3.1 — removed the temporary `/worker-ui-poc` runtime command and PoC-only source, fixed stale command description wording, and normalized stale historical active runs.
+- v0.4.0 — added the `pi-sdk` async adapter for local pi SDK child sessions, async adapter runtime support, public adapter wiring, confirmation-gated safety classification, conservative child tool scopes, and manual `pi-sdk` smoke verification.
 
-## Release checklist for 0.3.1
+## Release checklist for 0.4.0
 
-- [x] v0.3.1 M1 complete.
-- [x] Package version set to `0.3.1`.
-- [x] `CHANGELOG.md` documents `0.3.1`.
-- [x] Full verification passed.
-- [x] Release docs mark `0.3.1` as sealed.
+- [x] v0.4.0 M1 complete.
+- [x] Package version set to `0.4.0`.
+- [x] `CHANGELOG.md` documents `0.4.0`.
+- [x] Full post-bump verification passed.
+- [x] Release docs mark `0.4.0` as sealed.

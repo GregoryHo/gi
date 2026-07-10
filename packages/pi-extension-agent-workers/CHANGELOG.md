@@ -2,9 +2,11 @@
 
 ## Unreleased
 
+## 0.4.0 - 2026-07-10
+
 ### Added
 
-- Added an unreleased `pi-sdk` worker adapter backed by local pi SDK child sessions, including async adapter runtime support, compact final/usage event shaping, confirmation-gated public surfaces, and conservative read-only/write-capable tool scopes.
+- Added a `pi-sdk` worker adapter backed by local pi SDK child sessions, including async adapter runtime support, compact final/usage event shaping, confirmation-gated public surfaces, and conservative read-only/write-capable tool scopes.
 - Added async adapter lifecycle coverage for success, failure, cancellation, and timeout paths.
 
 ### Changed
