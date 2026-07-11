@@ -3,6 +3,7 @@ import { dirname, join } from "node:path";
 import { buildCompactionExplorer, type CompactionExplorer, type CompactionExplorerGroup, type ContextSnapshotView } from "./report-compaction.ts";
 import { classifyTraceRecord, sanitizeReportValue, type ObservableLogEvent } from "./report-events.ts";
 import { summarizeTraceForReport, type ReportTraceSummary } from "./report-summary.ts";
+import { buildTopologyModel, type TopologyLane, type TopologyModel, type TopologyNode } from "./report-topology.ts";
 
 export interface AgentLensTraceRecord {
 	schemaVersion: number;
@@ -41,6 +42,7 @@ export function renderHtmlReport(records: readonly AgentLensTraceRecord[], optio
 	const contextRecords = records.filter((record) => record.event === "context");
 	const compactionExplorer = buildCompactionExplorer(records);
 	const memoryFlowRecordLinks = buildMemoryFlowRecordLinks(compactionExplorer);
+	const topology = buildTopologyModel(records);
 
 	return `<!doctype html>
 <html lang="en">
@@ -95,6 +97,16 @@ body.density-compact .compaction-flow-card { padding: 0.5rem; }
 .compaction-flow-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: 0.75rem; }
 .compaction-flow-card { border: 1px solid #fbd38d; border-radius: 0.6rem; padding: 0.75rem; background: #fff; }
 .compaction-flow-card h4 { margin: 0 0 0.4rem 0; }
+.swimlane-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: 0.75rem; }
+.swimlane-lane { border: 1px solid #d5d8dc; border-radius: 0.75rem; padding: 0.75rem; background: #fbfcfc; }
+.swimlane-lane h3 { margin-top: 0; }
+.swimlane-card { border: 1px solid #cbd5e1; border-radius: 0.6rem; padding: 0.6rem; margin: 0.5rem 0; background: #fff; }
+body.density-compact .swimlane-card { padding: 0.4rem; margin: 0.35rem 0; }
+.topology-card { border: 1px solid #d5d8dc; border-radius: 0.6rem; padding: 0.65rem; margin: 0.5rem 0; background: #fff; }
+.confidence-observed { border-left: 0.35rem solid #16a34a; }
+.confidence-nearby-observed { border-left: 0.35rem solid #2563eb; }
+.confidence-inferred { border-left: 0.35rem dashed #ca8a04; }
+.confidence-missing { border-left: 0.35rem dashed #64748b; }
 .hidden { display: none; }
 </style>
 <script>
@@ -132,6 +144,8 @@ ${renderReportNav()}
 ${renderLiveNotice(options.refreshSeconds)}${renderSourceMetadata(options)}<p>${records.length} trace records.</p>
 ${renderCounts(eventCounts)}
 ${renderSummaryCards(summarizeTraceForReport(records), compactionExplorer.groups.length > 0)}
+${renderSwimlaneTimeline(topology)}
+${renderPartialTopologyExplorer(topology)}
 ${renderCompactionExplorer(compactionExplorer)}
 ${renderTimeline(records, memoryFlowRecordLinks)}
 ${renderRecordSection("Context snapshots", contextRecords)}
@@ -174,7 +188,7 @@ function countEvents(records: readonly AgentLensTraceRecord[]): Map<string, numb
 }
 
 function renderReportNav(): string {
-	return `<nav class="report-nav" aria-label="Report sections"><a href="#event-counts">Event counts</a><a href="#trace-summary">Trace summary</a><a href="#memory-flow-explorer">Memory flow</a><a href="#observable-log">Observable log</a><a href="#context-snapshots">Context snapshots</a><a href="#provider-payloads">Provider payloads</a><a href="#compaction">Compaction</a></nav>`;
+	return `<nav class="report-nav" aria-label="Report sections"><a href="#event-counts">Event counts</a><a href="#trace-summary">Trace summary</a><a href="#swimlane-timeline">Swimlane timeline</a><a href="#partial-topology-explorer">Topology</a><a href="#memory-flow-explorer">Memory flow</a><a href="#observable-log">Observable log</a><a href="#context-snapshots">Context snapshots</a><a href="#provider-payloads">Provider payloads</a><a href="#compaction">Compaction</a></nav>`;
 }
 
 function renderRefreshMeta(refreshSeconds: number | undefined): string {
@@ -216,6 +230,67 @@ function renderSummaryCards(summary: ReportTraceSummary, hasMemoryFlows: boolean
 function renderSummaryCard(title: string, value: string, detail: string, link?: SummaryCardLink): string {
 	const linkHtml = link ? ` <a href="${escapeHtml(link.href)}">${escapeHtml(link.label)}</a>` : "";
 	return `<div class="summary-card"><div class="summary-card-title">${escapeHtml(title)}</div><div class="summary-card-value">${escapeHtml(value)}</div><div class="summary-card-detail">${escapeHtml(detail)}${linkHtml}</div></div>`;
+}
+
+function renderSwimlaneTimeline(topology: TopologyModel): string {
+	const lanes: TopologyLane[] = ["main-agent", "provider", "tools", "memory", "worker-agent", "unknown"];
+	const laneHtml = lanes
+		.map((lane) => renderSwimlaneLane(lane, topology.nodes.filter((node) => node.lane === lane), topology))
+		.filter((html) => html.length > 0)
+		.join("\n");
+	return `<section id="swimlane-timeline"><h2>Swimlane timeline</h2><p class="summary-card-detail">Metadata-only lanes. Cards are derived from observed trace metadata; inferred relationships are not causality claims.</p><div class="swimlane-grid">${laneHtml}</div></section>`;
+}
+
+function renderSwimlaneLane(lane: TopologyLane, nodes: readonly TopologyNode[], topology: TopologyModel): string {
+	if (lane === "worker-agent" && topology.gaps.workerMetadata === "missing") {
+		return `<div class="swimlane-lane" data-swimlane-lane="worker-agent"><h3>Worker / teammate</h3><p class="summary-card-detail">Worker/teammate metadata unavailable. Agent Lens will not guess parent/child agent relationships.</p></div>`;
+	}
+	const visibleNodes = nodes.filter((node) => node.kind !== "trace");
+	if (visibleNodes.length === 0) return "";
+	return `<div class="swimlane-lane" data-swimlane-lane="${escapeHtml(lane)}"><h3>${escapeHtml(formatLaneTitle(lane))}</h3>${visibleNodes.map(renderSwimlaneCard).join("\n")}</div>`;
+}
+
+function renderSwimlaneCard(node: TopologyNode): string {
+	const metadata = Object.entries(node.metadata)
+		.map(([key, value]) => `${key}: ${String(value)}`)
+		.join(" · ");
+	const recordLink = node.recordIndex !== undefined ? ` · <a href="#record-${node.recordIndex + 1}">View record #${node.recordIndex + 1}</a>` : "";
+	return `<article id="swimlane-node-${escapeHtml(node.id)}" class="swimlane-card" data-swimlane-card data-node-kind="${escapeHtml(node.kind)}"><strong>${escapeHtml(node.label)}</strong><p class="summary-card-detail">${escapeHtml(formatParts([node.timestamp, metadata || undefined]))}${recordLink}</p></article>`;
+}
+
+function formatLaneTitle(lane: TopologyLane): string {
+	switch (lane) {
+		case "main-agent":
+			return "Main agent";
+		case "worker-agent":
+			return "Worker / teammate";
+		case "tools":
+			return "Tools";
+		case "provider":
+			return "Provider";
+		case "memory":
+			return "Memory / compaction";
+		case "unknown":
+			return "Unknown";
+		case "trace":
+			return "Trace";
+	}
+}
+
+function renderPartialTopologyExplorer(topology: TopologyModel): string {
+	const nodeById = new Map(topology.nodes.map((node) => [node.id, node]));
+	const body = topology.relationships.length === 0
+		? "<p>No topology relationships found.</p>"
+		: topology.relationships.map((relationship) => {
+			const fromNode = nodeById.get(relationship.from);
+			const toNode = nodeById.get(relationship.to);
+			const fromLabel = fromNode?.label ?? relationship.from;
+			const toLabel = toNode?.label ?? relationship.to;
+			const toLink = toNode ? ` <a href="#swimlane-node-${escapeHtml(toNode.id)}">View swimlane node</a>` : "";
+			const recordLink = relationship.recordIndex !== undefined ? ` <a href="#record-${relationship.recordIndex + 1}">record #${relationship.recordIndex + 1}</a>` : "";
+			return `<article class="topology-card confidence-${escapeHtml(slugClass(relationship.confidence))}"><strong>${escapeHtml(relationship.kind)}</strong><p>${escapeHtml(fromLabel)} → ${escapeHtml(toLabel)}</p><p class="summary-card-detail">${escapeHtml(relationship.confidence)} · ${escapeHtml(relationship.label)}${toLink}${recordLink}</p></article>`;
+		}).join("\n");
+	return `<section id="partial-topology-explorer"><h2>Partial topology explorer</h2><p class="summary-card-detail">Partial metadata-only topology, not full session reconstruction. Observed links come from trace metadata; inferred links are conservative event-order hints; missing links mark unavailable metadata.</p>${body}</section>`;
 }
 
 function renderCompactionExplorer(explorer: CompactionExplorer): string {

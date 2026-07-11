@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.0 - 2026-07-11
+
+- Add a tested metadata-only topology model helper for future swimlane and partial topology report views.
+- Add a static metadata-only swimlane timeline to per-trace reports.
+- Add a partial topology explorer with observed/inferred/missing relationship labels and links to swimlane/observable-log anchors.
+
 ## 0.4.1 - 2026-06-14
 
 - Add local sorting, filtering, and search controls to the multi-trace index report.
