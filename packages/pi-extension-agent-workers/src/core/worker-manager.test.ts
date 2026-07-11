@@ -260,6 +260,24 @@ test("WorkerManager times out async adapters with an abort signal", async () => 
   });
 });
 
+test("WorkerManager preserves async adapter terminal reasons", async () => {
+	await withTempDir(async (artifactRoot) => {
+		const adapter: WorkerAdapter = {
+			name: "async-turn-limit",
+			async runTask() {
+				return { exitCode: 1, statusReason: "turn_limit" };
+			},
+		};
+		const manager = new WorkerManager({ artifactRoot, adapters: [adapter] });
+
+		const run = await manager.startRun({ adapter: "async-turn-limit", task: "bounded", cwd: "/tmp/project" });
+		const finished = await manager.waitForRun(run.id);
+
+		assert.equal(finished.status, "failed");
+		assert.equal(finished.statusReason, "turn_limit");
+	});
+});
+
 test("WorkerManager starts one run, records lifecycle state, and captures logs", async () => {
   await withTempDir(async (artifactRoot) => {
     const child = new FakeChildProcess(4242);

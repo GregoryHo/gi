@@ -57,6 +57,10 @@ export class WorkerManager {
     cwd: string;
     durationMs?: number;
     timeoutMs?: number;
+		systemPrompt?: string;
+		model?: string;
+		thinking?: "off" | "minimal" | "low" | "medium" | "high" | "xhigh";
+		maxTurns?: number;
     profile?: string;
     mode?: string;
     readOnly?: boolean;
@@ -196,7 +200,13 @@ export class WorkerManager {
         .runTask({
           task: input.task,
           cwd: input.cwd,
-          options: { durationMs: input.durationMs },
+					options: {
+						durationMs: input.durationMs,
+						systemPrompt: input.systemPrompt,
+						model: input.model,
+						thinking: input.thinking,
+						maxTurns: input.maxTurns,
+					},
           readOnly: run.readOnly,
           canModifyWorkspace: run.canModifyWorkspace,
           signal: abortController.signal,
@@ -209,7 +219,11 @@ export class WorkerManager {
             run.status === "timed_out" ? "timed_out" : run.status === "cancelled" ? "cancelled" : code === 0 ? "completed" : "failed";
           if (!record.run.statusReason) {
             record.run.statusReason =
-              status === "timed_out" ? "timed_out" : status === "cancelled" ? "cancelled" : status === "completed" ? "exit_zero" : "exit_nonzero";
+								status === "timed_out"
+									? "timed_out"
+									: status === "cancelled"
+										? "cancelled"
+										: result.statusReason ?? (status === "completed" ? "exit_zero" : "exit_nonzero");
           }
           finishRun(record, status, code, logStream);
         })

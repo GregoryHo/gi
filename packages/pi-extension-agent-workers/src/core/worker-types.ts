@@ -4,7 +4,7 @@ import type { Readable } from "node:stream";
 import type { WorkerEvent, WorkerUsage } from "./worker-events.ts";
 
 export type WorkerStatus = "queued" | "running" | "completed" | "failed" | "cancelled" | "timed_out";
-export type WorkerStatusReason = "exit_zero" | "exit_nonzero" | "cancelled" | "timed_out" | "spawn_error" | "adapter_error" | "stale_historical";
+export type WorkerStatusReason = "exit_zero" | "exit_nonzero" | "cancelled" | "timed_out" | "turn_limit" | "spawn_error" | "adapter_error" | "stale_historical";
 
 export interface WorkerRun {
   id: string;
@@ -78,7 +78,11 @@ export interface WorkerSpawnSpec {
 }
 
 export interface WorkerRunOptions {
-  durationMs?: number;
+	durationMs?: number;
+	systemPrompt?: string;
+	model?: string;
+	thinking?: "off" | "minimal" | "low" | "medium" | "high" | "xhigh";
+	maxTurns?: number;
 }
 
 export interface AsyncWorkerRunContext {
@@ -93,7 +97,8 @@ export interface AsyncWorkerRunContext {
 }
 
 export interface AsyncWorkerRunResult {
-  exitCode?: number;
+	exitCode?: number;
+	statusReason?: WorkerStatusReason;
 }
 
 export interface WorkerAdapter {
