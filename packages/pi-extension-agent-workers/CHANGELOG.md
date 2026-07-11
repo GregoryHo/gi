@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### Added
+
+- Added bounded complete Pi SDK child results with private run-log fallback for oversized output.
+- Added native child system-prompt, exact model, thinking-level, and max-turn option pass-through with a default 20-turn cap.
+- Added a distinct `turn_limit` terminal reason and direct tests for the minimal child resource boundary and failure/missing-result outcomes.
+
+### Changed
+
+- Pi SDK profile instructions now use the child session's actual system prompt instead of being embedded in user task text.
+
 ## 0.4.0 - 2026-07-10
 
 ### Added

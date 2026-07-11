@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress.
+Done.
 
 ## SPEC
 
@@ -95,3 +95,17 @@ Acceptance checks:
 ## Initial implementation stance
 
 This milestone should start with tests and small changes. If a hardening item requires uncertain SDK behavior or broad API design, document the limitation and defer rather than forcing speculative implementation.
+
+## Completion notes
+
+Completed on `feature/subagents-runtime-facade`.
+
+- Pi SDK child final text is preserved as a bounded complete in-memory result; oversized full output remains in the private run log with an explicit path.
+- Profile instructions are passed as the actual child system prompt for `pi-sdk` instead of being embedded in user task text.
+- Exact `provider/model-id`, thinking level, and per-run max-turn options pass through to the child session.
+- Pi SDK children default to 20 turns and terminate with the distinct `turn_limit` reason when exceeded; timeout and cancellation remain separate manager outcomes.
+- The minimal child resource loader is directly tested to expose no extensions, skills, prompts, themes, context files, or nested Agent Workers tools.
+- Setup failure, prompt failure, missing final/usage, successful final/usage, cancellation, timeout, and turn-limit behavior have automated coverage.
+- The repository runtime uses `@earendil-works/pi-coding-agent` 0.75.4, which lacks the newer runtime `resolveCliModel` export; model pass-through therefore uses conservative exact `ModelRegistry.find(provider, model-id)` resolution.
+
+Verification passed: 134 package tests, package typecheck, and `git diff --check`.

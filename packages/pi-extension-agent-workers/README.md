@@ -26,6 +26,7 @@ The first iterations focus on generic worker supervision only:
 - v0.3.0 — workspace-scoped history/config, original task previews, custom profiles, UI capability PoC, and compact refreshing default widget.
 - v0.3.1 — remove the temporary `/worker-ui-poc` command and PoC-only runtime source after the default widget shipped, fix stale historical active runs in history/widget displays, and remove stale `M1 commands` wording.
 - v0.4.0 — add a `pi-sdk` async adapter that runs bounded local pi SDK child sessions without requiring an external worker CLI process.
+- v0.5.0 M1 — preserve bounded complete Pi SDK child results, pass actual child system prompt/model/thinking options, enforce a default/per-request turn cap, and directly test the minimal child resource boundary.
 
 Cross-extension delegation through LLM tools and recipes is supported while this package remains domain-independent.
 
@@ -95,7 +96,7 @@ Workspace custom profiles can be added to the local workspace config JSON under 
 
 Custom profiles cannot override built-in profile names. Real-adapter custom profiles, including `pi-sdk`, must set `requireConfirmation: true`.
 
-M2/M3 parser integration normalizes final text, activity summaries, and reported usage without exposing raw event payloads in status output. M4 exports a reusable service API for other packages or orchestration layers without coupling those domains into this core extension. The v0.4.0 `pi-sdk` adapter maps child assistant final text and usage events into the same compact worker summaries.
+M2/M3 parser integration normalizes final text, activity summaries, and reported usage without exposing raw event payloads in status output. M4 exports a reusable service API for other packages or orchestration layers without coupling those domains into this core extension. The `pi-sdk` adapter maps child assistant final text and usage events into the same worker lifecycle. Compact status/widget surfaces keep previews, while in-memory completed runs retain a bounded complete result; oversized full output remains in the private run log referenced by `finalTextPath`. Pi SDK profile instructions are applied as the child system prompt, exact `provider/model-id` and thinking hints are supported, and child runs default to a 20-turn cap unless a narrower explicit limit is supplied.
 
 ## LLM tools
 

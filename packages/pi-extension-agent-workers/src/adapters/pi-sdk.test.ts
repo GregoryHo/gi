@@ -146,6 +146,69 @@ test("createPiSdkAdapter stops a child that exceeds its turn budget", async () =
 	assert.ok(events.some((event) => (event as { type?: string }).type === "error"));
 });
 
+test("createPiSdkAdapter surfaces setup and prompt failures without inventing usage", async () => {
+	const setupAdapter = createPiSdkAdapter({
+		createSession: async () => {
+			throw new Error("setup failed");
+		},
+	});
+	const context = {
+		task: "failure",
+		cwd: "/tmp/project",
+		options: {},
+		readOnly: true,
+		canModifyWorkspace: false,
+		signal: new AbortController().signal,
+		emitEvent: () => undefined,
+		writeOutput: () => undefined,
+	};
+	await assert.rejects(setupAdapter.runTask(context), /setup failed/);
+
+	const events: unknown[] = [];
+	let disposed = false;
+	const promptAdapter = createPiSdkAdapter({
+		createSession: async () => ({
+			session: {
+				...createFakeSession(),
+				async prompt() {
+					throw new Error("prompt failed");
+				},
+				dispose() {
+					disposed = true;
+				},
+			},
+		}),
+	});
+	const result = await promptAdapter.runTask({ ...context, emitEvent: (event) => events.push(event) });
+
+	assert.equal(result.exitCode, 1);
+	assert.equal(disposed, true);
+	assert.deepEqual(events.map((event) => (event as { type?: string }).type), ["error"]);
+});
+
+test("createPiSdkAdapter completes without final text or reported usage when the child emits neither", async () => {
+	const events: unknown[] = [];
+	const adapter = createPiSdkAdapter({ createSession: async () => ({ session: createFakeSession() }) });
+
+	const result = await adapter.runTask({
+		task: "silent child",
+		cwd: "/tmp/project",
+		options: {},
+		readOnly: true,
+		canModifyWorkspace: false,
+		signal: new AbortController().signal,
+		emitEvent: (event) => events.push(event),
+		writeOutput: () => undefined,
+	});
+
+	assert.equal(result.exitCode, 0);
+	assert.deepEqual(events, [{
+		type: "activity",
+		label: "pi-sdk child session completed",
+		timestamp: events.length > 0 ? (events[0] as { timestamp: number }).timestamp : 0,
+	}]);
+});
+
 test("createPiSdkAdapter emits complete final text, writes it to the private run log, and reports usage", async () => {
   const events: unknown[] = [];
   const output: string[] = [];
