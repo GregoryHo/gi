@@ -7,6 +7,7 @@ This directory contains product/spec planning areas for pi extension packages in
 - `docs/pi-extension-jira-board/` → `packages/pi-extension-jira-board/`
 - `docs/pi-extension-api-behavior-audit/` → `packages/pi-extension-api-behavior-audit/`
 - `docs/pi-extension-agent-workers/` → `packages/pi-extension-agent-workers/`
+- `docs/pi-extension-subagents/` → `packages/pi-extension-subagents/`
 - `docs/pi-extension-agent-lens/` → `packages/pi-extension-agent-lens/`
 - `docs/pi-extension-web-search/` → `packages/pi-extension-web-search/`
 - `docs/pi-extension-plan-mode/` → `packages/pi-extension-plan-mode/`
