@@ -245,6 +245,22 @@ test("AgentWorkerService passes native child options without embedding the syste
 	assert.equal(startInput?.maxTurns, 4);
 });
 
+test("AgentWorkerService lets consumers narrow a pi-sdk run to read-only authority", async () => {
+	let startInput: Record<string, unknown> | undefined;
+	const manager = {
+		startRun: async (input: Record<string, unknown>) => {
+			startInput = input;
+			return makeServiceRun({ taskPreview: input.taskPreview as string });
+		},
+	} as unknown as WorkerManager;
+	const service = new AgentWorkerService({ manager });
+
+	await service.start({ adapter: "pi-sdk", task: "Inspect only", readOnly: true, cwd: process.cwd() });
+
+	assert.equal(startInput?.readOnly, true);
+	assert.equal(startInput?.canModifyWorkspace, false);
+});
+
 test("AgentWorkerService starts runs with workspace scope metadata", async () => {
   const root = await makeTempDir("service-scope");
   const repo = join(root, "repo");

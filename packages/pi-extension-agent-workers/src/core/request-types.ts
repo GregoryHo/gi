@@ -18,6 +18,7 @@ export interface WorkerRequest {
   timeoutMs?: number;
   durationMs?: number;
   requireConfirmation?: boolean;
+  readOnly?: true;
   metadata?: Record<string, unknown>;
 }
 
@@ -80,6 +81,7 @@ export interface WorkerResult {
   timeoutMs?: number;
   exitCode?: number;
   finalText?: string;
+  finalTextPath?: string;
   usage: WorkerUsage;
   activity: string[];
   logPath: string;

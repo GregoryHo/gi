@@ -151,8 +151,8 @@ export class AgentWorkerService {
     const task = systemPrompt ? formatPromptedTask(systemPrompt, request.task) : request.task;
 
     const adapter = request.adapter ?? profile?.adapter ?? defaults.defaultAdapter ?? "demo";
-    const readOnly = profile ? profile.readOnly : adapter === "demo";
-    const canModifyWorkspace = profile ? profile.canModifyWorkspace : adapter !== "demo";
+		const readOnly = request.readOnly === true ? true : profile ? profile.readOnly : adapter === "demo";
+		const canModifyWorkspace = request.readOnly === true ? false : profile ? profile.canModifyWorkspace : adapter !== "demo";
 
     return {
       adapter,
@@ -199,7 +199,8 @@ export function workerResultFromRun(run: WorkerRun, options: { metadata?: Record
     ...(run.lastActivityAt === undefined ? {} : { lastActivityAt: run.lastActivityAt }),
     ...(run.timeoutMs === undefined ? {} : { timeoutMs: run.timeoutMs }),
     ...(run.exitCode === undefined ? {} : { exitCode: run.exitCode }),
-    ...(run.finalTextPreview ? { finalText: run.finalTextPreview } : {}),
+		...(run.finalText ?? run.finalTextPreview ? { finalText: run.finalText ?? run.finalTextPreview } : {}),
+		...(run.finalTextPath ? { finalTextPath: run.finalTextPath } : {}),
     usage: { ...run.usage },
     activity: [...(run.activity ?? [])],
     logPath: run.logPath,
