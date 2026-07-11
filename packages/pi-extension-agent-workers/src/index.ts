@@ -11,6 +11,7 @@ export type { WorkspaceAgentWorkerConfig } from "./config/index.ts";
 export { getBuiltInWorkerProfiles, getWorkerProfiles, resolveWorkerProfile, validateCustomWorkerProfiles } from "./config/profiles.ts";
 export type { ResolvedWorkerRequest, WorkerMode, WorkerProfile, WorkerRequest, WorkerResult } from "./core/request-types.ts";
 export { AgentWorkerService, workerResultFromRun } from "./core/service.ts";
+export { AgentWorkerProtocolError, discoverAgentWorkerProtocol, requestAgentWorkerProtocol } from "./protocol/client.ts";
 export { registerAgentWorkerProtocol } from "./protocol/server.ts";
 export * from "./protocol/types.ts";
 export { registerAgentWorkerTools, workerRunSummary } from "./tools/index.ts";

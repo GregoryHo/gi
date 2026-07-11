@@ -35,6 +35,7 @@
     "src/core/worker-events.ts",
     "src/core/worker-manager.ts",
     "src/core/worker-types.ts",
+		"src/protocol/client.ts",
 		"src/protocol/server.ts",
 		"src/protocol/types.ts",
     "src/index.ts",

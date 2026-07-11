@@ -27,6 +27,7 @@ The first iterations focus on generic worker supervision only:
 - v0.3.1 — remove the temporary `/worker-ui-poc` command and PoC-only runtime source after the default widget shipped, fix stale historical active runs in history/widget displays, and remove stale `M1 commands` wording.
 - v0.4.0 — add a `pi-sdk` async adapter that runs bounded local pi SDK child sessions without requiring an external worker CLI process.
 - v0.5.0 M1 — preserve bounded complete Pi SDK child results, pass actual child system prompt/model/thinking options, enforce a default/per-request turn cap, and directly test the minimal child resource boundary.
+- v0.5.0 M2 — expose the shared worker service through a correlated versioned `pi.events` runtime protocol for separate facade packages.
 
 Cross-extension delegation through LLM tools and recipes is supported while this package remains domain-independent.
 

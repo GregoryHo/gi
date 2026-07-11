@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress.
+Done.
 
 ## SPEC
 
@@ -69,3 +69,18 @@ npm run pack:dry-run --workspace @gregho/pi-extension-agent-workers
 npm run typecheck
 pi -e ./packages/pi-extension-agent-workers --no-session -p "/agent-workers"
 ```
+
+## Completion notes
+
+Completed on `feature/subagents-runtime-facade`.
+
+- Protocol v1 exposes capabilities, start, status, wait, cancel, and list-profile operations over official `pi.events` channels.
+- Requests and responses are correlated; parallel requests cannot consume each other's responses.
+- The protocol server uses the extension's existing `AgentWorkerService`, so command, tool, widget, history, and protocol consumers share one `WorkerManager`.
+- Server registration emits readiness and returns an idempotent listener disposer wired to `session_shutdown`.
+- The client boundary provides deterministic `runtime_unavailable` and `response_timeout` failures.
+- Start requests require explicit approval when the resolved worker policy requires confirmation.
+- Consumers can only narrow authority with `readOnly: true`; they cannot grant write authority beyond existing service policy.
+- Protocol results copy compact public data while preserving bounded complete final text and the private full-result path.
+
+Verification passed: 143 package tests, package typecheck, package pack dry-run, and `git diff --check`.
