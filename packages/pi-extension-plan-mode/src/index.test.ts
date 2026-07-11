@@ -285,6 +285,43 @@ test("plan_get_current does not leak another session's current plan", async () =
 	}
 });
 
+test("session_start restores current plan from the session pointer when custom state is missing", async () => {
+	const artifactRoot = await mkdtemp(join(tmpdir(), "plan-mode-session-restore-test-"));
+	const previousArtifactRoot = process.env.PI_PLAN_MODE_ARTIFACT_ROOT;
+	try {
+		const firstRuntime = await createHarness({
+			activeTools: ["read", "edit", "write"],
+			artifactRoot,
+			sessionFile: "/sessions/a.jsonl",
+		});
+		planModeExtension(firstRuntime.pi as never);
+		await firstRuntime.tools.get("plan_record")?.execute("call_1", {
+			intent: "new",
+			title: "Recoverable session plan",
+			steps: [{ step: 1, text: "Restore from session pointer" }],
+		}, undefined, undefined, firstRuntime.ctx);
+
+		const restoredRuntime = await createHarness({
+			activeTools: ["read", "edit", "write"],
+			artifactRoot,
+			sessionFile: "/sessions/a.jsonl",
+			entries: [],
+		});
+		planModeExtension(restoredRuntime.pi as never);
+		await restoredRuntime.event("session_start")({}, restoredRuntime.ctx);
+		await restoredRuntime.commands.get("plan-current")?.handler("", restoredRuntime.ctx);
+		const toolCurrent = await restoredRuntime.tools.get("plan_get_current")?.execute("call_2", {}, undefined, undefined, restoredRuntime.ctx);
+
+		assert.match(restoredRuntime.notifications.at(-1)?.message ?? "", /Recoverable session plan/);
+		assert.equal(toolCurrent.details.found, true);
+		assert.equal(toolCurrent.details.title, "Recoverable session plan");
+	} finally {
+		if (previousArtifactRoot === undefined) delete process.env.PI_PLAN_MODE_ARTIFACT_ROOT;
+		else process.env.PI_PLAN_MODE_ARTIFACT_ROOT = previousArtifactRoot;
+		await rm(artifactRoot, { recursive: true, force: true });
+	}
+});
+
 test("plan_get_current returns compact current artifact data without internals", async () => {
   const harness = await createHarness({ activeTools: ["read", "edit", "write"], selectResults: ["Stay in plan mode"] });
 

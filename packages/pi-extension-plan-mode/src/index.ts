@@ -279,11 +279,20 @@ export default function planModeExtension(pi: ExtensionAPI): void {
       activePlanId = restored.activePlanId;
     }
 
+		const root = getArtifactRoot(ctx);
+		const sessionFile = getSessionFile(ctx);
+		if (!activePlanId && sessionFile) {
+			activePlanId = (await readSessionCurrentPlanPointer(root, sessionFile)).activePlanId;
+		}
+
     if (activePlanId) {
-      activeArtifact = await readPlanArtifact(getArtifactRoot(ctx), activePlanId);
-			const sessionFile = getSessionFile(ctx);
+			activeArtifact = await readPlanArtifact(root, activePlanId);
+			if (activeArtifact && !restored) {
+				capturedPlan = { steps: activeArtifact.steps.map((step) => ({ ...step })) };
+				executing = activeArtifact.status === "executing";
+			}
 			if (activeArtifact && sessionFile) {
-				await writeSessionCurrentPlanPointer(getArtifactRoot(ctx), sessionFile, { activePlanId });
+				await writeSessionCurrentPlanPointer(root, sessionFile, { activePlanId });
 			}
     }
 
