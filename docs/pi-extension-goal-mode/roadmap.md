@@ -70,13 +70,11 @@ Implemented after main-session loops and plan-artifact consumption stabilized:
 
 Plan: `m4-worker-assisted-goal-loops.md`.
 
-### M5 — Pi-native child-agent backend exploration
+### M5 — Pi-native child-agent backend exploration (superseded)
 
-Future optional work:
+The backend exploration is complete outside Goal Mode: `pi-extension-agent-workers` v0.4.0 added the `pi-sdk` adapter, and its v0.5.0 track owns hardening and a shared runtime protocol.
 
-- Evaluate pi SDK child sessions as an adapter or helper.
-- Keep child-agent permissions scoped and bounded.
-- Do not add nested autonomous behavior until M1-M3 safety is proven.
+Goal Mode remains a consumer of worker tools and policy metadata. It does not create child sessions directly, own sub-agent definitions, or implement Agent Teams coordination.
 
 ## Deferred
 

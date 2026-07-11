@@ -9,7 +9,7 @@ import { createDemoAdapter } from "../adapters/demo.ts";
 import { createPiSdkAdapter } from "../adapters/pi-sdk.ts";
 import { ensureLogDirectory, getDefaultArtifactRoot, getRunLogPath } from "../state/logs.ts";
 import { RunArtifactIndex, type RunHistoryListOptions, workerRunToHistoryEntry } from "../state/run-index.ts";
-import { textPreview, unknownUsage, type WorkerEvent } from "./worker-events.ts";
+import { boundFinalText, textPreview, unknownUsage, type WorkerEvent } from "./worker-events.ts";
 import type { ChildProcessLike, SpawnLike, WorkerAdapter, WorkerRun, WorkerRunHistoryEntry, WorkerStatus } from "./worker-types.ts";
 
 interface WorkerManagerOptions {
@@ -57,6 +57,10 @@ export class WorkerManager {
     cwd: string;
     durationMs?: number;
     timeoutMs?: number;
+		systemPrompt?: string;
+		model?: string;
+		thinking?: "off" | "minimal" | "low" | "medium" | "high" | "xhigh";
+		maxTurns?: number;
     profile?: string;
     mode?: string;
     readOnly?: boolean;
@@ -196,7 +200,13 @@ export class WorkerManager {
         .runTask({
           task: input.task,
           cwd: input.cwd,
-          options: { durationMs: input.durationMs },
+					options: {
+						durationMs: input.durationMs,
+						systemPrompt: input.systemPrompt,
+						model: input.model,
+						thinking: input.thinking,
+						maxTurns: input.maxTurns,
+					},
           readOnly: run.readOnly,
           canModifyWorkspace: run.canModifyWorkspace,
           signal: abortController.signal,
@@ -209,7 +219,11 @@ export class WorkerManager {
             run.status === "timed_out" ? "timed_out" : run.status === "cancelled" ? "cancelled" : code === 0 ? "completed" : "failed";
           if (!record.run.statusReason) {
             record.run.statusReason =
-              status === "timed_out" ? "timed_out" : status === "cancelled" ? "cancelled" : status === "completed" ? "exit_zero" : "exit_nonzero";
+								status === "timed_out"
+									? "timed_out"
+									: status === "cancelled"
+										? "cancelled"
+										: result.statusReason ?? (status === "completed" ? "exit_zero" : "exit_nonzero");
           }
           finishRun(record, status, code, logStream);
         })
@@ -299,7 +313,12 @@ function applyWorkerEvents(run: WorkerRun, events: WorkerEvent[]): void {
   for (const event of events) {
     if (event.type === "usage") run.usage = event.usage;
     if (event.type === "activity") run.activity = [...(run.activity ?? []), event.label].slice(-5);
-    if (event.type === "final" && event.text) run.finalTextPreview = textPreview(event.text, 120);
+		if (event.type === "final" && event.text) {
+			const bounded = boundFinalText(event.text, run.logPath);
+			run.finalText = bounded.text;
+			run.finalTextPath = bounded.truncated ? run.logPath : undefined;
+			run.finalTextPreview = textPreview(event.text, 120);
+		}
     if (event.type === "error") run.activity = [...(run.activity ?? []), `error: ${event.message}`].slice(-5);
   }
 }

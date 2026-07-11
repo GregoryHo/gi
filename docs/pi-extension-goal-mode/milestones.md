@@ -8,7 +8,7 @@
 | M2 — Goal Control Plane | Done | `m2-goal-control-plane.md` | Add pause/resume/cancel semantics, queued follow-up token validation, and clearer status guidance before integrations. |
 | M3 — Tool-based Plan → Goal Integration | Done | `m3-tool-based-plan-goal-integration.md` | Expose current plans as read-only tool data and let Goal Mode start bounded loops from explicit tool input without command coupling. |
 | M4 — Worker-assisted goal loops | Done | `m4-worker-assisted-goal-loops.md` | Delegate planning/review/verification/implementation to `agent-workers` with explicit user approval and workspace context. |
-| M5 — Pi-native child-agent backend exploration | Deferred | TBD | Explore pi SDK-backed child sessions only after main-session and worker-assisted loops are proven. |
+| M5 — Pi-native child-agent backend exploration | Superseded | `../pi-extension-agent-workers/versions/0.4.0/m1-pi-sdk-worker-adapter.md` | Implemented as the Agent Workers v0.4.0 `pi-sdk` adapter; v0.5.0 owns hardening. Goal Mode remains a tool consumer. |
 
 ## Review gate
 

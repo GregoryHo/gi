@@ -22,3 +22,7 @@
 - M4 implementation added optional `goal_start.workerDelegation`, worker delegation state persistence/status exposure, compact `[WORKER DELEGATION]` context, profile validation, and safe tool-use guidance without importing Agent Workers internals.
 - M4 automated verification passed: `npm test --workspace @gregho/pi-extension-goal-mode` (72/72 tests); `npm run typecheck --workspace @gregho/pi-extension-goal-mode`; `npm run pack:dry-run --workspace @gregho/pi-extension-goal-mode`; `npm test --workspace @gregho/pi-extension-agent-workers` (120/120 tests); `npm run typecheck --workspace @gregho/pi-extension-agent-workers`; `npm run typecheck`.
 - M4 manual smoke passed in isolated temp fixture `/tmp/pi-goal-worker-m4-smoke-47788` and was rolled back. Verified: ordinary Goal Mode prompt did not call `agent_worker_*`; explicit verifier delegation followed `goal_start -> agent_worker_start -> agent_worker_wait/status -> goal_report`; implementer delegation without explicit workspace blocked without starting a worker.
+
+## 2026-07-11
+
+- Marked the former M5 Pi-native child-agent backend exploration as superseded by the Agent Workers v0.4.0 `pi-sdk` adapter and v0.5.0 hardening track. Goal Mode remains an orchestrator and tool consumer; direct sub-agent UX belongs in `pi-extension-subagents`, while future Agent Teams coordination remains a separate product layer.

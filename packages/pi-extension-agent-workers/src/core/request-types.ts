@@ -13,9 +13,12 @@ export interface WorkerRequest {
   systemPrompt?: string;
   cwd?: string;
   model?: string;
+  thinking?: "off" | "minimal" | "low" | "medium" | "high" | "xhigh";
+  maxTurns?: number;
   timeoutMs?: number;
   durationMs?: number;
   requireConfirmation?: boolean;
+  readOnly?: true;
   metadata?: Record<string, unknown>;
 }
 
@@ -27,6 +30,8 @@ export interface ResolvedWorkerRequest {
   cwd: string;
   systemPrompt?: string;
   model?: string;
+  thinking?: "off" | "minimal" | "low" | "medium" | "high" | "xhigh";
+  maxTurns?: number;
   timeoutMs?: number;
   durationMs?: number;
   requireConfirmation: boolean;
@@ -42,6 +47,8 @@ export interface WorkerProfile {
   mode: WorkerMode;
   systemPrompt?: string;
   model?: string;
+  thinking?: "off" | "minimal" | "low" | "medium" | "high" | "xhigh";
+  maxTurns?: number;
   requireConfirmation: boolean;
   readOnly: boolean;
   canModifyWorkspace: boolean;
@@ -74,6 +81,7 @@ export interface WorkerResult {
   timeoutMs?: number;
   exitCode?: number;
   finalText?: string;
+  finalTextPath?: string;
   usage: WorkerUsage;
   activity: string[];
   logPath: string;

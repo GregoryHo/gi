@@ -63,12 +63,16 @@ export class AgentWorkerService {
     const scope = resolveWorkspaceScope(resolved.cwd);
     return this.manager.startRun({
       adapter: resolved.adapter,
-      task: resolved.task,
+			task: resolved.adapter === "pi-sdk" ? request.task : resolved.task,
       taskPreview: textPreview(request.task, 80),
       originalTaskPreview: textPreview(request.task, 80),
       cwd: resolved.cwd,
       durationMs: resolved.durationMs,
       timeoutMs: resolved.timeoutMs,
+			systemPrompt: resolved.systemPrompt,
+			model: resolved.model,
+			thinking: resolved.thinking,
+			maxTurns: resolved.maxTurns,
       profile: resolved.profile,
       mode: resolved.mode,
       readOnly: resolved.readOnly,
@@ -147,8 +151,8 @@ export class AgentWorkerService {
     const task = systemPrompt ? formatPromptedTask(systemPrompt, request.task) : request.task;
 
     const adapter = request.adapter ?? profile?.adapter ?? defaults.defaultAdapter ?? "demo";
-    const readOnly = profile ? profile.readOnly : adapter === "demo";
-    const canModifyWorkspace = profile ? profile.canModifyWorkspace : adapter !== "demo";
+		const readOnly = request.readOnly === true ? true : profile ? profile.readOnly : adapter === "demo";
+		const canModifyWorkspace = request.readOnly === true ? false : profile ? profile.canModifyWorkspace : adapter !== "demo";
 
     return {
       adapter,
@@ -158,6 +162,8 @@ export class AgentWorkerService {
       cwd: defaults.cwd ?? this.resolveCwd(request.cwd),
       ...(systemPrompt ? { systemPrompt } : {}),
       ...(request.model ?? profile?.model ? { model: request.model ?? profile?.model } : {}),
+			...(request.thinking ?? profile?.thinking ? { thinking: request.thinking ?? profile?.thinking } : {}),
+			...(request.maxTurns ?? profile?.maxTurns ? { maxTurns: request.maxTurns ?? profile?.maxTurns } : {}),
       ...(request.timeoutMs ?? defaults.defaultTimeoutMs ?? profile?.defaultTimeoutMs ? { timeoutMs: request.timeoutMs ?? defaults.defaultTimeoutMs ?? profile?.defaultTimeoutMs } : {}),
       ...(request.durationMs === undefined ? {} : { durationMs: request.durationMs }),
       requireConfirmation: request.requireConfirmation ?? profile?.requireConfirmation ?? isRealAdapter(adapter),
@@ -193,7 +199,8 @@ export function workerResultFromRun(run: WorkerRun, options: { metadata?: Record
     ...(run.lastActivityAt === undefined ? {} : { lastActivityAt: run.lastActivityAt }),
     ...(run.timeoutMs === undefined ? {} : { timeoutMs: run.timeoutMs }),
     ...(run.exitCode === undefined ? {} : { exitCode: run.exitCode }),
-    ...(run.finalTextPreview ? { finalText: run.finalTextPreview } : {}),
+		...(run.finalText ?? run.finalTextPreview ? { finalText: run.finalText ?? run.finalTextPreview } : {}),
+		...(run.finalTextPath ? { finalTextPath: run.finalTextPath } : {}),
     usage: { ...run.usage },
     activity: [...(run.activity ?? [])],
     logPath: run.logPath,

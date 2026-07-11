@@ -156,6 +156,36 @@ test("WorkerManager runs async adapters without spawning a subprocess", async ()
   });
 });
 
+test("WorkerManager preserves bounded complete final text and points oversized results at the private log", async () => {
+	await withTempDir(async (artifactRoot) => {
+		const completeText = `Complete result: ${"evidence ".repeat(40)}`.trim();
+		const oversizedText = "x".repeat(60 * 1024);
+		let invocation = 0;
+		const adapter: WorkerAdapter = {
+			name: "async-results",
+			async runTask({ emitEvent, writeOutput }) {
+				const text = invocation++ === 0 ? completeText : oversizedText;
+				writeOutput("stdout", `[final]\n${text}`);
+				emitEvent({ type: "final", text, timestamp: Date.now() });
+				return { exitCode: 0 };
+			},
+		};
+		const manager = new WorkerManager({ artifactRoot, adapters: [adapter] });
+
+		const completeRun = await manager.startRun({ adapter: "async-results", task: "complete", cwd: "/tmp/project" });
+		const complete = await manager.waitForRun(completeRun.id);
+		assert.equal(complete.finalText, completeText);
+		assert.equal(complete.finalTextPath, undefined);
+
+		const oversizedRun = await manager.startRun({ adapter: "async-results", task: "oversized", cwd: "/tmp/project" });
+		const oversized = await manager.waitForRun(oversizedRun.id);
+		assert.notEqual(oversized.finalText, oversizedText);
+		assert.match(oversized.finalText ?? "", /Output truncated/);
+		assert.equal(oversized.finalTextPath, oversized.logPath);
+		assert.match(await readFile(oversized.logPath, "utf8"), new RegExp(`x{${oversizedText.length}}`));
+	});
+});
+
 test("WorkerManager marks async adapter errors as adapter failures", async () => {
   await withTempDir(async (artifactRoot) => {
     const adapter: WorkerAdapter = {
@@ -228,6 +258,24 @@ test("WorkerManager times out async adapters with an abort signal", async () => 
     assert.equal(finished.status, "timed_out");
     assert.equal(finished.statusReason, "timed_out");
   });
+});
+
+test("WorkerManager preserves async adapter terminal reasons", async () => {
+	await withTempDir(async (artifactRoot) => {
+		const adapter: WorkerAdapter = {
+			name: "async-turn-limit",
+			async runTask() {
+				return { exitCode: 1, statusReason: "turn_limit" };
+			},
+		};
+		const manager = new WorkerManager({ artifactRoot, adapters: [adapter] });
+
+		const run = await manager.startRun({ adapter: "async-turn-limit", task: "bounded", cwd: "/tmp/project" });
+		const finished = await manager.waitForRun(run.id);
+
+		assert.equal(finished.status, "failed");
+		assert.equal(finished.statusReason, "turn_limit");
+	});
 });
 
 test("WorkerManager starts one run, records lifecycle state, and captures logs", async () => {

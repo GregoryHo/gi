@@ -5,7 +5,7 @@
 - Package: `packages/pi-extension-goal-mode`
 - Package version: `0.0.0`
 - Status: M4 Worker-assisted goal loops implemented and verified locally.
-- Active milestone: M5 — Pi-native child-agent backend exploration (deferred; not started).
+- Active milestone: None. The former M5 pi-native backend exploration is superseded by the `pi-extension-agent-workers` v0.4.0 `pi-sdk` adapter and its v0.5.0 hardening track.
 
 ## Product summary
 
@@ -21,7 +21,9 @@ plan -> act -> observe -> verify -> continue/block/done
 
 - Plan mode owns safe planning, plan artifacts, and explicit plan execution handoff.
 - Goal mode owns bounded objective loops, iteration limits, verification policy, and stop/block decisions.
-- Agent workers own delegated worker processes, worker profiles, workspace preflight, wait/status/cancel, and worker summaries.
+- Agent workers own delegated execution, worker profiles, adapters (including `pi-sdk`), workspace preflight, wait/status/cancel, and worker summaries.
+- A separate Subagents package owns direct delegation UX and agent definitions.
+- A future Agent Teams package owns shared tasks, teammate messaging, assignment, and synthesis; Goal Mode may consume those tools but does not own their runtime.
 
 ## Navigation
 

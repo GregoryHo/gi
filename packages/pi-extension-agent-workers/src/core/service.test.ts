@@ -218,6 +218,49 @@ test("AgentWorkerService starts profile runs with original task preview metadata
   assert.equal(startInput?.taskPreview, "Review WIN-123 diff");
 });
 
+test("AgentWorkerService passes native child options without embedding the system prompt in pi-sdk task text", async () => {
+	let startInput: Record<string, unknown> | undefined;
+	const manager = {
+		startRun: async (input: Record<string, unknown>) => {
+			startInput = input;
+			return makeServiceRun({ taskPreview: input.taskPreview as string });
+		},
+	} as unknown as WorkerManager;
+	const service = new AgentWorkerService({ manager });
+
+	await service.start({
+		adapter: "pi-sdk",
+		task: "Review the diff",
+		systemPrompt: "Act as a read-only reviewer.",
+		model: "anthropic/claude-sonnet-4-6",
+		thinking: "high",
+		maxTurns: 4,
+		cwd: process.cwd(),
+	});
+
+	assert.equal(startInput?.task, "Review the diff");
+	assert.equal(startInput?.systemPrompt, "Act as a read-only reviewer.");
+	assert.equal(startInput?.model, "anthropic/claude-sonnet-4-6");
+	assert.equal(startInput?.thinking, "high");
+	assert.equal(startInput?.maxTurns, 4);
+});
+
+test("AgentWorkerService lets consumers narrow a pi-sdk run to read-only authority", async () => {
+	let startInput: Record<string, unknown> | undefined;
+	const manager = {
+		startRun: async (input: Record<string, unknown>) => {
+			startInput = input;
+			return makeServiceRun({ taskPreview: input.taskPreview as string });
+		},
+	} as unknown as WorkerManager;
+	const service = new AgentWorkerService({ manager });
+
+	await service.start({ adapter: "pi-sdk", task: "Inspect only", readOnly: true, cwd: process.cwd() });
+
+	assert.equal(startInput?.readOnly, true);
+	assert.equal(startInput?.canModifyWorkspace, false);
+});
+
 test("AgentWorkerService starts runs with workspace scope metadata", async () => {
   const root = await makeTempDir("service-scope");
   const repo = join(root, "repo");
