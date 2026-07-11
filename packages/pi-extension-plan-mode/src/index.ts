@@ -15,10 +15,11 @@ import {
   getNextSessionPlanNumber,
   getPlanModeProjectDir,
   listPlanIndexEntries,
-  readCurrentPlanPointer,
   readPlanArtifact,
+	readSessionCurrentPlanPointer,
   writeCurrentPlanPointer,
   writePlanArtifact,
+	writeSessionCurrentPlanPointer,
 } from "./artifacts.ts";
 import {
   extractCapturedPlan,
@@ -280,6 +281,10 @@ export default function planModeExtension(pi: ExtensionAPI): void {
 
     if (activePlanId) {
       activeArtifact = await readPlanArtifact(getArtifactRoot(ctx), activePlanId);
+			const sessionFile = getSessionFile(ctx);
+			if (activeArtifact && sessionFile) {
+				await writeSessionCurrentPlanPointer(getArtifactRoot(ctx), sessionFile, { activePlanId });
+			}
     }
 
     if (pi.getFlag("plan") === true) {
@@ -430,7 +435,7 @@ export default function planModeExtension(pi: ExtensionAPI): void {
     activePlanId = artifact.id;
     capturedPlan = { steps: artifact.steps.map((step) => ({ ...step })) };
     executing = artifact.status === "executing";
-    await writeCurrentPlanPointer(getArtifactRoot(ctx), { activePlanId });
+		await writePlanPointers(ctx, { activePlanId });
     updateStatus(ctx);
     persistState();
     ctx.ui.notify(`Switched to plan ${artifact.id}: ${artifact.title}`, "info");
@@ -474,7 +479,7 @@ export default function planModeExtension(pi: ExtensionAPI): void {
     activePlanId = undefined;
     activeArtifact = undefined;
     executing = false;
-    await writeCurrentPlanPointer(getArtifactRoot(ctx), {});
+		await writePlanPointers(ctx, {});
     enablePlanMode();
     updateStatus(ctx);
     persistState();
@@ -561,7 +566,8 @@ export default function planModeExtension(pi: ExtensionAPI): void {
 
   async function getCurrentPlanForTool(ctx: ExtensionContext): Promise<PlanArtifactV1 | undefined> {
     const root = getArtifactRoot(ctx);
-    const pointer = await readCurrentPlanPointer(root);
+		const sessionFile = getSessionFile(ctx);
+		const pointer = sessionFile ? await readSessionCurrentPlanPointer(root, sessionFile) : {};
     if (pointer.activePlanId) {
       const artifact = await readPlanArtifact(root, pointer.activePlanId);
       if (artifact) return artifact;
@@ -571,8 +577,15 @@ export default function planModeExtension(pi: ExtensionAPI): void {
 
   async function saveActiveArtifact(ctx: ExtensionContext, artifact: PlanArtifactV1): Promise<void> {
     await writePlanArtifact(getArtifactRoot(ctx), artifact);
-    await writeCurrentPlanPointer(getArtifactRoot(ctx), { activePlanId: artifact.id });
+		await writePlanPointers(ctx, { activePlanId: artifact.id });
   }
+
+	async function writePlanPointers(ctx: ExtensionContext, pointer: { activePlanId?: string }): Promise<void> {
+		const root = getArtifactRoot(ctx);
+		const sessionFile = getSessionFile(ctx);
+		if (sessionFile) await writeSessionCurrentPlanPointer(root, sessionFile, pointer);
+		await writeCurrentPlanPointer(root, pointer);
+	}
 }
 
 function compactPlanToolDetails(artifact: PlanArtifactV1): Record<string, unknown> {

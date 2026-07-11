@@ -250,6 +250,41 @@ test("plan_get_current returns found false without a current plan", async () => 
   assert.match(result.content[0].text, /No current plan/i);
 });
 
+test("plan_get_current does not leak another session's current plan", async () => {
+	const artifactRoot = await mkdtemp(join(tmpdir(), "plan-mode-shared-session-test-"));
+	const previousArtifactRoot = process.env.PI_PLAN_MODE_ARTIFACT_ROOT;
+	try {
+		const sessionA = await createHarness({
+			activeTools: ["read", "edit", "write"],
+			artifactRoot,
+			sessionFile: "/sessions/a.jsonl",
+		});
+		planModeExtension(sessionA.pi as never);
+		await sessionA.tools.get("plan_record")?.execute("call_1", {
+			intent: "new",
+			title: "Session A plan",
+			steps: [{ step: 1, text: "Only session A should see this" }],
+		}, undefined, undefined, sessionA.ctx);
+
+		const sessionB = await createHarness({
+			activeTools: ["read", "edit", "write"],
+			artifactRoot,
+			sessionFile: "/sessions/b.jsonl",
+		});
+		planModeExtension(sessionB.pi as never);
+		await sessionB.event("session_start")({}, sessionB.ctx);
+		const current = await sessionB.tools.get("plan_get_current")?.execute("call_2", {}, undefined, undefined, sessionB.ctx);
+		await sessionB.commands.get("plan-history")?.handler("", sessionB.ctx);
+
+		assert.equal(current.details.found, false);
+		assert.match(sessionB.notifications.at(-1)?.message ?? "", /Session A plan/);
+	} finally {
+		if (previousArtifactRoot === undefined) delete process.env.PI_PLAN_MODE_ARTIFACT_ROOT;
+		else process.env.PI_PLAN_MODE_ARTIFACT_ROOT = previousArtifactRoot;
+		await rm(artifactRoot, { recursive: true, force: true });
+	}
+});
+
 test("plan_get_current returns compact current artifact data without internals", async () => {
   const harness = await createHarness({ activeTools: ["read", "edit", "write"], selectResults: ["Stay in plan mode"] });
 
@@ -639,6 +674,7 @@ interface HarnessOptions {
   editorResults?: Array<string | undefined>;
   cwd?: string;
   sessionFile?: string;
+	artifactRoot?: string;
 }
 
 async function createHarness(options: HarnessOptions): Promise<{
@@ -666,14 +702,16 @@ async function createHarness(options: HarnessOptions): Promise<{
   const appendedEntries: Array<{ customType: string; data: any }> = [];
   const selectResults = [...(options.selectResults ?? [])];
   const editorResults = [...(options.editorResults ?? [])];
-  const artifactRoot = await mkdtemp(join(tmpdir(), "plan-mode-runtime-test-"));
+  const artifactRoot = options.artifactRoot ?? await mkdtemp(join(tmpdir(), "plan-mode-runtime-test-"));
   const previousArtifactRoot = process.env.PI_PLAN_MODE_ARTIFACT_ROOT;
   process.env.PI_PLAN_MODE_ARTIFACT_ROOT = artifactRoot;
-  test.after(async () => {
-    if (previousArtifactRoot === undefined) delete process.env.PI_PLAN_MODE_ARTIFACT_ROOT;
-    else process.env.PI_PLAN_MODE_ARTIFACT_ROOT = previousArtifactRoot;
-    await rm(artifactRoot, { recursive: true, force: true });
-  });
+	if (!options.artifactRoot) {
+		test.after(async () => {
+			if (previousArtifactRoot === undefined) delete process.env.PI_PLAN_MODE_ARTIFACT_ROOT;
+			else process.env.PI_PLAN_MODE_ARTIFACT_ROOT = previousArtifactRoot;
+			await rm(artifactRoot, { recursive: true, force: true });
+		});
+	}
   let activeTools = options.activeTools;
   const sessionFile = options.sessionFile ?? "/sessions/current.jsonl";
 

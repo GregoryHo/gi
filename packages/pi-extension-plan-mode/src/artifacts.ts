@@ -32,6 +32,14 @@ export async function writeCurrentPlanPointer(root: string, pointer: CurrentPlan
   await writeJson(join(root, "current.json"), pointer.activePlanId ? { activePlanId: pointer.activePlanId } : {});
 }
 
+export async function readSessionCurrentPlanPointer(root: string, sessionFile: string): Promise<CurrentPlanPointer> {
+	return (await readJson<CurrentPlanPointer>(getSessionPointerPath(root, sessionFile))) ?? {};
+}
+
+export async function writeSessionCurrentPlanPointer(root: string, sessionFile: string, pointer: CurrentPlanPointer): Promise<void> {
+	await writeJson(getSessionPointerPath(root, sessionFile), pointer.activePlanId ? { activePlanId: pointer.activePlanId } : {});
+}
+
 export async function writePlanArtifact(root: string, plan: PlanArtifactV1): Promise<string> {
   const relativePath = getPlanArtifactRelativePath(plan);
   await writeJson(join(root, relativePath), plan);
@@ -103,6 +111,11 @@ async function readJson<T>(path: string): Promise<T | undefined> {
 async function writeJson(path: string, data: unknown): Promise<void> {
   await mkdir(join(path, ".."), { recursive: true });
   await writeFile(path, `${JSON.stringify(data, null, 2)}\n`, "utf8");
+}
+
+function getSessionPointerPath(root: string, sessionFile: string): string {
+	const sessionKey = createHash("sha1").update(sessionFile).digest("hex").slice(0, 16);
+	return join(root, "sessions", `${sessionKey}.json`);
 }
 
 function sanitizePathPart(value: string): string {

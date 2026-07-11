@@ -5,6 +5,7 @@ import { join } from "node:path";
 import test from "node:test";
 
 import { createPlanArtifact } from "./artifact-types.ts";
+import * as artifacts from "./artifacts.ts";
 import {
   getPlanArtifactRelativePath,
   getProjectKey,
@@ -30,6 +31,25 @@ test("writeCurrentPlanPointer stores only activePlanId", async () => {
   } finally {
     await rm(root, { recursive: true, force: true });
   }
+});
+
+test("session current plan pointers are isolated by session file", async () => {
+	const root = await mkdtemp(join(tmpdir(), "plan-mode-test-"));
+	try {
+		const writeSessionPointer = (artifacts as Record<string, unknown>).writeSessionCurrentPlanPointer;
+		const readSessionPointer = (artifacts as Record<string, unknown>).readSessionCurrentPlanPointer;
+		assert.equal(typeof writeSessionPointer, "function");
+		assert.equal(typeof readSessionPointer, "function");
+
+		await (writeSessionPointer as Function)(root, "/sessions/a.jsonl", { activePlanId: "plan_a" });
+		await (writeSessionPointer as Function)(root, "/sessions/b.jsonl", { activePlanId: "plan_b" });
+
+		assert.deepEqual(await (readSessionPointer as Function)(root, "/sessions/a.jsonl"), { activePlanId: "plan_a" });
+		assert.deepEqual(await (readSessionPointer as Function)(root, "/sessions/b.jsonl"), { activePlanId: "plan_b" });
+		assert.deepEqual(await (readSessionPointer as Function)(root, "/sessions/c.jsonl"), {});
+	} finally {
+		await rm(root, { recursive: true, force: true });
+	}
 });
 
 test("writePlanArtifact writes artifact and upserts index metadata", async () => {
