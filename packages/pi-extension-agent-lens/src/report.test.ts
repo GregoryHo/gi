@@ -117,6 +117,7 @@ test("renderHtmlReport includes section navigation, density controls, and visibl
 
 	assert.match(html, /class="report-nav"/);
 	assert.match(html, /href="#trace-summary"/);
+	assert.match(html, /href="#swimlane-timeline"/);
 	assert.match(html, /href="#memory-flow-explorer"/);
 	assert.match(html, /href="#observable-log"/);
 	assert.match(html, /id="density-comfortable"/);
@@ -127,6 +128,51 @@ test("renderHtmlReport includes section navigation, density controls, and visibl
 	assert.match(html, /data-total-log-rows="3"/);
 	assert.match(html, /id="trace-summary"/);
 	assert.match(html, /id="event-counts"/);
+});
+
+test("renderHtmlReport includes metadata-only swimlane timeline with safe unavailable states", () => {
+	const html = renderHtmlReport([
+		{ schemaVersion: 1, timestamp: "2026-06-25T01:00:00.000Z", event: "before_agent_start", data: { runIndex: 1, prompt: { length: 12, sha256: "prompt-hash" } } },
+		{ schemaVersion: 1, timestamp: "2026-06-25T01:00:01.000Z", event: "turn_start", data: { runIndex: 1, turnIndex: 0 } },
+		{ schemaVersion: 1, timestamp: "2026-06-25T01:00:02.000Z", event: "before_provider_request", data: { runIndex: 1, payload: { model: "test-model", inputCount: 3, toolCount: 2 } } },
+		{ schemaVersion: 1, timestamp: "2026-06-25T01:00:03.000Z", event: "turn_end", data: { runIndex: 1, turnIndex: 0, assistant: { toolCallNames: ["read"] }, toolResults: { toolResultNames: ["bash"] } } },
+		{ schemaVersion: 1, timestamp: "2026-06-25T01:00:04.000Z", event: "session_compact", data: { runIndex: 1, compaction: { firstKeptEntryId: "entry-2", summary: { length: 50, sha256: "summary-hash", text: "RAW_SUMMARY_SHOULD_NOT_RENDER" } } } },
+	], { title: "Agent Lens Test" });
+
+	assert.match(html, /id="swimlane-timeline"/);
+	assert.match(html, /Metadata-only lanes/);
+	assert.match(html, /data-swimlane-lane="main-agent"/);
+	assert.match(html, /data-swimlane-lane="provider"/);
+	assert.match(html, /data-swimlane-lane="tools"/);
+	assert.match(html, /data-swimlane-lane="memory"/);
+	assert.match(html, /Worker\/teammate metadata unavailable/);
+	assert.match(html, /href="#record-3">View record #3/);
+	assert.match(html, /Provider request · test-model/);
+	assert.match(html, /Tools: bash, read/);
+	assert.equal(html.includes("RAW_SUMMARY_SHOULD_NOT_RENDER"), false);
+});
+
+test("renderHtmlReport includes partial topology explorer with confidence labels and links", () => {
+	const html = renderHtmlReport([
+		{ schemaVersion: 1, timestamp: "2026-06-25T01:00:00.000Z", event: "before_agent_start", data: { runIndex: 1, prompt: { length: 12 } } },
+		{ schemaVersion: 1, timestamp: "2026-06-25T01:00:01.000Z", event: "turn_start", data: { runIndex: 1, turnIndex: 0 } },
+		{ schemaVersion: 1, timestamp: "2026-06-25T01:00:02.000Z", event: "before_provider_request", data: { runIndex: 1, payload: { model: "test-model", inputCount: 3 } } },
+		{ schemaVersion: 1, timestamp: "2026-06-25T01:00:03.000Z", event: "session_before_compact", data: { runIndex: 1, preparation: { firstKeptEntryId: "entry-2" } } },
+		{ schemaVersion: 1, timestamp: "2026-06-25T01:00:04.000Z", event: "session_compact", data: { runIndex: 1, compaction: { firstKeptEntryId: "entry-2", summary: { length: 50, sha256: "summary-hash", text: "RAW_SUMMARY_SHOULD_NOT_RENDER" } } } },
+	], { title: "Agent Lens Test" });
+
+	assert.match(html, /id="partial-topology-explorer"/);
+	assert.match(html, /Partial topology explorer/);
+	assert.match(html, /metadata-only topology, not full session reconstruction/);
+	assert.match(html, /confidence-observed/);
+	assert.match(html, /confidence-inferred/);
+	assert.match(html, /confidence-missing/);
+	assert.match(html, /contains/);
+	assert.match(html, /triggered-by/);
+	assert.match(html, /branch-lineage/);
+	assert.match(html, /href="#swimlane-node-provider-3"/);
+	assert.match(html, /href="#record-3">record #3/);
+	assert.equal(html.includes("RAW_SUMMARY_SHOULD_NOT_RENDER"), false);
 });
 
 test("renderHtmlReport includes observable log chips, filters, search, and expandable details", () => {

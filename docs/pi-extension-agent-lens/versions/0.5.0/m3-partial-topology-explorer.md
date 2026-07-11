@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed. Implementation must wait until M1 is complete and should reuse M2 anchors where possible.
+Done.
 
 ## Motivation
 
@@ -88,6 +88,25 @@ Manual smoke:
 2. Confirm topology explorer labels observed/inferred/missing relationships clearly.
 3. Confirm topology links to swimlane and observable-log records.
 4. Confirm no raw private content appears and no full session reconstruction is implied.
+
+## Completion notes
+
+- Added a static `#partial-topology-explorer` section to `/agent-lens report`.
+- Topology relationships are rendered from the M1 model with visible observed, nearby observed, inferred, and missing labels.
+- Relationship cards link to M2 swimlane node anchors and observable-log record anchors where available.
+- Safety wording states that the view is partial metadata-only topology, not full session reconstruction.
+- Missing worker/agent and branch-lineage metadata are shown as unavailable/missing rather than guessed.
+- Existing memory-flow explorer, swimlane timeline, observable log, index report, and compare report remain functional.
+- No new capture hooks, network calls, server mode, dependencies, or frontend build step were introduced.
+
+Automated verification completed on 2026-07-11:
+
+```bash
+npm test --workspace @gregho/pi-extension-agent-lens
+npm run typecheck --workspace @gregho/pi-extension-agent-lens
+npm run pack:dry-run --workspace @gregho/pi-extension-agent-lens
+npm run typecheck
+```
 
 ## Status tracking
 

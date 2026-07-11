@@ -2,17 +2,14 @@
 
 ## Current stable version
 
-- Version: `0.4.1`
+- Version: `0.5.0`
 - Package: `packages/pi-extension-agent-lens`
-- Status: Report UX polish release sealed after M1/M2/M3 completion, automated verification, and manual acceptance.
-- Current package version: `0.4.1`
+- Status: Multi-agent swimlane + topology foundation release sealed after M1/M2/M3 completion, automated verification, static smoke, and acceptance.
+- Current package version: `0.5.0`
 
 ## Active planning version
 
-- Version: `0.5.0`
-- Status: Active planning; implementation not started.
-- Planning area: `versions/0.5.0/`
-- Theme: Multi-agent swimlane + topology foundation.
+None. Future work should be planned under `versions/<semver>/` before implementation starts.
 
 ## Product summary
 
@@ -57,6 +54,12 @@ v0.4.1 delivered:
 - Per-trace report section navigation, stable anchors, observable-log visible counts, and comfortable/compact density controls.
 - `/agent-lens compare` with a local metadata-only trace comparison report and source report links where available.
 
+v0.5.0 delivered:
+
+- A safe metadata-only topology model with observed, nearby observed, inferred, and missing relationship confidence labels.
+- A static per-trace swimlane timeline for main-agent, provider, tools, memory/compaction, and unavailable worker/teammate lanes.
+- A partial topology explorer that links relationship cards to swimlane nodes and observable-log records without claiming full session reconstruction.
+
 ## Navigation
 
 - `roadmap.md` — broad product direction and deferred candidates.
@@ -68,7 +71,7 @@ v0.4.1 delivered:
 - `versions/0.3.0/index.md` — sealed 0.3.0 planning and release notes.
 - `versions/0.4.0/index.md` — sealed 0.4.0 planning and release notes.
 - `versions/0.4.1/index.md` — sealed 0.4.1 planning and release notes.
-- `versions/0.5.0/index.md` — active 0.5.0 planning for multi-agent swimlane + topology foundation.
+- `versions/0.5.0/index.md` — sealed 0.5.0 planning and release notes.
 - `versions/README.md` — convention for future versioned planning docs.
 - `log.md` — append-only product/change log.
 - `AGENTS.md` — docs governance and workflow.

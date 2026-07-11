@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed. Implementation must wait until M1 defines the topology/lane model.
+Done.
 
 ## Motivation
 
@@ -83,6 +83,24 @@ Manual smoke:
 1. Run `/agent-lens report` on traces with provider/tool/compaction activity.
 2. Confirm lanes, cards, links, missing metadata wording, and section navigation work.
 3. Confirm no raw private content appears.
+
+## Completion notes
+
+- Added a static `#swimlane-timeline` section to `/agent-lens report`.
+- Swimlane cards are generated from the M1 topology model rather than ad hoc report logic.
+- Initial lanes include main agent, provider, tools, memory/compaction, and worker/teammate unavailable state.
+- Cards link back to observable-log records using existing `#record-N` anchors.
+- Existing report navigation, density controls, memory-flow explorer, observable-log filters/search, and expandable details remain intact.
+- No new capture hooks, network calls, server mode, dependencies, or frontend build step were introduced.
+
+Automated verification completed on 2026-07-11:
+
+```bash
+npm test --workspace @gregho/pi-extension-agent-lens
+npm run typecheck --workspace @gregho/pi-extension-agent-lens
+npm run pack:dry-run --workspace @gregho/pi-extension-agent-lens
+npm run typecheck
+```
 
 ## Status tracking
 

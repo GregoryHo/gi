@@ -3,7 +3,7 @@
 ## Status
 
 - Version: `0.5.0`
-- Status: Active planning; implementation not started.
+- Status: Sealed on 2026-07-11 after M1/M2/M3 completion, automated verification, static smoke, and acceptance.
 - Expected base: `0.4.1`
 - Theme: Multi-agent swimlane + topology foundation.
 - Package: `packages/pi-extension-agent-lens`
@@ -40,9 +40,20 @@ The release is a **balanced bridge**:
 
 | Milestone | Status | Plan | Scope |
 | --- | --- | --- | --- |
-| M1 | Proposed | `m1-safe-topology-model.md` | Safe topology model, evidence inventory, gap analysis, and metadata-capture decision. |
-| M2 | Proposed | `m2-swimlane-timeline.md` | Static report swimlane timeline view using the M1 topology/lane model. |
-| M3 | Proposed | `m3-partial-topology-explorer.md` | Partial topology explorer linking agent/session/tool/provider/memory relationships where safely observable. |
+| M1 | Done | `m1-safe-topology-model.md` | Safe topology model, evidence inventory, gap analysis, and metadata-capture decision. |
+| M2 | Done | `m2-swimlane-timeline.md` | Static report swimlane timeline view using the M1 topology/lane model. |
+| M3 | Done | `m3-partial-topology-explorer.md` | Partial topology explorer linking agent/session/tool/provider/memory relationships where safely observable. |
+
+## Release notes
+
+0.5.0 delivered the multi-agent swimlane + topology foundation without changing capture defaults:
+
+- Added a pure metadata-only topology model for trace, run, turn, provider request, tool activity, context snapshot, compaction, and memory event nodes.
+- Added observed, nearby observed, inferred, and missing relationship confidence labels.
+- Documented evidence inventory and concluded that existing trace metadata is sufficient for the first swimlane/topology pass; no new capture hooks were added.
+- Added a static `#swimlane-timeline` report section with main-agent, provider, tools, memory/compaction, and worker/teammate unavailable lanes.
+- Added a static `#partial-topology-explorer` report section linking topology relationships to swimlane nodes and observable-log records where available.
+- Preserved static/local reports, no raw content capture, no network/server mode, no frontend framework, and no new package dependencies.
 
 ## Non-goals
 
@@ -65,4 +76,4 @@ npm run pack:dry-run --workspace @gregho/pi-extension-agent-lens
 npm run typecheck
 ```
 
-Manual smoke should cover `/agent-lens report`, `/agent-lens index`, `/agent-lens compare`, and any new swimlane/topology controls introduced by the milestone.
+Static smoke was completed on 2026-07-11 for `/agent-lens report`, `/agent-lens index`, and `/agent-lens compare` generation paths, including swimlane/topology sections, topology links, missing worker metadata wording, and raw summary text exclusion.

@@ -2,7 +2,7 @@
 
 ## Status
 
-Planning only. Implementation must not start until an accepted milestone is marked `In progress`.
+0.5.0 sealed on 2026-07-11 after M1/M2/M3 completion, automated verification, static smoke, and acceptance.
 
 ## Assumptions
 
@@ -74,13 +74,17 @@ Plan doc: `m3-partial-topology-explorer.md`.
 
 ## Final AC and stop condition
 
-0.5.0 implementation is complete when:
+0.5.0 implementation is automated-complete when:
 
 - accepted M1/M2/M3 code and tests are implemented;
 - README, changelog, package metadata, and version docs reflect the new report capabilities;
-- full verification baseline passes;
-- user manual smoke passes;
-- release/sealing docs are updated.
+- full verification baseline passes.
+
+0.5.0 sealing completed when:
+
+- static/manual smoke passed;
+- release/sealing docs were updated;
+- package version/changelog release section updates were approved.
 
 Stop before sealing if:
 

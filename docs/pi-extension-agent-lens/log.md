@@ -39,3 +39,5 @@
 ## 2026-06-25
 
 - Opened active 0.5.0 planning after user approved Track C: Multi-agent swimlane + topology foundation. Decisions: balanced bridge milestone sequence, hybrid data strategy, and M1-decide worker/agent metadata capture. Current stable version remains `0.4.1`.
+- Completed automated 0.5.0 M1/M2/M3 implementation on `agent-lens-0.5.0-planning`: safe topology model, per-trace swimlane timeline, and partial topology explorer. Full automated verification passed.
+- Completed static smoke and sealed v0.5.0 as a local package release. Current stable version is `0.5.0`; no active planning version remains. No publish or tag was created.

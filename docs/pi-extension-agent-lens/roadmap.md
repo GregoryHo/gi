@@ -39,16 +39,16 @@ Agent Lens helps users understand how pi agent behavior emerges from system prom
 - Per-trace navigation and density refinements for long static reports.
 - Metadata-only trace comparison through `/agent-lens compare` and `.pi-agent-lens/compare.html`.
 
-## Active 0.5.0 direction
-
-0.5.0 is planned under `versions/0.5.0/` as **Multi-agent swimlane + topology foundation**:
+## Delivered in 0.5.0
 
 - Safe topology model and evidence inventory before UI work.
 - Static report swimlane timeline for agent/tool/provider/memory activity.
 - Partial topology explorer for safely observable relationships.
-- Hybrid metadata strategy: start with existing trace metadata; M1 decides whether minimal new redacted metadata capture is necessary.
+- Hybrid metadata strategy outcome: existing trace metadata is sufficient for the first swimlane/topology pass; no new capture was added.
 
-The release should stay static/local-first, metadata-only by default, and avoid full session reconstruction claims.
+## Active direction
+
+No active planning version. Future work should be planned under `versions/<semver>/` before implementation starts.
 
 ## Deferred candidates
 

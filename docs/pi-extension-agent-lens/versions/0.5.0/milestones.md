@@ -10,9 +10,9 @@ This version should connect time-based reading and relationship-based reading wi
 
 | Milestone | Status | Plan | Scope |
 | --- | --- | --- | --- |
-| M1 | Proposed | `m1-safe-topology-model.md` | Safe topology model, evidence inventory, gap analysis, and metadata-capture decision. |
-| M2 | Proposed | `m2-swimlane-timeline.md` | Static report swimlane timeline view using the M1 topology/lane model. |
-| M3 | Proposed | `m3-partial-topology-explorer.md` | Partial topology explorer linking agent/session/tool/provider/memory relationships where safely observable. |
+| M1 | Done | `m1-safe-topology-model.md` | Safe topology model, evidence inventory, gap analysis, and metadata-capture decision. |
+| M2 | Done | `m2-swimlane-timeline.md` | Static report swimlane timeline view using the M1 topology/lane model. |
+| M3 | Done | `m3-partial-topology-explorer.md` | Partial topology explorer linking agent/session/tool/provider/memory relationships where safely observable. |
 
 ## Sequencing rationale
 

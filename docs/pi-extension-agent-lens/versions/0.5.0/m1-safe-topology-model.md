@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed. Implementation not started.
+Done.
 
 ## Motivation
 
@@ -106,6 +106,60 @@ Manual review:
 1. Inspect the evidence inventory and gap analysis.
 2. Confirm any proposed new metadata fields are safe, minimal, and necessary.
 3. Confirm M2/M3 can proceed without ambiguous relationship claims.
+
+## Completion notes
+
+Implemented a pure metadata-only topology helper:
+
+- `packages/pi-extension-agent-lens/src/report-topology.ts`
+- `packages/pi-extension-agent-lens/src/report-topology.test.ts`
+
+The helper builds:
+
+- topology nodes for trace, run, turn, context snapshot, provider request, tool activity, compaction preparation/result;
+- lane hints for trace, main-agent, tools, provider, memory, worker-agent, and unknown;
+- relationships for contains, triggered-by, summarizes, retains-after, parent-child-agent, and branch-lineage;
+- confidence labels for observed, nearby observed, inferred, and missing;
+- explicit gaps for worker metadata and session branch topology.
+
+### Evidence inventory
+
+Existing trace metadata is enough for a first M2 swimlane pass:
+
+- **Run/turn grouping:** `runIndex` and `turnIndex` appear on lifecycle records and can produce main-agent run/turn nodes.
+- **Event order:** record index and timestamp support conservative time ordering and nearby/inferred relationships.
+- **Provider activity:** `before_provider_request` payload summaries expose model, input/message counts, input roles, and tool count without raw payload content.
+- **Tool activity:** context and turn summaries expose tool call/result names and counts without raw tool output.
+- **Context snapshots:** context summaries expose message counts, role counts, tool metadata, and compaction-summary presence.
+- **Compaction/memory:** compaction preparation/result summaries expose token counts, first-kept boundary, branch entry count, summary length/hash, and detail keys without raw summary text.
+
+### Gap analysis
+
+Current metadata is intentionally partial:
+
+- **Worker/teammate relationships:** no reliable worker/agent IDs, parent-run IDs, or lane hints are currently observed in Agent Lens trace records.
+- **Full branch topology:** `firstKeptEntryId` and `branchEntryCount` provide boundary metadata, but not a complete session branch tree.
+- **Causality:** provider/tool relationships are often inferred or nearby observed from event order, not explicit causality.
+
+### Metadata-capture decision
+
+No new metadata capture is proposed for M1.
+
+M2 can proceed using existing metadata with these constraints:
+
+- render main-agent, tools, provider, and memory lanes from existing records;
+- show worker/teammate lane metadata as unavailable unless future traces expose safe worker/agent IDs;
+- keep full session branch topology unavailable/partial rather than reconstructing it;
+- preserve observed/inferred/missing labels in M2/M3 UI.
+
+Automated verification completed on 2026-07-11:
+
+```bash
+npm test --workspace @gregho/pi-extension-agent-lens
+npm run typecheck --workspace @gregho/pi-extension-agent-lens
+npm run pack:dry-run --workspace @gregho/pi-extension-agent-lens
+npm run typecheck
+```
 
 ## Status tracking
 

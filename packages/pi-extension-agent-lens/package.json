@@ -1,6 +1,6 @@
 {
   "name": "@gregho/pi-extension-agent-lens",
-  "version": "0.4.1",
+	"version": "0.5.0",
   "description": "pi extension package for observing agent turns, context, provider payloads, tools, and memory compression.",
   "type": "module",
   "main": "src/index.ts",
@@ -29,6 +29,7 @@
     "src/report-compaction.ts",
     "src/report-events.ts",
     "src/report-summary.ts",
+		"src/report-topology.ts",
     "src/summarize.ts",
     "src/trace.ts",
     "src/traces.ts",

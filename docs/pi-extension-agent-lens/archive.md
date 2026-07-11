@@ -34,4 +34,12 @@
 - `versions/0.4.1/m2-report-navigation-density.md` — completed per-trace report navigation and density refinements.
 - `versions/0.4.1/m3-metadata-trace-comparison.md` — completed metadata-only trace comparison.
 
+## 0.5.0 multi-agent swimlane + topology foundation
+
+- `versions/0.5.0/index.md` — sealed 0.5.0 release summary.
+- `versions/0.5.0/plan-spec.md` — completed version-level plan/spec and stop-condition record.
+- `versions/0.5.0/m1-safe-topology-model.md` — completed safe topology model and evidence inventory.
+- `versions/0.5.0/m2-swimlane-timeline.md` — completed static per-trace swimlane timeline.
+- `versions/0.5.0/m3-partial-topology-explorer.md` — completed partial topology explorer.
+
 Future product iterations should be planned under `versions/<semver>/` before implementation starts.
