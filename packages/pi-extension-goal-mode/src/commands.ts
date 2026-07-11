@@ -1,6 +1,6 @@
 import { markGoalModeInternalMessage, type GoalModeInternalMessageMetadata } from "./messages.ts";
 import type { ActiveGoalState } from "./state.ts";
-import { createGoalState, isResumableGoalPhase, isRunnableGoalPhase, isTerminalGoalPhase, renewGoalRun, transitionGoalPhase } from "./state.ts";
+import { createGoalState, getGoalLimitBlocker, isResumableGoalPhase, isRunnableGoalPhase, isTerminalGoalPhase, renewGoalRun, transitionGoalPhase } from "./state.ts";
 
 interface GoalCommandDefinition {
   description?: string;
@@ -90,6 +90,11 @@ export function registerGoalCommands(pi: GoalCommandRegistry, runtime: GoalComma
         ctx.ui.notify(`Cannot resume goal in ${runtime.activeGoal.phase} phase. Use /goal <objective> to start a new goal if needed.`, "warning");
         return;
       }
+			const limitBlocker = getGoalLimitBlocker(runtime.activeGoal, runtime.now());
+			if (limitBlocker) {
+				ctx.ui.notify(`Cannot resume goal because ${limitBlocker}. Cancel it, then start a new goal if more work is needed.`, "warning");
+				return;
+			}
       runtime.activeGoal = renewGoalRun(transitionGoalPhase(runtime.activeGoal, "planning", runtime.now()), runtime.now());
       runtime.activeGoal = transitionGoalPhase(runtime.activeGoal, "running_iteration", runtime.now());
       notifyGoalChanged(runtime);

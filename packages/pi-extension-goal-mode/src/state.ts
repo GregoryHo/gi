@@ -150,6 +150,14 @@ export function isResumableGoalPhase(phase: GoalPhase): boolean {
   return phase === "paused" || phase === "blocked";
 }
 
+export function getGoalLimitBlocker(goal: ActiveGoalState, now: Date): string | undefined {
+	if (goal.iterationCount >= goal.limits.maxIterations) return "max iterations reached";
+	const elapsedMs = now.getTime() - new Date(goal.startedAt).getTime();
+	if (elapsedMs >= goal.limits.maxElapsedMs) return "max elapsed time reached";
+	if (goal.failureCount >= goal.limits.maxFailures) return "max failures reached";
+	return undefined;
+}
+
 export function renewGoalRun(goal: ActiveGoalState, now: Date): ActiveGoalState {
   return {
     ...goal,

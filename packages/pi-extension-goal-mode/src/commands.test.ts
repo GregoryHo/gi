@@ -140,6 +140,19 @@ test("/goal-resume resumes paused and blocked goals with a new run token and que
   assert.match(notifications.at(-1)?.message ?? "", /resumed/i);
 });
 
+test("/goal-resume rejects goals whose objective limits are exhausted", async () => {
+	const afterLimit = new Date(NOW.getTime() + 30 * 60 * 1000);
+	const { commands, notifications, runtime, sentMessages, ctx } = createHarness(() => afterLimit);
+	runtime.activeGoal = transitionGoalPhase(createGoalState({ objective: "Expired goal", now: NOW }), "blocked", NOW);
+
+	await commands.get("goal-resume")!.handler("", ctx);
+
+	assert.equal(runtime.activeGoal.phase, "blocked");
+	assert.equal(sentMessages.length, 0);
+	assert.match(notifications.at(-1)?.message ?? "", /cancel.*start/i);
+	assert.equal(notifications.at(-1)?.level, "warning");
+});
+
 test("/goal-resume rejects done and cancelled goals", async () => {
   const { commands, notifications, runtime, sentMessages, ctx } = createHarness(() => LATER);
   runtime.activeGoal = transitionGoalPhase(createGoalState({ objective: "Existing goal", now: NOW }), "cancelled", NOW);

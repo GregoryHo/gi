@@ -91,6 +91,16 @@ test("goal_status reports blocked goal context and next actions", async () => {
   assert.deepEqual(result.details?.latestReport, runtime.activeGoal.latestReport);
 });
 
+test("goal_status exposes cancel only when objective limits are exhausted", async () => {
+	const afterLimit = new Date(NOW.getTime() + 30 * 60 * 1000);
+	const { tools, runtime } = createHarness(() => afterLimit);
+	runtime.activeGoal = transitionGoalPhase(createGoalState({ objective: "Expired goal", now: NOW }), "blocked", NOW);
+
+	const result = await tools.get("goal_status")!.execute("call_1", {});
+
+	assert.deepEqual(result.details?.nextAllowedActions, ["cancel"]);
+});
+
 test("goal_control returns compact no-active-goal guidance", async () => {
   const { tools } = createHarness();
 
@@ -131,6 +141,29 @@ test("goal_control resumes blocked goal and queues exactly one iteration preserv
   assert.equal(sentMessages.length, 1);
   assert.match(sentMessages[0]?.content ?? "", /Resume the bounded goal loop/);
   assert.deepEqual(sentMessages[0]?.options, { deliverAs: "followUp" });
+});
+
+test("goal_control rejects resume after the objective elapsed limit is exhausted", async () => {
+	const afterLimit = new Date(NOW.getTime() + 30 * 60 * 1000);
+	const { tools, runtime, sentMessages } = createHarness(() => afterLimit);
+	runtime.activeGoal = transitionGoalPhase(createGoalState({ objective: "Expired goal", now: NOW }), "blocked", NOW);
+	runtime.activeGoal.latestReport = {
+		status: "blocked",
+		summary: "Time budget exhausted",
+		verification: [],
+		completedCriteria: [],
+		remainingCriteria: [],
+		blocker: "max elapsed time reached",
+	};
+
+  const result = await tools.get("goal_control")!.execute("call_1", { action: "resume" });
+
+  assert.equal(result.details?.accepted, false);
+  assert.equal(result.details?.reason, "limit_exhausted");
+  assert.deepEqual(result.details?.nextAllowedActions, ["cancel"]);
+  assert.equal(runtime.activeGoal.phase, "blocked");
+  assert.equal(sentMessages.length, 0);
+  assert.match(result.content[0]?.text ?? "", /cancel.*start/i);
 });
 
 test("goal_control pauses runnable goals and cancels non-terminal goals", async () => {
@@ -307,22 +340,29 @@ test("goal_report records structured progress and moves the goal to verifying", 
   assert.equal(result.details?.status, "continue");
 });
 
-test("goal_report records paused goal progress without resuming", async () => {
-  const { tools, runtime } = createHarness();
-  runtime.activeGoal = transitionGoalPhase(createGoalState({ objective: "Ship goal mode M2", now: NOW }), "paused", NOW);
+test("goal_report rejects paused and blocked goals until they are resumed", async () => {
+	const { tools, runtime } = createHarness();
+	const report = {
+		status: "continue",
+		summary: "Progress should not be recorded",
+		verification: ["manual inspection"],
+		completedCriteria: [],
+		remainingCriteria: ["resume later"],
+	};
 
-  const result = await tools.get("goal_report")!.execute("call_1", {
-    status: "continue",
-    summary: "Paused progress noted",
-    verification: ["manual inspection"],
-    completedCriteria: [],
-    remainingCriteria: ["resume later"],
-  });
+  runtime.activeGoal = transitionGoalPhase(createGoalState({ objective: "Paused goal", now: NOW }), "paused", NOW);
+  const pausedResult = await tools.get("goal_report")!.execute("call_1", report);
 
-  assert.equal(runtime.activeGoal.phase, "paused");
-  assert.equal(runtime.activeGoal.latestReport?.summary, "Paused progress noted");
-  assert.equal(result.details?.accepted, true);
-  assert.equal(result.details?.phase, "paused");
+  runtime.activeGoal = transitionGoalPhase(createGoalState({ objective: "Blocked goal", now: NOW }), "blocked", NOW);
+  const blockedResult = await tools.get("goal_report")!.execute("call_2", { ...report, status: "done" });
+
+  assert.equal(pausedResult.details?.accepted, false);
+  assert.equal(pausedResult.details?.reason, "resume_required");
+  assert.equal(blockedResult.details?.accepted, false);
+  assert.equal(blockedResult.details?.reason, "resume_required");
+  assert.equal(runtime.activeGoal.phase, "blocked");
+  assert.equal(runtime.activeGoal.latestReport, undefined);
+  assert.match(blockedResult.content[0]?.text ?? "", /resume/i);
 });
 
 test("goal_report rejects terminal done and cancelled goals", async () => {
