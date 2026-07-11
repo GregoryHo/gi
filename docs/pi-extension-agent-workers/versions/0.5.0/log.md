@@ -7,3 +7,9 @@ Append important planning decisions, milestone starts/completions, verification 
 - Created proposed v0.5.0 hardening track after sealing v0.4.0. Decision: no additional code hardening blocks the v0.4.0 local release because automated verification and manual `pi-sdk` smoke passed. Remaining work should be tracked as post-MVP hardening.
 - Necessary upper-bound scope: child turn/budget limits, testable child resource boundaries, improved `pi-sdk` observability, conservative model/profile option pass-through, and cross-mode orchestration guidance.
 - Explicitly deferred: nested sub-agents, long-lived child sessions, automatic child extension/tool inheritance, cloud execution, automatic write authority, multi-agent swarm behavior, and raw child transcript exposure in compact summaries.
+
+## 2026-07-11
+
+- Confirmed the package boundary: Agent Workers remains the execution/control plane; direct delegation UX and agent definitions move to a separate `pi-extension-subagents`; Goal Mode remains the bounded orchestrator; future Agent Teams owns shared tasks, messaging, assignment, and synthesis.
+- Expanded v0.5.0 planning to require bounded complete Pi SDK child results with artifact fallback and actual child system-prompt/model/thinking pass-through where supported.
+- Added proposed M2 for a versioned, correlated, reload-safe `pi.events` runtime protocol over the one shared Agent Workers service. The protocol is infrastructure for separate coordination packages, not Agent Teams behavior inside Agent Workers.

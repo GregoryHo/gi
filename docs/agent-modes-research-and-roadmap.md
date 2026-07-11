@@ -60,16 +60,17 @@ Design implications:
 
 ### Repo fit
 
-Existing package `packages/pi-extension-agent-workers` already implements much of the sub-agent substrate:
+Existing package `packages/pi-extension-agent-workers` implements the shared execution/control-plane substrate:
 
 - Claude Code and Codex CLI worker adapters.
+- A pi SDK-backed child-session adapter since v0.4.0.
 - Built-in worker profiles: planner, reviewer, implementer, verifier.
 - LLM-callable `agent_worker_*` tools.
 - Workspace preflight and safety.
 - Bounded multi-worker dispatch.
 - Worker history, status, wait, cancel, and UI widget surfaces.
 
-Therefore, sub-agent mode should not start as a brand-new package that duplicates `agent-workers`. The better path is to reuse and extend `agent-workers`.
+The product boundary is now explicit: `agent-workers` remains the worker execution and supervision runtime. A separate `pi-extension-subagents` package should own direct delegation UX, agent definitions, context policy, and bounded result presentation while reusing `agent-workers` through a versioned runtime protocol. A future Agent Teams package may reuse the same runtime but owns shared tasks, messaging, assignment, and coordination.
 
 ## Recommended priority
 
@@ -80,12 +81,14 @@ Therefore, sub-agent mode should not start as a brand-new package that duplicate
 2. Goal / loop mode second.
    - Build conservative bounded autonomy after plan-mode semantics are stable.
    - Start with one-step-at-a-time execution and verification, not full-auto execution.
-3. Sub-agent behavior third, by integrating with existing `pi-extension-agent-workers`.
-   - Use worker profiles for planning, verification, implementation, and review.
-4. Pi-native sub-agent adapter last.
-   - Only add after external-worker integration is proven.
+3. Harden the existing pi SDK worker adapter and expose a versioned worker runtime protocol.
+   - Keep execution, safety, lifecycle, and artifacts inside `pi-extension-agent-workers`.
+4. Build direct sub-agent behavior as a separate facade package.
+   - `pi-extension-subagents` should reuse the runtime protocol rather than duplicate worker execution.
+5. Add Agent Teams only as a later coordination layer.
+   - Shared tasks, teammate messaging, assignment, and synthesis do not belong in either the worker runtime or the initial sub-agent facade.
 
-## Four-phase roadmap
+## Five-phase roadmap
 
 ### Phase 1 — `pi-extension-plan-mode`
 
@@ -156,29 +159,39 @@ Safety stance:
 - Write-capable workers require clear workspace isolation and explicit user confirmation.
 - Worker output should be compact summaries, not raw logs.
 
-### Phase 4 — pi-native sub-agent adapter for `pi-extension-agent-workers`
+### Phase 4 — harden the implemented pi SDK adapter and add a runtime protocol
 
-Goal: add a local pi SDK-backed worker adapter so sub-agent behavior is available without requiring external Claude Code or Codex CLI processes.
+Status: the initial `pi-sdk` adapter shipped in `pi-extension-agent-workers` v0.4.0. The remaining work belongs to the active v0.5.0 hardening track.
 
-Likely implementation location:
-
-- Extend `packages/pi-extension-agent-workers` with a new adapter, e.g. `pi-sdk`.
+Goal: make pi-native worker execution a reliable shared substrate without turning `agent-workers` into a broad sub-agent or Agent Teams product.
 
 Expected capabilities:
 
-- Spawn an isolated in-memory child `AgentSession` with pi SDK.
-- Use worker profile prompts as child system/context instructions.
-- Support tool allowlists per worker profile.
-- Support model/thinking-level override where practical.
-- Enforce max turns and timeout.
-- Return only compact final summary, usage/status metadata, and artifact references.
+- Preserve bounded complete child results with private artifact fallback.
+- Pass supported worker profile system prompt, model, and thinking options into the child session.
+- Enforce child timeout and turn/budget limits.
+- Keep child extensions, skills, context files, and nested worker tools disabled by default.
+- Expose versioned, correlated start/status/wait/cancel/profile operations over `pi.events` through one shared worker manager.
 
-Non-goals for first pi-native adapter milestone:
+### Phase 5 — separate `pi-extension-subagents` facade
+
+Goal: provide direct foreground delegation while reusing the Agent Workers runtime protocol.
+
+Initial scope:
+
+- Strict `calls[]` contract.
+- Built-in read-only agents.
+- Bounded parallel delegation and complete compact results.
+- Clear missing-runtime and protocol-version errors.
+
+Deferred from the first facade milestone:
 
 - Nested sub-agents.
 - Long-lived child sessions.
-- Cloud execution.
-- Automatic write authority beyond existing worker safety rules.
+- Parent-context inheritance.
+- Background runs.
+- Write-capable agents.
+- Agent Teams coordination semantics.
 
 ## Key decision
 
@@ -191,10 +204,12 @@ Plan mode
 Goal / loop mode
   -> manages bounded iterative progress and verification policy
   -> may consume explicit plan artifacts
-Agent workers / sub-agents
-  -> execute or verify isolated subtasks when explicitly delegated
-Pi-native sub-agent adapter
-  -> optional future worker backend
+Agent workers
+  -> own worker execution, lifecycle, safety, artifacts, and adapters
+Sub-agent facade
+  -> owns direct delegation UX, agent definitions, context policy, and result presentation
+Agent Teams (future)
+  -> owns shared tasks, messaging, assignment, coordination, and synthesis
 ```
 
-This keeps early work safe and avoids duplicating the existing `pi-extension-agent-workers` runtime.
+This preserves one worker runtime while keeping sub-agent and future team product semantics in separate packages.

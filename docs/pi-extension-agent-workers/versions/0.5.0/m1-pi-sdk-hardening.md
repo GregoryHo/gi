@@ -6,11 +6,21 @@ Proposed.
 
 ## SPEC
 
-Harden the v0.4.0 `pi-sdk` worker adapter so pi-native sub-agent runs are safer and easier to diagnose, without expanding the scope into a general multi-agent platform.
+Harden the v0.4.0 `pi-sdk` worker adapter so pi-native worker runs produce usable bounded deliverables, respect supported child options, and remain safe and diagnosable, without expanding the scope into direct sub-agent UX or a general multi-agent platform.
 
 ## Required hardening candidates
 
-### 1. Child turn/budget limits
+### 1. Bounded complete child results
+
+Replace preview-only child deliverables with a bounded complete result contract. Preserve oversized full output in a private runtime artifact and return its path alongside an explicit truncation notice.
+
+Acceptance checks:
+
+- Tests prove a normal child answer is available beyond the current short preview.
+- Tests prove oversized output is truncated for the caller and preserved in a private artifact.
+- Compact status/widget surfaces may continue using previews, but wait/result consumers can access the bounded deliverable.
+
+### 2. Child turn/budget limits
 
 Add an explicit child-session turn or budget limit in addition to the existing worker timeout. If the current pi SDK does not expose an exact turn-limit primitive, document the limitation and implement the safest available fallback, such as:
 
@@ -25,7 +35,7 @@ Acceptance checks:
 - Timeout remains distinct from cancellation.
 - The worker summary explains the terminal reason compactly.
 
-### 2. Testable child resource boundary
+### 3. Testable child resource boundary
 
 Make the minimal child resource loader policy explicit and test-covered.
 
@@ -41,7 +51,7 @@ Acceptance checks:
 - Tests assert the child resource loader returns no extensions/tools/skills/prompts by default.
 - Docs state how a future controlled inheritance feature would need explicit design before implementation.
 
-### 3. Observability and failure shaping
+### 4. Observability and failure shaping
 
 Improve compact status/log behavior for SDK setup and child prompt outcomes.
 
@@ -52,9 +62,9 @@ Acceptance checks:
 - Tests cover missing final text while preserving `usage.source: unknown` when usage is absent.
 - Public tool/status summaries remain compact and do not expose raw child event payloads.
 
-### 4. Conservative model/profile option pass-through
+### 5. Conservative profile option pass-through
 
-If practical in the pi SDK, support only narrow option pass-through needed for worker profiles, such as model hints or injected system prompt text. Do not expose broad provider configuration through generic worker requests.
+Pass supported profile instructions as the child session's actual system prompt rather than embedding them as user-task text. If practical in the pi SDK, also support narrow model and thinking-level hints. Do not expose broad provider configuration through generic worker requests.
 
 Acceptance checks:
 
@@ -62,7 +72,7 @@ Acceptance checks:
 - Unsupported fields are ignored or rejected clearly.
 - Existing profiles remain safe by default.
 
-### 5. Cross-mode orchestration guidance
+### 6. Cross-mode orchestration guidance
 
 Document when to choose `pi-sdk` vs `claude-code` vs `codex-cli`, especially in Plan Mode and Goal Mode flows.
 
@@ -80,6 +90,7 @@ Acceptance checks:
 - No automatic write authority beyond existing worker safety rules.
 - No multi-agent swarm/coordinator runtime.
 - No raw child transcript exposure in compact LLM-facing summaries.
+- No direct `subagent` tool, agent-definition discovery, or Agent Teams semantics in this package.
 
 ## Initial implementation stance
 
