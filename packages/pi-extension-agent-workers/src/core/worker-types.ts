@@ -33,6 +33,8 @@ export interface WorkerRun {
   usage: WorkerUsage;
   activity?: string[];
   finalTextPreview?: string;
+  finalText?: string;
+  finalTextPath?: string;
 }
 
 export interface WorkerRunHistoryEntry {

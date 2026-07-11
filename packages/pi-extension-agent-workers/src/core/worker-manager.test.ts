@@ -156,6 +156,36 @@ test("WorkerManager runs async adapters without spawning a subprocess", async ()
   });
 });
 
+test("WorkerManager preserves bounded complete final text and points oversized results at the private log", async () => {
+	await withTempDir(async (artifactRoot) => {
+		const completeText = `Complete result: ${"evidence ".repeat(40)}`.trim();
+		const oversizedText = "x".repeat(60 * 1024);
+		let invocation = 0;
+		const adapter: WorkerAdapter = {
+			name: "async-results",
+			async runTask({ emitEvent, writeOutput }) {
+				const text = invocation++ === 0 ? completeText : oversizedText;
+				writeOutput("stdout", `[final]\n${text}`);
+				emitEvent({ type: "final", text, timestamp: Date.now() });
+				return { exitCode: 0 };
+			},
+		};
+		const manager = new WorkerManager({ artifactRoot, adapters: [adapter] });
+
+		const completeRun = await manager.startRun({ adapter: "async-results", task: "complete", cwd: "/tmp/project" });
+		const complete = await manager.waitForRun(completeRun.id);
+		assert.equal(complete.finalText, completeText);
+		assert.equal(complete.finalTextPath, undefined);
+
+		const oversizedRun = await manager.startRun({ adapter: "async-results", task: "oversized", cwd: "/tmp/project" });
+		const oversized = await manager.waitForRun(oversizedRun.id);
+		assert.notEqual(oversized.finalText, oversizedText);
+		assert.match(oversized.finalText ?? "", /Output truncated/);
+		assert.equal(oversized.finalTextPath, oversized.logPath);
+		assert.match(await readFile(oversized.logPath, "utf8"), new RegExp(`x{${oversizedText.length}}`));
+	});
+});
+
 test("WorkerManager marks async adapter errors as adapter failures", async () => {
   await withTempDir(async (artifactRoot) => {
     const adapter: WorkerAdapter = {

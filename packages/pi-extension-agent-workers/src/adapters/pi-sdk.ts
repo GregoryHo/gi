@@ -35,9 +35,12 @@ export function createPiSdkAdapter(options: PiSdkAdapterOptions = {}): AsyncWork
     async runTask(context) {
       const tools = selectTools(context);
       const { session } = await (options.createSession ?? createDefaultSession)({ cwd: context.cwd, tools });
-      const unsubscribe = session.subscribe((event) => {
-        for (const workerEvent of workerEventsFromSessionEvent(event, now())) context.emitEvent(workerEvent);
-      });
+			const unsubscribe = session.subscribe((event) => {
+				for (const workerEvent of workerEventsFromSessionEvent(event, now())) {
+					if (workerEvent.type === "final" && workerEvent.text) context.writeOutput("stdout", `[final]\n${workerEvent.text}`);
+					context.emitEvent(workerEvent);
+				}
+			});
       const abort = () => {
         void session.abort().catch(() => undefined);
       };
@@ -97,7 +100,7 @@ function workerEventsFromSessionEvent(event: unknown, timestamp: number): Worker
 
   const events: WorkerEvent[] = [];
   const text = extractText(message.content);
-  if (text) events.push({ type: "final", text: textPreview(text, 120), timestamp });
+  if (text) events.push({ type: "final", text, timestamp });
 
   const usage = usageFromMessage(message);
   if (usage) events.push({ type: "usage", usage, timestamp });

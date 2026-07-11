@@ -74,9 +74,10 @@ test("createPiSdkAdapter enables write tools only for write-capable worker runs"
   assert.deepEqual(calls[0]?.tools, ["read", "grep", "find", "ls", "bash", "edit", "write"]);
 });
 
-test("createPiSdkAdapter emits compact final text and reported usage from child messages", async () => {
+test("createPiSdkAdapter emits complete final text, writes it to the private run log, and reports usage", async () => {
   const events: unknown[] = [];
   const output: string[] = [];
+  const finalText = `Child result: ${"detail ".repeat(40)}`.trim();
   const adapter = createPiSdkAdapter({
     now: () => 1000,
     createSession: async () => ({
@@ -85,7 +86,7 @@ test("createPiSdkAdapter emits compact final text and reported usage from child 
           type: "message_end",
           message: {
             role: "assistant",
-            content: [{ type: "text", text: "OK from child session" }],
+							content: [{ type: "text", text: finalText }],
             usage: {
               input: 11,
               output: 3,
@@ -112,7 +113,7 @@ test("createPiSdkAdapter emits compact final text and reported usage from child 
 
   assert.equal(result.exitCode, 0);
   assert.deepEqual(events, [
-    { type: "final", text: "OK from child session", timestamp: 1000 },
+		{ type: "final", text: finalText, timestamp: 1000 },
     {
       type: "usage",
       usage: {
@@ -127,5 +128,5 @@ test("createPiSdkAdapter emits compact final text and reported usage from child 
     },
     { type: "activity", label: "pi-sdk child session completed", timestamp: 1000 },
   ]);
-  assert.deepEqual(output, ["pi-sdk child session completed"]);
+  assert.deepEqual(output, [`[final]\n${finalText}`, "pi-sdk child session completed"]);
 });

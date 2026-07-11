@@ -9,7 +9,7 @@ import { createDemoAdapter } from "../adapters/demo.ts";
 import { createPiSdkAdapter } from "../adapters/pi-sdk.ts";
 import { ensureLogDirectory, getDefaultArtifactRoot, getRunLogPath } from "../state/logs.ts";
 import { RunArtifactIndex, type RunHistoryListOptions, workerRunToHistoryEntry } from "../state/run-index.ts";
-import { textPreview, unknownUsage, type WorkerEvent } from "./worker-events.ts";
+import { boundFinalText, textPreview, unknownUsage, type WorkerEvent } from "./worker-events.ts";
 import type { ChildProcessLike, SpawnLike, WorkerAdapter, WorkerRun, WorkerRunHistoryEntry, WorkerStatus } from "./worker-types.ts";
 
 interface WorkerManagerOptions {
@@ -299,7 +299,12 @@ function applyWorkerEvents(run: WorkerRun, events: WorkerEvent[]): void {
   for (const event of events) {
     if (event.type === "usage") run.usage = event.usage;
     if (event.type === "activity") run.activity = [...(run.activity ?? []), event.label].slice(-5);
-    if (event.type === "final" && event.text) run.finalTextPreview = textPreview(event.text, 120);
+		if (event.type === "final" && event.text) {
+			const bounded = boundFinalText(event.text, run.logPath);
+			run.finalText = bounded.text;
+			run.finalTextPath = bounded.truncated ? run.logPath : undefined;
+			run.finalTextPreview = textPreview(event.text, 120);
+		}
     if (event.type === "error") run.activity = [...(run.activity ?? []), `error: ${event.message}`].slice(-5);
   }
 }
