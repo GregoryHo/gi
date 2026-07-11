@@ -4,7 +4,7 @@
 
 - Version: `0.5.0`
 - Package: `packages/pi-extension-agent-workers`
-- Status: Active planning / implementation not started
+- Status: M1 implementation in progress
 - Branch: `feature/subagents-runtime-facade`
 
 ## Theme

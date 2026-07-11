@@ -2,7 +2,7 @@
 
 | Milestone | Status | Goal | Notes |
 | --- | --- | --- | --- |
-| M1 Pi SDK hardening and boundary tests | Proposed | Harden complete results, child options/budgets, observability, and resource boundaries | Plan: `m1-pi-sdk-hardening.md` |
+| M1 Pi SDK hardening and boundary tests | In progress | Harden complete results, child options/budgets, observability, and resource boundaries | Plan: `m1-pi-sdk-hardening.md` |
 | M2 Versioned worker runtime protocol | Proposed | Expose one shared worker runtime to separate coordination packages through versioned `pi.events` requests | Plan: `m2-runtime-protocol.md` |
 
 ## Completion criteria
