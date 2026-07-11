@@ -14,7 +14,7 @@ M7 natural Plan Mode tool flow plus M3 Goal Mode integration support are impleme
 - `bash` is restricted to conservative read-only inspection commands while planning, including safe read-only `&&`/`;` command chains.
 - Hidden plan-mode instructions are injected before agent turns.
 - The TUI footer shows a compact plan-mode status.
-- Session custom entries restore mode state after reload/resume.
+- Session custom entries restore mode state after reload/resume; session pointers recover the selected plan if custom state is missing.
 - Numbered `Plan:` sections are captured after assistant turns while plan mode is active.
 - `/plan-current` shows the latest captured plan.
 - Captured plans can be refined or explicitly approved to exit plan mode.
@@ -22,8 +22,9 @@ M7 natural Plan Mode tool flow plus M3 Goal Mode integration support are impleme
 - The capture prompt includes an `Execute the plan` option.
 - Execution progress is tracked with `[DONE:n]` markers and shown in status/widget UI.
 - Plan artifacts are stored under `~/.pi/agent/plan-mode/<project-key>/` by default.
-- `current.json` stores only the active plan pointer.
-- `index.json` stores compact searchable plan metadata.
+- `sessions/<session-key>.json` stores the canonical current-plan pointer for each persisted session, preventing current plans from leaking across sessions in the same workspace.
+- `current.json` remains a compatibility mirror for older installations, but fresh-session current resolution does not use it.
+- `index.json` stores compact searchable workspace plan metadata, so history remains shared across sessions.
 - `/plan-history` and `/plan-history --session` list recent plans.
 - `/plan-switch <id>` restores an existing plan.
 - `/plan-new` starts a new plan flow without silently replacing an active plan; unfinished work can be paused.
@@ -32,7 +33,8 @@ M7 natural Plan Mode tool flow plus M3 Goal Mode integration support are impleme
 - Routing policy tells the LLM to distinguish refine-current, new objective, resume/switch, and ambiguous plan discussions.
 - Natural new objectives use `plan_record` when safe; if an active plan exists, the agent asks a natural disposition question instead of telling users to run `/plan-new`.
 - `plan_record` creates or refines structured plan artifacts while preserving active-plan replacement safety.
-- `plan_get_current` exposes the current plan as compact read-only tool data for natural-language tool composition.
+- `plan_get_current` exposes the current session's plan as compact read-only tool data for natural-language tool composition.
+- Ephemeral sessions keep current-plan state in memory; missing artifacts fail closed with no current plan; explicitly selected terminal plans remain restorable in their session.
 
 ## Boundary
 
