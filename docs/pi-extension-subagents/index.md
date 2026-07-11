@@ -3,7 +3,7 @@
 ## Status
 
 - Package scaffolded on `feature/subagents-runtime-facade`.
-- M1 foreground read-only facade is in progress.
+- M1 foreground read-only facade is complete.
 
 ## Product boundary
 

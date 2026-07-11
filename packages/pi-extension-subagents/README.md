@@ -21,3 +21,25 @@ M1 uses Agent Workers protocol v1 over `pi.events`; it does not import or instan
 - explicit confirmation before child execution;
 - bounded timeout and turn defaults;
 - no nesting, inherited context, background sessions, writes, retries, or team semantics.
+
+## Load
+
+Load Agent Workers before Subagents so the protocol server is available:
+
+```bash
+pi -e ./packages/pi-extension-agent-workers -e ./packages/pi-extension-subagents
+```
+
+The tool accepts:
+
+```json
+{
+  "calls": [
+		{ "agent": "explorer", "task": "Locate the relevant implementation and evidence." },
+		{ "agent": "reviewer", "task": "Review the same scope for correctness risks." }
+  ],
+  "cwd": "/path/to/project"
+}
+```
+
+The batch requires one explicit confirmation, executes calls in parallel, waits in the foreground, and returns results in input order.

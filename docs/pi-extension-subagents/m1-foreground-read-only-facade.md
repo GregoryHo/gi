@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress.
+Done.
 
 ## SPEC
 
@@ -47,3 +47,25 @@ The request may provide a common `cwd`. M1 accepts one to four calls. Calls star
 - Foreground waits preserve input order and isolate per-call failures.
 - Tests prove no runtime internals are instantiated by Subagents.
 - Package tests, typecheck, pack dry-run, root typecheck, and dual-extension smoke pass.
+
+## Completion notes
+
+Completed on `feature/subagents-runtime-facade`.
+
+- Registered one `subagent` tool with a provider-compatible bounded `calls[]` schema.
+- Added built-in `explorer`, `planner`, and `reviewer` definitions with read-only prompts, 8-turn limits, and 120-second worker timeouts.
+- Runtime capability discovery occurs before confirmation; absent/incompatible Agent Workers fails without starting children.
+- One UI confirmation gates the batch. Approved calls start through protocol v1 with `adapter: "pi-sdk"`, `readOnly: true`, and existing Agent Workers confirmation evidence.
+- Calls execute concurrently, wait in the foreground, preserve input order, and isolate per-call failures without retry.
+- Subagents imports only the Agent Workers protocol subpath and contains no worker manager, adapter, history, or artifact implementation.
+- An in-process integration test executes the registered tool through the real event protocol/server boundary and verifies read-only authority plus complete final-result delivery.
+
+Verification passed:
+
+- Agent Workers tests: 143/143.
+- Subagents tests: 7/7.
+- Root workspace typecheck.
+- Both package pack dry-runs.
+- Repository extension style audit.
+- `git diff --check`.
+- Dual-extension Pi 0.80.6 non-interactive load smoke.
