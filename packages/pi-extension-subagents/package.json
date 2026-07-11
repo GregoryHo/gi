@@ -34,6 +34,7 @@
 		"pack:dry-run": "npm pack --dry-run"
 	},
 	"peerDependencies": {
+		"@earendil-works/pi-ai": "*",
 		"@earendil-works/pi-coding-agent": "*",
 		"@gregho/pi-extension-agent-workers": "*",
 		"typebox": "*"
