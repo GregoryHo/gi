@@ -2,7 +2,7 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 
 import { markGoalModeInternalMessage } from "./messages.ts";
-import { notifyGoalChanged, type GoalCommandRuntime } from "./commands.ts";
+import { cancelActiveGoal, notifyGoalChanged, type GoalCommandRuntime } from "./commands.ts";
 import type { GoalReport, GoalReportStatus, SourcePlan, WorkerDelegationPolicy, WorkerDelegationProfile } from "./state.ts";
 import { createGoalState, getGoalLimitBlocker, isResumableGoalPhase, isRunnableGoalPhase, isTerminalGoalPhase, renewGoalRun, transitionGoalPhase, type ActiveGoalState } from "./state.ts";
 
@@ -16,6 +16,11 @@ interface GoalToolRegistry {
 interface GoalToolResult {
   content: Array<{ type: "text"; text: string }>;
   details: Record<string, unknown>;
+}
+
+interface GoalToolContext {
+  isIdle?(): boolean;
+  abort?(): void;
 }
 
 interface GoalStartToolParams {
@@ -115,7 +120,7 @@ export function registerGoalReportTool(pi: GoalToolRegistry, runtime: GoalComman
       "goal_control(action: 'step') only queues work for planning goals; it must not bypass paused or blocked goals.",
     ],
     parameters: goalControlParameters,
-    async execute(_toolCallId, params): Promise<GoalToolResult> {
+	async execute(_toolCallId, params, _signal, _onUpdate, ctx: GoalToolContext): Promise<GoalToolResult> {
       const action = normalizeGoalControlAction((params as GoalControlToolParams).action);
       const goal = runtime.activeGoal;
       if (!goal) {
@@ -126,7 +131,7 @@ export function registerGoalReportTool(pi: GoalToolRegistry, runtime: GoalComman
         });
       }
 
-      const controlled = controlGoal(pi, runtime, goal, action);
+	  const controlled = controlGoal(pi, runtime, goal, action, ctx);
       if (!controlled.accepted) return toolResult(controlled.message, controlled.details);
       notifyGoalChanged(runtime);
       return toolResult(controlled.message, controlled.details);
@@ -232,7 +237,7 @@ export function registerGoalReportTool(pi: GoalToolRegistry, runtime: GoalComman
 
 type GoalControlAction = "pause" | "resume" | "cancel" | "step";
 
-function controlGoal(pi: GoalToolRegistry, runtime: GoalCommandRuntime, goal: ActiveGoalState, action: GoalControlAction): { accepted: boolean; message: string; details: Record<string, unknown> } {
+function controlGoal(pi: GoalToolRegistry, runtime: GoalCommandRuntime, goal: ActiveGoalState, action: GoalControlAction, ctx: GoalToolContext = {}): { accepted: boolean; message: string; details: Record<string, unknown> } {
   if (action === "pause") {
     if (!isRunnableGoalPhase(goal.phase)) return rejectedControl(`Cannot pause goal in ${goal.phase} phase.`, goal, "invalid_phase");
     runtime.activeGoal = transitionGoalPhase(goal, "paused", runtime.now());
@@ -253,8 +258,9 @@ function controlGoal(pi: GoalToolRegistry, runtime: GoalCommandRuntime, goal: Ac
 
   if (action === "cancel") {
     if (isTerminalGoalPhase(goal.phase)) return rejectedControl(`Goal is already ${goal.phase}.`, goal, "terminal_goal");
-    runtime.activeGoal = transitionGoalPhase(goal, "cancelled", runtime.now());
-    return acceptedControl(`Goal cancelled: ${runtime.activeGoal.objective}`, runtime.activeGoal);
+	const cancelled = cancelActiveGoal(runtime, goal, ctx);
+	const accepted = acceptedControl(`Goal cancelled: ${cancelled.goal.objective}`, cancelled.goal);
+	return { ...accepted, details: { ...accepted.details, aborted: cancelled.aborted } };
   }
 
   if (goal.phase !== "planning") return rejectedControl(`Cannot step goal in ${goal.phase} phase.`, goal, "invalid_phase");

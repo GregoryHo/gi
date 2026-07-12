@@ -27,10 +27,10 @@ M4 adds worker-assisted loop guidance: `goal_start` can carry an explicit `worke
 The primary autocomplete-backed surface is `/goal <objective>` or `/goal start|status|pause|resume|stop|cancel|step`. Existing lifecycle command names remain compatibility aliases.
 
 - `/goal <objective>` — start a bounded goal loop for an objective.
-- `/goal-status` — show current goal state and next recommended command.
+- `/goal-status` — show current goal state, criteria, limits, latest bounded report summary, and next recommended command.
 - `/goal-pause` — pause a runnable goal loop without cancelling it or aborting the current turn by default.
 - `/goal-resume` — resume a paused or recoverably blocked goal with a fresh run token and one bounded iteration; exhausted objective limits must be cancelled before starting a new goal.
-- `/goal-stop` — cancel the current/resumable goal, abort the current agent operation when busy, and invalidate queued Goal Mode follow-ups.
+- `/goal-stop` — cancel the current/resumable goal, abort only a matching active Goal Mode iteration, and invalidate queued Goal Mode follow-ups without interrupting an unrelated busy turn.
 - `/goal-step` — queue one bounded iteration when the goal is in `planning`.
 
 ## Lifecycle semantics

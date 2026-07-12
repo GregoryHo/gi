@@ -4,6 +4,8 @@
 
 ### Changed
 
+- Unified command/tool cancellation around matching Goal iteration tokens so cancellation aborts active Goal work without interrupting unrelated busy turns.
+- Expanded bounded goal status text with acceptance criteria, elapsed limit, and latest report summary.
 - Added autocomplete-backed `/goal` lifecycle subcommands while retaining `/goal-status`, `/goal-pause`, `/goal-resume`, `/goal-stop`, and `/goal-step` compatibility aliases.
 
 - Hardened blocked lifecycle handling: paused/blocked goals reject `goal_report` until resumed, and both tool and slash-command resume paths reject exhausted objective limits.

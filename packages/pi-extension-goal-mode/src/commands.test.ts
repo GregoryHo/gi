@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { createGoalCommandRuntime, registerGoalCommands } from "./commands.ts";
+import { createGoalCommandRuntime, formatGoalStatus, registerGoalCommands } from "./commands.ts";
 import { createGoalState, transitionGoalPhase } from "./state.ts";
 
 const NOW = new Date("2026-06-30T02:40:33.000Z");
@@ -127,6 +127,23 @@ test("/goal-status reports no-goal, active, resumable, and terminal guidance", a
   assert.match(notifications.at(-1)?.message ?? "", /\/goal <objective>/);
 });
 
+test("formatGoalStatus includes bounded criteria, elapsed limit, and latest report details", () => {
+  const goal = createGoalState({ objective: "Detailed goal", now: NOW, acceptanceCriteria: ["tests pass", "docs updated"] });
+  goal.latestReport = {
+	status: "continue",
+	summary: "Implemented the first bounded slice",
+	verification: ["unit tests passed"],
+	completedCriteria: ["tests pass"],
+	remainingCriteria: ["docs updated"],
+  };
+
+  const status = formatGoalStatus(goal, LATER);
+
+  assert.match(status, /Acceptance: tests pass; docs updated/);
+  assert.match(status, /Max elapsed: 1800000ms/);
+  assert.match(status, /Latest: continue — Implemented the first bounded slice/);
+});
+
 test("/goal-status does not recommend resume when objective limits are exhausted", async () => {
 	const afterLimit = new Date(NOW.getTime() + 30 * 60 * 1000);
 	const { commands, notifications, runtime, ctx } = createHarness(() => afterLimit);
@@ -209,6 +226,7 @@ test("/goal-stop aborts the current agent operation when invoked while busy", as
   const { commands, notifications, runtime, ctx } = createHarness(() => LATER);
   let abortCount = 0;
   runtime.activeGoal = transitionGoalPhase(createGoalState({ objective: "Existing goal", now: NOW }), "running_iteration", NOW);
+  runtime.activeIteration = { goalId: runtime.activeGoal.id, runId: runtime.activeGoal.runId, iterationId: 1 };
   ctx.isIdle = () => false;
   ctx.abort = () => {
     abortCount += 1;
@@ -219,6 +237,21 @@ test("/goal-stop aborts the current agent operation when invoked while busy", as
   assert.equal(runtime.activeGoal.phase, "cancelled");
   assert.equal(abortCount, 1);
   assert.match(notifications.at(-1)?.message ?? "", /aborted/i);
+});
+
+test("/goal-stop does not abort a busy non-Goal turn", async () => {
+  const { commands, runtime, ctx } = createHarness(() => LATER);
+  let abortCount = 0;
+  runtime.activeGoal = transitionGoalPhase(createGoalState({ objective: "Existing goal", now: NOW }), "running_iteration", NOW);
+  ctx.isIdle = () => false;
+  ctx.abort = () => {
+	abortCount += 1;
+  };
+
+  await commands.get("goal-stop")!.handler("", ctx);
+
+  assert.equal(runtime.activeGoal.phase, "cancelled");
+  assert.equal(abortCount, 0);
 });
 
 test("/goal-step refuses paused and blocked goals", async () => {

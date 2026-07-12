@@ -132,14 +132,14 @@ export function registerGoalCommands(pi: GoalCommandRegistry, runtime: GoalComma
         ctx.ui.notify("No active or resumable goal to cancel.", "info");
         return;
       }
-      runtime.activeGoal = transitionGoalPhase(runtime.activeGoal, "cancelled", runtime.now());
+	  const result = cancelActiveGoal(runtime, runtime.activeGoal, ctx);
       notifyGoalChanged(runtime);
-      if (ctx.isIdle?.() === false) {
-        ctx.abort?.();
-        ctx.ui.notify(`Goal cancelled and current agent operation aborted: ${runtime.activeGoal.objective}`, "info");
-        return;
-      }
-      ctx.ui.notify(`Goal cancelled: ${runtime.activeGoal.objective}`, "info");
+	  ctx.ui.notify(
+		result.aborted
+		  ? `Goal cancelled and current Goal Mode operation aborted: ${result.goal.objective}`
+		  : `Goal cancelled: ${result.goal.objective}`,
+		"info",
+	  );
     },
   });
 
@@ -170,6 +170,19 @@ function commandCompletions(values: readonly string[], prefix: string): Array<{ 
   return matches.length > 0 ? matches : null;
 }
 
+export function cancelActiveGoal(
+  runtime: GoalCommandRuntime,
+  goal: ActiveGoalState,
+  ctx: { isIdle?(): boolean; abort?(): void } = {},
+): { goal: ActiveGoalState; aborted: boolean } {
+  const activeIteration = runtime.activeIteration;
+  const shouldAbort = ctx.isIdle?.() === false && activeIteration?.goalId === goal.id && activeIteration.runId === goal.runId;
+  runtime.activeGoal = transitionGoalPhase(goal, "cancelled", runtime.now());
+  runtime.activeIteration = undefined;
+  if (shouldAbort) ctx.abort?.();
+  return { goal: runtime.activeGoal, aborted: shouldAbort };
+}
+
 export function notifyGoalChanged(runtime: GoalCommandRuntime): void {
   runtime.onChange?.();
 }
@@ -181,6 +194,9 @@ export function formatGoalStatus(goal: ActiveGoalState | undefined, now?: Date):
     `Phase: ${goal.phase}`,
     `Iterations: ${goal.iterationCount}/${goal.limits.maxIterations}`,
     `Failures: ${goal.failureCount}/${goal.limits.maxFailures}`,
+	`Max elapsed: ${goal.limits.maxElapsedMs}ms`,
+	`Acceptance: ${goal.acceptanceCriteria.length > 0 ? goal.acceptanceCriteria.join("; ") : "not specified"}`,
+	...(goal.latestReport ? [`Latest: ${goal.latestReport.status} — ${truncateGoalDetail(goal.latestReport.summary)}`] : []),
   ];
   if (isRunnableGoalPhase(goal.phase)) return [...base, "Status: active", "Next: /goal-pause, /goal-stop, or /goal-step when planning."].join("\n");
 	const limitBlocker = now ? getGoalLimitBlocker(goal, now) : undefined;
@@ -189,6 +205,10 @@ export function formatGoalStatus(goal: ActiveGoalState | undefined, now?: Date):
 	}
   if (isResumableGoalPhase(goal.phase)) return [...base, "Status: resumable", "Next: /goal-resume or /goal-stop."].join("\n");
   return [...base, "Status: terminal", "Next: /goal <objective> to start a new goal."].join("\n");
+}
+
+function truncateGoalDetail(value: string): string {
+  return value.length <= 160 ? value : `${value.slice(0, 159)}…`;
 }
 
 function queueGoalIteration(pi: GoalCommandRegistry, goal: ActiveGoalState, instruction: string): void {

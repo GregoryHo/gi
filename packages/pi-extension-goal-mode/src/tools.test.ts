@@ -14,7 +14,7 @@ interface RegisteredTool {
   promptSnippet?: string;
   promptGuidelines?: string[];
   parameters?: unknown;
-  execute(toolCallId: string, params: Record<string, unknown>): Promise<{ content: Array<{ type: "text"; text: string }>; details?: Record<string, unknown> }>;
+  execute(toolCallId: string, params: Record<string, unknown>, signal?: AbortSignal, onUpdate?: unknown, ctx?: { isIdle?(): boolean; abort?(): void }): Promise<{ content: Array<{ type: "text"; text: string }>; details?: Record<string, unknown> }>;
 }
 
 function createHarness(now = () => LATER) {
@@ -181,6 +181,31 @@ test("goal_control pauses runnable goals and cancels non-terminal goals", async 
   assert.equal(resumeCancelled.details?.accepted, false);
   assert.equal(runtime.activeGoal.phase, "cancelled");
   assert.equal(sentMessages.length, 0);
+});
+
+test("goal_control cancel aborts only a matching active Goal iteration", async () => {
+  const { tools, runtime } = createHarness(() => LATER);
+  let abortCount = 0;
+  runtime.activeGoal = transitionGoalPhase(createGoalState({ objective: "Control lifecycle", now: NOW }), "running_iteration", NOW);
+  runtime.activeIteration = { goalId: runtime.activeGoal.id, runId: runtime.activeGoal.runId, iterationId: 1 };
+
+  const matching = await tools.get("goal_control")!.execute("call_1", { action: "cancel" }, undefined, undefined, {
+	isIdle: () => false,
+	abort: () => { abortCount += 1; },
+  });
+
+  assert.equal(matching.details?.aborted, true);
+  assert.equal(abortCount, 1);
+
+  runtime.activeGoal = transitionGoalPhase(createGoalState({ objective: "Ordinary turn", now: NOW }), "running_iteration", NOW);
+  runtime.activeIteration = undefined;
+  const ordinary = await tools.get("goal_control")!.execute("call_2", { action: "cancel" }, undefined, undefined, {
+	isIdle: () => false,
+	abort: () => { abortCount += 1; },
+  });
+
+  assert.equal(ordinary.details?.aborted, false);
+  assert.equal(abortCount, 1);
 });
 
 test("goal_control step queues only planning goals and does not bypass paused goals", async () => {
