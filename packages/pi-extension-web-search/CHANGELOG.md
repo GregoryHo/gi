@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.1.0 - 2026-07-12
 
 - Pin validated DNS address sets into production HTTP/TLS connections and revalidate every redirect to close DNS-rebinding gaps.
 - Reject URL credentials and additional IPv4/IPv6 documentation, multicast, and reserved targets.

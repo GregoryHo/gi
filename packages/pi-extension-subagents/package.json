@@ -1,6 +1,6 @@
 {
 	"name": "@gregho/pi-extension-subagents",
-	"version": "0.0.0",
+	"version": "0.1.0",
 	"description": "Foreground read-only subagent delegation facade for pi.",
 	"type": "module",
 	"main": "src/index.ts",

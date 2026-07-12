@@ -1,6 +1,6 @@
 {
   "name": "@gregho/pi-extension-goal-mode",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "pi extension package for bounded autonomous goal loops.",
   "type": "module",
   "main": "src/index.ts",

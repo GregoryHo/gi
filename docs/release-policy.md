@@ -12,10 +12,13 @@ Current package versions:
 
 | Package | Current version | Notes |
 | --- | ---: | --- |
-| `@gregho/pi-extension-web-search` | `1.0.0` | OpenAI/Codex-backed read-only web search and safe public content fetching |
+| `@gregho/pi-extension-plan-mode` | `0.2.0` | Read-only planning, artifacts, execution handoff, and consolidated command UX |
+| `@gregho/pi-extension-goal-mode` | `0.1.0` | Bounded goal lifecycle, verification, and tool-based orchestration |
+| `@gregho/pi-extension-web-search` | `1.1.0` | OpenAI/Codex-backed read-only web search and safe public content fetching |
+| `@gregho/pi-extension-agent-workers` | `0.5.0` | Pi SDK-backed worker adapter for local pi-native child sessions |
+| `@gregho/pi-extension-subagents` | `0.1.0` | Foreground bounded read-only delegation over Agent Workers protocol v1 |
 | `@gregho/pi-extension-jira-board` | `0.2.0` | Jira board/context extension |
 | `@gregho/pi-extension-agent-lens` | `0.5.0` | Multi-agent swimlane and partial topology foundation |
-| `@gregho/pi-extension-agent-workers` | `0.4.0` | Pi SDK-backed worker adapter for local pi-native child sessions |
 | `@gregho/pi-extension-api-behavior-audit` | `0.2.2` | Local path-based passthrough routing patch for legacy proxy compatibility |
 
 ## Tag naming

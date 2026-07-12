@@ -1,6 +1,6 @@
 {
   "name": "@gregho/pi-extension-agent-workers",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "pi extension package for supervising delegated AI agent workers, including CLI processes and pi SDK child sessions.",
   "type": "module",
   "main": "src/index.ts",
