@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Added
+
+- Added a `Ctrl+Alt+P` shortcut that uses the same Plan Mode toggle path as `/plan`.
+
+### Changed
+
+- Limited the execution progress widget to five width-bounded step lines plus a remaining-count summary.
+
 - Made current-plan selection session-scoped with hashed `sessions/<session-key>.json` pointers while keeping workspace artifact history shared and retaining `current.json` as a compatibility mirror.
 - Unified session restore and tool/command current resolution so missing custom state can recover from the session pointer without exposing another session's plan.
 - Added regression coverage for cross-session isolation, pointer-only restore, missing artifacts, ephemeral sessions, and terminal-plan restore.

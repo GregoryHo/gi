@@ -8,7 +8,7 @@ M7 natural Plan Mode tool flow plus M3 Goal Mode integration support are impleme
 
 ## Features
 
-- `/plan` toggles read-only plan mode.
+- `/plan` or `Ctrl+Alt+P` toggles read-only plan mode.
 - `--plan` starts with plan mode active.
 - Built-in `edit` and `write` tools are disabled while planning.
 - `bash` is restricted to conservative read-only inspection commands while planning, including safe read-only `&&`/`;` command chains.
@@ -20,7 +20,7 @@ M7 natural Plan Mode tool flow plus M3 Goal Mode integration support are impleme
 - Captured plans can be refined or explicitly approved to exit plan mode.
 - `/plan-execute` starts explicit execution handoff for the latest captured plan.
 - The capture prompt includes an `Execute the plan` option.
-- Execution progress is tracked with `[DONE:n]` markers and shown in status/widget UI.
+- Execution progress is tracked with `[DONE:n]` markers and shown in status/widget UI; the widget displays at most five bounded step lines plus a remaining-count summary.
 - Plan artifacts are stored under `~/.pi/agent/plan-mode/<project-key>/` by default.
 - `sessions/<session-key>.json` stores the canonical current-plan pointer for each persisted session, preventing current plans from leaking across sessions in the same workspace.
 - `current.json` remains a compatibility mirror for older installations, but fresh-session current resolution does not use it.

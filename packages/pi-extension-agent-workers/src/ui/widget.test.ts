@@ -11,20 +11,48 @@ test("renderWorkerWidget displays compact original-style worker cards", () => {
   const lines = renderWorkerWidget(entries, { now: 2000, width: 72 });
 
   assert.equal(lines[0], "Agent workers");
-  assert.equal(lines.filter((line) => line.startsWith("┌─ #")).length, 6);
+  assert.equal(lines.filter((line) => line.startsWith("┌─ #")).length, 1);
   assert.ok(lines.some((line) => line.includes("#1 run_1 ✓ completed")));
   assert.ok(lines.some((line) => line.includes("adapter: claude-code")));
   assert.ok(lines.some((line) => line.includes("profile: verifier")));
   assert.ok(lines.some((line) => line.includes("duration: 1s")));
   assert.ok(lines.some((line) => line.includes("task: task 1")));
   assert.ok(lines.some((line) => line.includes("reason: exit_zero")));
-  assert.equal(lines.some((line) => line.includes("task 7")), false);
+  assert.equal(lines.some((line) => line.includes("task 2")), false);
+});
+
+test("renderWorkerWidget prioritizes active and failed runs plus the latest completion", () => {
+  const lines = renderWorkerWidget([
+	makeEntry({ runId: "completed_latest", status: "completed" }),
+	makeEntry({ runId: "running", status: "running", endedAt: undefined }),
+	makeEntry({ runId: "completed_old", status: "completed" }),
+	makeEntry({ runId: "failed", status: "failed", statusReason: "exit_nonzero" }),
+	makeEntry({ runId: "completed_older", status: "completed" }),
+  ], { width: 80 });
+
+  assert.ok(lines.some((line) => line.includes("running")));
+  assert.ok(lines.some((line) => line.includes("failed")));
+  assert.ok(lines.some((line) => line.includes("completed_latest")));
+  assert.equal(lines.some((line) => line.includes("completed_old")), false);
+  assert.equal(lines.some((line) => line.includes("completed_older")), false);
+  assert.ok(lines.every((line) => line.length <= 80));
+});
+
+test("renderWorkerWidget keeps the latest cancelled run visible", () => {
+  const lines = renderWorkerWidget([
+	makeEntry({ runId: "cancelled_latest", status: "cancelled", statusReason: "cancelled" }),
+	makeEntry({ runId: "cancelled_old", status: "cancelled", statusReason: "cancelled" }),
+  ], { width: 80 });
+
+  assert.ok(lines.some((line) => line.includes("cancelled_latest")));
+  assert.equal(lines.some((line) => line.includes("cancelled_old")), false);
+  assert.equal(lines.includes("No worker runs yet."), false);
 });
 
 test("renderWorkerWidget uses compact two-card rows on wide terminals", () => {
   const lines = renderWorkerWidget([
-    makeEntry({ runId: "run_left", adapter: "demo", profile: "planner", slot: 2 }),
-    makeEntry({ runId: "run_right", adapter: "codex-cli", profile: "reviewer", slot: 3 }),
+	makeEntry({ runId: "run_left", adapter: "demo", profile: "planner", slot: 2, status: "running", endedAt: undefined }),
+	makeEntry({ runId: "run_right", adapter: "codex-cli", profile: "reviewer", slot: 3, status: "running", endedAt: undefined }),
   ], { width: 140 });
 
   assert.ok(lines.some((line) => line.includes("run_left") && line.includes("┌─ #3 run_right")));
@@ -72,7 +100,7 @@ test("updateAgentWorkersWidget requests current workspace scoped history", async
 
   await updateAgentWorkersWidget({ cwd: "/tmp/project", hasUI: true, ui: { setWidget: () => undefined } }, service);
 
-  assert.deepEqual(historyCalls, [{ limit: 6, cwd: "/tmp/project" }]);
+  assert.deepEqual(historyCalls, [{ limit: 3, cwd: "/tmp/project" }]);
 });
 
 test("updateAgentWorkersWidget applies workspace config widget preferences", async () => {
@@ -98,7 +126,10 @@ test("updateAgentWorkersWidget installs a component factory that uses actual ren
   let content: WidgetContentForTest | undefined;
   await updateAgentWorkersWidget(
     { cwd: "/tmp/project", hasUI: true, ui: { setWidget: (_key, nextContent) => { content = nextContent as WidgetContentForTest; } } },
-    createFakeService([makeEntry({ runId: "run_left" }), makeEntry({ runId: "run_right" })]),
+	createFakeService([
+	  makeEntry({ runId: "run_left", status: "running", endedAt: undefined }),
+	  makeEntry({ runId: "run_right", status: "running", endedAt: undefined }),
+	]),
   );
 
   assert.equal(typeof content, "function");

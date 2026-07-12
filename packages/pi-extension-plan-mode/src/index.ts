@@ -58,6 +58,8 @@ const PLAN_CAPTURE_CHOICES = [
 ];
 
 const PLAN_NEW_DISPOSITION_CHOICES = ["Complete current plan", "Abandon current plan", "Pause current plan", "Cancel"];
+const PLAN_WIDGET_MAX_STEPS = 5;
+const PLAN_WIDGET_MAX_WIDTH = 76;
 
 export default function planModeExtension(pi: ExtensionAPI): void {
   let planModeEnabled = false;
@@ -96,7 +98,7 @@ export default function planModeExtension(pi: ExtensionAPI): void {
     if (executing && capturedPlan) {
       const progress = getPlanProgress(capturedPlan);
       ctx.ui.setStatus("plan-progress", ctx.ui.theme.fg("accent", `📋 ${progress.completed}/${progress.total}`));
-      ctx.ui.setWidget("plan-progress", capturedPlan.steps.map((step) => `${step.completed ? "☑" : "☐"} ${step.text}`));
+	  ctx.ui.setWidget("plan-progress", formatPlanProgressWidget(capturedPlan));
     } else {
       ctx.ui.setStatus("plan-progress", undefined);
       ctx.ui.setWidget("plan-progress", undefined);
@@ -159,6 +161,11 @@ export default function planModeExtension(pi: ExtensionAPI): void {
   pi.registerCommand("plan", {
     description: "Toggle read-only plan mode",
     handler: async (_args, ctx) => togglePlanMode(ctx),
+  });
+
+  pi.registerShortcut("ctrl+alt+p", {
+	description: "Toggle read-only plan mode",
+	handler: async (ctx) => togglePlanMode(ctx),
   });
 
   pi.registerCommand("plan-current", {
@@ -622,6 +629,18 @@ interface PlanRecordParams {
   title: string;
   steps: Array<{ step: number; text: string }>;
   activePlanDisposition?: "complete" | "abandon" | "pause";
+}
+
+function formatPlanProgressWidget(plan: CapturedPlan): string[] {
+  const firstIncomplete = plan.steps.findIndex((step) => step.completed !== true);
+  const start = firstIncomplete <= 0 ? 0 : Math.min(firstIncomplete - 1, Math.max(0, plan.steps.length - PLAN_WIDGET_MAX_STEPS));
+  const shown = plan.steps.slice(start, start + PLAN_WIDGET_MAX_STEPS).map((step) => {
+	const line = `${step.completed ? "☑" : "☐"} ${step.text}`;
+	return line.length <= PLAN_WIDGET_MAX_WIDTH ? line : `${line.slice(0, PLAN_WIDGET_MAX_WIDTH - 1)}…`;
+  });
+  const remaining = plan.steps.length - shown.length;
+  if (remaining > 0) shown.push(`… ${remaining} more step(s)`);
+  return shown;
 }
 
 function normalizePlanRecordParams(value: unknown): PlanRecordParams {

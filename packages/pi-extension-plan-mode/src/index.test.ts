@@ -27,6 +27,22 @@ test("registers plan command that toggles write tools", async () => {
   assert.equal(harness.status["plan-mode"], undefined);
 });
 
+test("registers ctrl+alt+p shortcut with the same Plan Mode toggle behavior", async () => {
+  const harness = await createHarness({ activeTools: ["read", "edit", "write", "custom_tool"] });
+
+  planModeExtension(harness.pi as never);
+  const shortcut = harness.shortcuts.get("ctrl+alt+p");
+  assert.ok(shortcut);
+
+  await shortcut.handler(harness.ctx);
+  assert.deepEqual(harness.activeTools, ["read", "custom_tool", "bash", "grep", "find", "ls"]);
+  assert.equal(harness.status["plan-mode"], "⏸ plan");
+
+  await shortcut.handler(harness.ctx);
+  assert.deepEqual(harness.activeTools, ["read", "edit", "write", "custom_tool"]);
+  assert.equal(harness.status["plan-mode"], undefined);
+});
+
 test("session_start honors --plan flag", async () => {
   const harness = await createHarness({ activeTools: ["read", "edit", "write"], flagPlan: true });
 
@@ -555,6 +571,20 @@ test("execute choice exits plan mode and sends execution follow-up", async () =>
   assert.deepEqual(harness.sentUserMessages.at(-1)?.options, { deliverAs: "followUp" });
 });
 
+test("execution widget limits and truncates long plans for narrow terminals", async () => {
+  const harness = await createHarness({ activeTools: ["read", "edit", "write"], selectResults: ["Execute the plan"] });
+  const steps = Array.from({ length: 8 }, (_, index) => `${index + 1}. ${"Long plan step ".repeat(10)}${index + 1}`).join("\n");
+
+  planModeExtension(harness.pi as never);
+  await harness.commands.get("plan")?.handler("", harness.ctx);
+  await harness.event("agent_end")({ messages: [assistantMessage(`Plan:\n${steps}`)] }, harness.ctx);
+
+  const lines = harness.widgets["plan-progress"] ?? [];
+  assert.equal(lines.length, 6);
+  assert.ok(lines.every((line) => line.length <= 76));
+  assert.match(lines.at(-1) ?? "", /3 more/);
+});
+
 test("plan-execute command starts execution for captured plan", async () => {
   const harness = await createHarness({ activeTools: ["read", "edit", "write"], selectResults: ["Stay in plan mode"] });
 
@@ -760,6 +790,10 @@ interface FakeCommand {
   handler: (args: string, ctx: FakeContext) => Promise<void> | void;
 }
 
+interface FakeShortcut {
+  handler: (ctx: FakeContext) => Promise<void> | void;
+}
+
 interface FakeTool {
   promptSnippet?: string;
   promptGuidelines?: string[];
@@ -797,6 +831,7 @@ async function createHarness(options: HarnessOptions): Promise<{
   pi: object;
   ctx: FakeContext;
   commands: Map<string, FakeCommand>;
+  shortcuts: Map<string, FakeShortcut>;
   tools: Map<string, FakeTool>;
   status: Record<string, string | undefined>;
   notifications: Array<{ message: string; level?: string }>;
@@ -809,6 +844,7 @@ async function createHarness(options: HarnessOptions): Promise<{
   event: (name: string) => (...args: any[]) => Promise<any> | any;
 }> {
   const commands = new Map<string, FakeCommand>();
+  const shortcuts = new Map<string, FakeShortcut>();
   const tools = new Map<string, FakeTool>();
   const events = new Map<string, Array<(...args: any[]) => Promise<any> | any>>();
   const status: Record<string, string | undefined> = {};
@@ -836,6 +872,9 @@ async function createHarness(options: HarnessOptions): Promise<{
     registerCommand(name: string, command: FakeCommand) {
       commands.set(name, command);
     },
+	registerShortcut(shortcut: string, definition: FakeShortcut) {
+	  shortcuts.set(shortcut, definition);
+	},
     registerTool(tool: FakeTool & { name: string }) {
       tools.set(tool.name, tool);
     },
@@ -887,6 +926,7 @@ async function createHarness(options: HarnessOptions): Promise<{
     pi,
     ctx,
     commands,
+	shortcuts,
     tools,
     status,
     notifications,

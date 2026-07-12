@@ -47,7 +47,7 @@ pi install ./packages/pi-extension-agent-workers
 
 ## Commands
 
-Interactive sessions also show an `agent-workers` widget with up to 6 compact current/recent worker cards. The widget uses narrower original-style cards, slot/run id titles, concrete started time, two-column layout on wide terminals, truncated task/reason fields, and a 5s refresh interval. Non-UI modes skip widget rendering.
+Interactive sessions show an `agent-workers` widget with up to 3 compact cards, prioritizing running, queued, failed, and timed-out runs plus the latest completion. The widget uses narrower original-style cards, slot/run id titles, concrete started time, two-column layout on wide terminals, truncated task/reason fields, and a 5s refresh interval. Non-UI modes skip widget rendering.
 
 Worker commands:
 

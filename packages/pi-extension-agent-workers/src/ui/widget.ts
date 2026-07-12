@@ -5,7 +5,7 @@ import type { WorkerRunHistoryEntry, WorkerStatus } from "../core/worker-types.t
 
 export const AGENT_WORKERS_WIDGET_KEY = "agent-workers";
 export const DEFAULT_WIDGET_REFRESH_MS = 5_000;
-const DEFAULT_WIDGET_LIMIT = 6;
+const DEFAULT_WIDGET_LIMIT = 3;
 const DEFAULT_WIDGET_WIDTH = 116;
 const COMPACT_CARD_MAX_WIDTH = 56;
 const COMPACT_CARD_GAP = "  ";
@@ -33,7 +33,7 @@ interface RenderWidgetOptions {
 
 export function renderWorkerWidget(entries: WorkerRunHistoryEntry[], options: RenderWidgetOptions = {}): string[] {
   const width = options.width ?? DEFAULT_WIDGET_WIDTH;
-  const visible = entries.slice(0, options.limit ?? DEFAULT_WIDGET_LIMIT);
+  const visible = selectWidgetEntries(entries, options.limit ?? DEFAULT_WIDGET_LIMIT);
   const lines = [truncateLine("Agent workers", width)];
 
   if (visible.length === 0) {
@@ -70,6 +70,17 @@ export async function updateAgentWorkersWidget(ctx: WidgetContextLike, service: 
   const limit = config.widgetLimit ?? DEFAULT_WIDGET_LIMIT;
   const entries = await service.listRunHistory({ limit, cwd: ctx.cwd });
   ctx.ui.setWidget(AGENT_WORKERS_WIDGET_KEY, () => createWorkerWidgetComponent(entries, { limit }), { placement: config.widgetPlacement ?? "aboveEditor" });
+}
+
+function selectWidgetEntries(entries: WorkerRunHistoryEntry[], limit: number): WorkerRunHistoryEntry[] {
+  const selected = new Set(
+	entries.filter((entry) => entry.status === "running" || entry.status === "queued" || entry.status === "failed" || entry.status === "timed_out").slice(0, limit),
+  );
+  const latestCancelled = entries.find((entry) => entry.status === "cancelled");
+  if (latestCancelled && selected.size < limit) selected.add(latestCancelled);
+  const latestCompleted = entries.find((entry) => entry.status === "completed");
+  if (latestCompleted && selected.size < limit) selected.add(latestCompleted);
+  return entries.filter((entry) => selected.has(entry)).slice(0, limit);
 }
 
 function createWorkerWidgetComponent(entries: WorkerRunHistoryEntry[], options: RenderWidgetOptions = {}): WidgetComponentLike {
