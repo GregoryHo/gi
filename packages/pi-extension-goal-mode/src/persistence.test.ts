@@ -15,6 +15,7 @@ function createHarness() {
   const handlers = new Map<string, Function>();
   const appended: Array<{ customType: string; data: unknown }> = [];
   const statuses: Array<{ key: string; value: string | undefined }> = [];
+	const notifications: Array<{ message: string; level?: string }> = [];
   const runtime = createGoalCommandRuntime({ now: () => NOW });
   const pi = {
     on(event: string, handler: Function) {
@@ -34,11 +35,14 @@ function createHarness() {
       setStatus(key: string, value: string | undefined) {
         statuses.push({ key, value });
       },
+		notify(message: string, level?: string) {
+			notifications.push({ message, level });
+		},
     },
   };
 
   registerGoalPersistenceAndUi(pi, runtime);
-  return { handlers, appended, statuses, runtime, ctx };
+  return { handlers, appended, statuses, notifications, runtime, ctx };
 }
 
 test("formatGoalStatusLine renders compact footer status", () => {
@@ -47,6 +51,23 @@ test("formatGoalStatusLine renders compact footer status", () => {
   assert.match(formatGoalStatusLine(goal), /goal/i);
   assert.match(formatGoalStatusLine(goal), /running_iteration/);
   assert.match(formatGoalStatusLine(goal), /0\/8/);
+});
+
+test("formatGoalStatusLine includes a compact blocker for blocked goals", () => {
+	const goal = transitionGoalPhase(createGoalState({ objective: "Ship goal mode M1", now: NOW }), "blocked", NOW);
+	goal.latestReport = {
+		status: "blocked",
+		summary: "Cannot continue",
+		verification: [],
+		completedCriteria: [],
+		remainingCriteria: ["tests pass"],
+		blocker: "Plan Mode is still enabled",
+	};
+
+	const status = formatGoalStatusLine(goal);
+
+	assert.match(status, /blocked/);
+	assert.match(status, /Plan Mode is still enabled/);
 });
 
 test("formatGoalStatusLine truncates long objectives for the footer", () => {
@@ -166,6 +187,30 @@ test("runtime onChange persists active goal and updates status", async () => {
   assert.equal(appended[0]?.customType, GOAL_STATE_ENTRY_TYPE);
   assert.deepEqual(appended[0]?.data, { activeGoal: runtime.activeGoal });
   assert.match(statuses.at(-1)?.value ?? "", /Persisted goal/);
+});
+
+test("runtime onChange notifies once when a goal reaches done", async () => {
+	const { handlers, runtime, notifications, ctx } = createHarness();
+	const running = transitionGoalPhase(createGoalState({ objective: "Finished goal", now: NOW }), "running_iteration", NOW);
+	ctx.sessionManager.getEntries = () => [
+		{ type: "custom", customType: GOAL_STATE_ENTRY_TYPE, data: { activeGoal: running } },
+	];
+	await handlers.get("session_start")!({}, ctx);
+
+	runtime.activeGoal = {
+		...transitionGoalPhase({ ...running, phase: "verifying" }, "done", NOW),
+		latestReport: {
+			status: "done",
+			summary: "All checks passed",
+			verification: ["tests passed"],
+			completedCriteria: ["all done"],
+			remainingCriteria: [],
+		},
+	};
+	runtime.onChange?.();
+	runtime.onChange?.();
+
+	assert.deepEqual(notifications, [{ message: "Goal done: Finished goal", level: "info" }]);
 });
 
 test("runtime onChange clears status when no goal is active", async () => {

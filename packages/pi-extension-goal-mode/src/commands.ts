@@ -1,6 +1,6 @@
 import { markGoalModeInternalMessage, type GoalModeInternalMessageMetadata } from "./messages.ts";
 import type { ActiveGoalState } from "./state.ts";
-import { createGoalState, isResumableGoalPhase, isRunnableGoalPhase, isTerminalGoalPhase, renewGoalRun, transitionGoalPhase } from "./state.ts";
+import { createGoalState, getGoalLimitBlocker, isResumableGoalPhase, isRunnableGoalPhase, isTerminalGoalPhase, renewGoalRun, transitionGoalPhase } from "./state.ts";
 
 interface GoalCommandDefinition {
   description?: string;
@@ -62,7 +62,7 @@ export function registerGoalCommands(pi: GoalCommandRegistry, runtime: GoalComma
   pi.registerCommand("goal-status", {
     description: "Show the active goal status.",
     handler: async (_args, ctx) => {
-      ctx.ui.notify(formatGoalStatus(runtime.activeGoal), "info");
+			ctx.ui.notify(formatGoalStatus(runtime.activeGoal, runtime.now()), "info");
     },
   });
 
@@ -90,6 +90,11 @@ export function registerGoalCommands(pi: GoalCommandRegistry, runtime: GoalComma
         ctx.ui.notify(`Cannot resume goal in ${runtime.activeGoal.phase} phase. Use /goal <objective> to start a new goal if needed.`, "warning");
         return;
       }
+			const limitBlocker = getGoalLimitBlocker(runtime.activeGoal, runtime.now());
+			if (limitBlocker) {
+				ctx.ui.notify(`Cannot resume goal because ${limitBlocker}. Cancel it, then start a new goal if more work is needed.`, "warning");
+				return;
+			}
       runtime.activeGoal = renewGoalRun(transitionGoalPhase(runtime.activeGoal, "planning", runtime.now()), runtime.now());
       runtime.activeGoal = transitionGoalPhase(runtime.activeGoal, "running_iteration", runtime.now());
       notifyGoalChanged(runtime);
@@ -140,7 +145,7 @@ export function notifyGoalChanged(runtime: GoalCommandRuntime): void {
   runtime.onChange?.();
 }
 
-export function formatGoalStatus(goal: ActiveGoalState | undefined): string {
+export function formatGoalStatus(goal: ActiveGoalState | undefined, now?: Date): string {
   if (!goal) return "No goal. Use /goal <objective> to start one.";
   const base = [
     `Goal: ${goal.objective}`,
@@ -149,6 +154,10 @@ export function formatGoalStatus(goal: ActiveGoalState | undefined): string {
     `Failures: ${goal.failureCount}/${goal.limits.maxFailures}`,
   ];
   if (isRunnableGoalPhase(goal.phase)) return [...base, "Status: active", "Next: /goal-pause, /goal-stop, or /goal-step when planning."].join("\n");
+	const limitBlocker = now ? getGoalLimitBlocker(goal, now) : undefined;
+	if (isResumableGoalPhase(goal.phase) && limitBlocker) {
+		return [...base, `Status: limit exhausted (${limitBlocker})`, "Next: /goal-stop, then /goal <objective> if more work is needed."].join("\n");
+	}
   if (isResumableGoalPhase(goal.phase)) return [...base, "Status: resumable", "Next: /goal-resume or /goal-stop."].join("\n");
   return [...base, "Status: terminal", "Next: /goal <objective> to start a new goal."].join("\n");
 }

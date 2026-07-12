@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Made current-plan selection session-scoped with hashed `sessions/<session-key>.json` pointers while keeping workspace artifact history shared and retaining `current.json` as a compatibility mirror.
+- Unified session restore and tool/command current resolution so missing custom state can recover from the session pointer without exposing another session's plan.
+- Added regression coverage for cross-session isolation, pointer-only restore, missing artifacts, ephemeral sessions, and terminal-plan restore.
 - Fixed Plan Mode bash gating to allow safe read-only command chains such as `git status --short --branch && git branch --show-current`, while blocking branch-creation commands.
 - Added read-only `plan_get_current` tool for tool-based Plan Mode → Goal Mode orchestration without command coupling or automatic execution.
 

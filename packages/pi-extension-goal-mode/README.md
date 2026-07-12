@@ -27,7 +27,7 @@ M4 adds worker-assisted loop guidance: `goal_start` can carry an explicit `worke
 - `/goal <objective>` — start a bounded goal loop for an objective.
 - `/goal-status` — show current goal state and next recommended command.
 - `/goal-pause` — pause a runnable goal loop without cancelling it or aborting the current turn by default.
-- `/goal-resume` — resume a paused or blocked goal with a fresh run token and one bounded iteration.
+- `/goal-resume` — resume a paused or recoverably blocked goal with a fresh run token and one bounded iteration; exhausted objective limits must be cancelled before starting a new goal.
 - `/goal-stop` — cancel the current/resumable goal, abort the current agent operation when busy, and invalidate queued Goal Mode follow-ups.
 - `/goal-step` — queue one bounded iteration when the goal is in `planning`.
 
@@ -36,7 +36,7 @@ M4 adds worker-assisted loop guidance: `goal_start` can carry an explicit `worke
 Goal phases:
 
 - Active/runnable: `planning`, `running_iteration`, `verifying`
-- Resumable: `paused`, `blocked`
+- Resumable: `paused`, and `blocked` when objective limits remain
 - Terminal: `done`, `cancelled`
 
 Legacy persisted `stopped` states from M1 restore as `cancelled`.
@@ -94,17 +94,17 @@ goal_start(workerDelegation) -> agent_worker_start -> agent_worker_wait/status -
 
 A `done` report without verification evidence is blocked rather than accepted as complete.
 
-For paused goals, `goal_report` may record latest progress but does not resume or continue the loop. For terminal `done` or `cancelled` goals, `goal_report` is rejected.
+For paused or blocked goals, `goal_report` is rejected with resume guidance so reports cannot be accepted while the state machine is non-runnable. Resume first, then report from the bounded iteration. For terminal `done` or `cancelled` goals, `goal_report` is rejected.
 
 ## Safety boundaries
 
-- Goal loops have max-iteration, max-failure, and max-elapsed-time limits.
+- Goal loops have max-iteration, max-failure, and max-elapsed-time limits. Elapsed time is objective-level and is not reset by resume.
 - `edit` and `write` require explicit approval while a runnable goal is active.
 - Destructive or ambiguous `bash` requires explicit approval while a runnable goal is active.
 - Read-only inspection and common verification commands such as `npm test` and `npm run typecheck` are allowed.
 - Non-UI modes fail closed for write/destructive approval.
 - Paused, cancelled, done, or absent goals do not trigger Goal Mode-specific safety gates.
-- Goal state is session-local, restored from pi custom entries, and displayed in compact footer status.
+- Goal state is session-local, restored from pi custom entries, and displayed in compact footer status; blocked status includes a bounded blocker summary and completion emits one explicit done notification.
 - Worker delegation is never enabled by default; it requires explicit user intent or approval.
 - Write-capable implementer workers require explicit workspace/scope and the Agent Workers confirmation/safety path.
 - Worker output is compact evidence for `goal_report`, not automatic acceptance proof.

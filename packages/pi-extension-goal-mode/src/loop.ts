@@ -1,7 +1,7 @@
 import { notifyGoalChanged, type GoalCommandRuntime } from "./commands.ts";
 import { extractGoalModeInternalMessage, isGoalModeInternalMessage, markGoalModeInternalMessage } from "./messages.ts";
 import type { ActiveGoalState, GoalReport } from "./state.ts";
-import { isRunnableGoalPhase, isTerminalGoalPhase, transitionGoalPhase } from "./state.ts";
+import { getGoalLimitBlocker, isRunnableGoalPhase, isTerminalGoalPhase, transitionGoalPhase } from "./state.ts";
 import { buildMissingVerificationBlocker, isGoalReportAcceptableForDone } from "./verification.ts";
 
 interface GoalLoopAPI {
@@ -155,7 +155,7 @@ export function handleGoalAgentEnd(runtime: GoalCommandRuntime, sender: GoalLoop
     return { action: "done" };
   }
 
-  const limitBlocker = getContinuationLimitBlocker(goal, runtime.now());
+  const limitBlocker = getGoalLimitBlocker(goal, runtime.now());
   if (limitBlocker) {
     const blockerReport: GoalReport = {
       ...report,
@@ -210,14 +210,6 @@ function recordMissingReport(goal: ActiveGoalState, now: Date): ActiveGoalState 
     return transitionGoalPhaseFromAny(next, "blocked", now, missingReport);
   }
   return next;
-}
-
-function getContinuationLimitBlocker(goal: ActiveGoalState, now: Date): string | undefined {
-  if (goal.iterationCount >= goal.limits.maxIterations) return "max iterations reached";
-  const elapsedMs = now.getTime() - new Date(goal.startedAt).getTime();
-  if (elapsedMs >= goal.limits.maxElapsedMs) return "max elapsed time reached";
-  if (goal.failureCount >= goal.limits.maxFailures) return "max failures reached";
-  return undefined;
 }
 
 function transitionGoalPhaseFromVerifying(goal: ActiveGoalState, phase: "blocked" | "done", now: Date, report: GoalReport): ActiveGoalState {

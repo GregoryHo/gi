@@ -16,22 +16,29 @@ interface GoalSessionContext {
   };
   ui?: {
     setStatus(key: string, value: string | undefined): void;
+		notify?(message: string, level?: "info" | "error" | "warning"): void;
   };
 }
 
 export function registerGoalPersistenceAndUi(pi: GoalPersistenceAPI, runtime: GoalCommandRuntime): void {
   let lastSessionContext: GoalSessionContext | undefined;
+	let lastPhase: ActiveGoalState["phase"] | undefined;
 
   runtime.onChange = () => {
     if (runtime.activeGoal) {
       pi.appendEntry(GOAL_STATE_ENTRY_TYPE, { activeGoal: runtime.activeGoal });
     }
+		if (runtime.activeGoal?.phase === "done" && lastPhase !== "done") {
+			lastSessionContext?.ui?.notify?.(`Goal done: ${runtime.activeGoal.objective}`, "info");
+		}
     updateGoalStatus(lastSessionContext, runtime.activeGoal);
+		lastPhase = runtime.activeGoal?.phase;
   };
 
   pi.on("session_start", async (_event, ctx) => {
     lastSessionContext = ctx;
     runtime.activeGoal = restoreLatestGoalState(ctx.sessionManager?.getEntries() ?? []);
+		lastPhase = runtime.activeGoal?.phase;
     updateGoalStatus(ctx, runtime.activeGoal);
   });
 
@@ -50,7 +57,10 @@ export function restoreLatestGoalState(entries: readonly unknown[]): ActiveGoalS
 }
 
 export function formatGoalStatusLine(goal: ActiveGoalState): string {
-  return `goal: ${goal.phase} ${goal.iterationCount}/${goal.limits.maxIterations} ${truncateObjective(goal.objective)}`;
+	const blocker = goal.phase === "blocked" && goal.latestReport?.blocker
+		? ` · ${goal.latestReport.blocker}`
+		: "";
+	return truncateStatusLine(`goal: ${goal.phase} ${goal.iterationCount}/${goal.limits.maxIterations} ${truncateObjective(goal.objective)}${blocker}`);
 }
 
 function settleRestoredGoalState(goal: ActiveGoalState): ActiveGoalState {
@@ -72,6 +82,11 @@ function settleRestoredGoalState(goal: ActiveGoalState): ActiveGoalState {
 function truncateObjective(objective: string): string {
   const maxLength = 64;
   return objective.length <= maxLength ? objective : `${objective.slice(0, maxLength - 1)}…`;
+}
+
+function truncateStatusLine(status: string): string {
+  const maxLength = 96;
+  return status.length <= maxLength ? status : `${status.slice(0, maxLength - 1)}…`;
 }
 
 function isGoalStateEntry(entry: unknown): entry is { type: "custom"; customType: typeof GOAL_STATE_ENTRY_TYPE; data: { activeGoal: ActiveGoalState } } {

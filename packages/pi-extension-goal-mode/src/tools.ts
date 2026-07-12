@@ -4,7 +4,7 @@ import { Type } from "typebox";
 import { markGoalModeInternalMessage } from "./messages.ts";
 import { notifyGoalChanged, type GoalCommandRuntime } from "./commands.ts";
 import type { GoalReport, GoalReportStatus, SourcePlan, WorkerDelegationPolicy, WorkerDelegationProfile } from "./state.ts";
-import { createGoalState, isResumableGoalPhase, isRunnableGoalPhase, isTerminalGoalPhase, renewGoalRun, transitionGoalPhase, type ActiveGoalState } from "./state.ts";
+import { createGoalState, getGoalLimitBlocker, isResumableGoalPhase, isRunnableGoalPhase, isTerminalGoalPhase, renewGoalRun, transitionGoalPhase, type ActiveGoalState } from "./state.ts";
 
 type ToolDefinition = Parameters<ExtensionAPI["registerTool"]>[0];
 
@@ -88,7 +88,7 @@ export function registerGoalReportTool(pi: GoalToolRegistry, runtime: GoalComman
     promptSnippet: "Inspect the current Goal Mode lifecycle state before deciding whether to start, resume, pause, cancel, or report",
     promptGuidelines: [
       "Use goal_status when the user asks about the current goal or says to continue/resume goal work.",
-      "If goal_status reports a paused or blocked goal, prefer goal_control(resume) over starting a duplicate goal.",
+			"If goal_status nextAllowedActions includes resume, prefer goal_control(resume) over starting a duplicate goal; limit-exhausted goals must be cancelled instead.",
       "goal_status is read-only and does not queue work or mutate goal state.",
     ],
     parameters: Type.Object({}),
@@ -99,7 +99,7 @@ export function registerGoalReportTool(pi: GoalToolRegistry, runtime: GoalComman
           nextAllowedActions: ["start"],
         });
       }
-      const details = goalStatusDetails(runtime.activeGoal);
+			const details = goalStatusDetails(runtime.activeGoal, runtime.now());
       return toolResult(`Goal ${runtime.activeGoal.phase}: ${runtime.activeGoal.objective}`, details);
     },
   });
@@ -199,6 +199,14 @@ export function registerGoalReportTool(pi: GoalToolRegistry, runtime: GoalComman
           phase: runtime.activeGoal.phase,
         });
       }
+			if (isResumableGoalPhase(runtime.activeGoal.phase)) {
+				return toolResult(`Goal is ${runtime.activeGoal.phase}; resume it before calling goal_report.`, {
+					accepted: false,
+					reason: "resume_required",
+					phase: runtime.activeGoal.phase,
+					nextAllowedActions: nextAllowedActions(runtime.activeGoal),
+				});
+			}
 
       const report = normalizeGoalReport(params as GoalReportToolParams);
       if (isRunnableGoalPhase(runtime.activeGoal.phase)) {
@@ -233,6 +241,10 @@ function controlGoal(pi: GoalToolRegistry, runtime: GoalCommandRuntime, goal: Ac
 
   if (action === "resume") {
     if (!isResumableGoalPhase(goal.phase)) return rejectedControl(`Cannot resume goal in ${goal.phase} phase.`, goal, "invalid_phase");
+		const limitBlocker = getGoalLimitBlocker(goal, runtime.now());
+		if (limitBlocker) {
+			return rejectedControl(`Cannot resume goal because ${limitBlocker}. Cancel it, then start a new goal if more work is needed.`, goal, "limit_exhausted", ["cancel"]);
+		}
     runtime.activeGoal = renewGoalRun(transitionGoalPhase(goal, "planning", runtime.now()), runtime.now());
     runtime.activeGoal = transitionGoalPhase(runtime.activeGoal, "running_iteration", runtime.now());
     queueGoalIteration(pi, runtime.activeGoal, "Resume the bounded goal loop with one iteration.");
@@ -264,7 +276,7 @@ function acceptedControl(message: string, goal: ActiveGoalState): { accepted: tr
   };
 }
 
-function rejectedControl(message: string, goal: ActiveGoalState, reason: string): { accepted: false; message: string; details: Record<string, unknown> } {
+function rejectedControl(message: string, goal: ActiveGoalState, reason: string, allowedActions = nextAllowedActions(goal)): { accepted: false; message: string; details: Record<string, unknown> } {
   return {
     accepted: false,
     message,
@@ -273,12 +285,12 @@ function rejectedControl(message: string, goal: ActiveGoalState, reason: string)
       reason,
       goalId: goal.id,
       phase: goal.phase,
-      nextAllowedActions: nextAllowedActions(goal),
+			nextAllowedActions: allowedActions,
     },
   };
 }
 
-function goalStatusDetails(goal: ActiveGoalState): Record<string, unknown> {
+function goalStatusDetails(goal: ActiveGoalState, now: Date): Record<string, unknown> {
   return {
     found: true,
     goalId: goal.id,
@@ -292,12 +304,13 @@ function goalStatusDetails(goal: ActiveGoalState): Record<string, unknown> {
 		workerDelegation: goal.workerDelegation ? copyWorkerDelegation(goal.workerDelegation) : undefined,
     latestReport: goal.latestReport ? copyGoalReport(goal.latestReport) : undefined,
     blocker: goal.latestReport?.blocker,
-    nextAllowedActions: nextAllowedActions(goal),
+		nextAllowedActions: nextAllowedActions(goal, now),
   };
 }
 
-function nextAllowedActions(goal: ActiveGoalState): string[] {
+function nextAllowedActions(goal: ActiveGoalState, now?: Date): string[] {
   if (isTerminalGoalPhase(goal.phase)) return [];
+	if (isResumableGoalPhase(goal.phase) && now && getGoalLimitBlocker(goal, now)) return ["cancel"];
   if (isResumableGoalPhase(goal.phase)) return ["resume", "cancel"];
   if (goal.phase === "planning") return ["step", "pause", "cancel"];
   return ["pause", "cancel"];
