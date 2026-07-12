@@ -14,6 +14,10 @@
 - Pi SDK profile instructions now use the child session's actual system prompt instead of being embedded in user task text.
 - Protocol consumers reuse the extension-owned service and may narrow a request to read-only authority, but must provide explicit approval when existing policy requires confirmation.
 
+### Fixed
+
+- Serialized run-index updates and made temporary filenames collision-resistant so concurrent worker starts do not corrupt `runs-index.json` or lose run entries.
+
 ## 0.4.0 - 2026-07-10
 
 ### Added

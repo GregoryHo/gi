@@ -33,6 +33,23 @@ test("RunArtifactIndex upserts one compact latest summary per run", async () => 
   });
 });
 
+test("RunArtifactIndex preserves every concurrent upsert", async () => {
+  await withTempDir(async (artifactRoot) => {
+	const index = new RunArtifactIndex(artifactRoot, { maxEntries: 100 });
+	const runs = Array.from({ length: 20 }, (_, position) =>
+	  makeRun({ id: `run_${position}`, startedAt: 1000 + position }),
+	);
+
+	await Promise.all(runs.map((run) => index.upsertRun(run)));
+
+	const entries = await index.listRuns({ allScopes: true });
+	assert.deepEqual(
+	  entries.map((entry) => entry.runId).sort(),
+	  runs.map((run) => run.id).sort(),
+	);
+  });
+});
+
 test("RunArtifactIndex persists workspace scope metadata", async () => {
   await withTempDir(async (artifactRoot) => {
     const index = new RunArtifactIndex(artifactRoot);

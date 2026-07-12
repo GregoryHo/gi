@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
@@ -24,6 +25,7 @@ export interface RunHistoryListOptions {
 export class RunArtifactIndex {
   private readonly indexPath: string;
   private readonly maxEntries: number;
+  private updateQueue: Promise<void> = Promise.resolve();
 
   constructor(artifactRoot: string, options: RunArtifactIndexOptions = {}) {
     this.indexPath = getRunIndexPath(artifactRoot);
@@ -31,12 +33,16 @@ export class RunArtifactIndex {
   }
 
   async upsertRun(run: WorkerRun): Promise<void> {
-    const current = await this.readIndex();
-    const entry = workerRunToHistoryEntry(run, { controllable: false, historical: true });
-    const nextRuns = [entry, ...current.runs.filter((candidate) => candidate.runId !== entry.runId)]
-      .sort(compareHistoryEntries)
-      .slice(0, this.maxEntries);
-    await this.writeIndex({ version: INDEX_VERSION, runs: nextRuns });
+	const update = this.updateQueue.then(async () => {
+	  const current = await this.readIndex();
+	  const entry = workerRunToHistoryEntry(run, { controllable: false, historical: true });
+	  const nextRuns = [entry, ...current.runs.filter((candidate) => candidate.runId !== entry.runId)]
+		.sort(compareHistoryEntries)
+		.slice(0, this.maxEntries);
+	  await this.writeIndex({ version: INDEX_VERSION, runs: nextRuns });
+	});
+	this.updateQueue = update.catch(() => undefined);
+	await update;
   }
 
   async listRuns(options: number | RunHistoryListOptions = this.maxEntries): Promise<WorkerRunHistoryEntry[]> {
@@ -63,7 +69,7 @@ export class RunArtifactIndex {
 
   private async writeIndex(index: RunIndexFile): Promise<void> {
     await mkdir(dirname(this.indexPath), { recursive: true, mode: 0o700 });
-    const tempPath = `${this.indexPath}.${process.pid}.${Date.now()}.tmp`;
+	const tempPath = `${this.indexPath}.${process.pid}.${randomUUID()}.tmp`;
     await writeFile(tempPath, `${JSON.stringify(index, null, 2)}\n`, { mode: 0o600 });
     await rename(tempPath, this.indexPath);
   }
