@@ -27,4 +27,4 @@
 
 - Marked the former M5 Pi-native child-agent backend exploration as superseded by the Agent Workers v0.4.0 `pi-sdk` adapter and v0.5.0 hardening track. Goal Mode remains an orchestrator and tool consumer; direct sub-agent UX belongs in `pi-extension-subagents`, while future Agent Teams coordination remains a separate product layer.
 - Fixed blocked lifecycle settlement so paused/blocked goals reject `goal_report` until resumed, objective limits are enforced consistently by tool and slash-command resume paths, and limit-exhausted status exposes cancel-only guidance.
-- Added compact blocked reasons to the footer and a single explicit done notification. Goal Mode regression coverage reached 77 tests before final package/repo verification.
+- Added compact blocked reasons to the footer and a single explicit done notification. Slash `/goal-status` and tool `goal_status` now both suppress resume guidance when objective limits are exhausted. Goal Mode regression coverage reached 78 tests; final package/repo verification passed.

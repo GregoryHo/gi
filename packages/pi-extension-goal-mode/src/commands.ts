@@ -62,7 +62,7 @@ export function registerGoalCommands(pi: GoalCommandRegistry, runtime: GoalComma
   pi.registerCommand("goal-status", {
     description: "Show the active goal status.",
     handler: async (_args, ctx) => {
-      ctx.ui.notify(formatGoalStatus(runtime.activeGoal), "info");
+			ctx.ui.notify(formatGoalStatus(runtime.activeGoal, runtime.now()), "info");
     },
   });
 
@@ -145,7 +145,7 @@ export function notifyGoalChanged(runtime: GoalCommandRuntime): void {
   runtime.onChange?.();
 }
 
-export function formatGoalStatus(goal: ActiveGoalState | undefined): string {
+export function formatGoalStatus(goal: ActiveGoalState | undefined, now?: Date): string {
   if (!goal) return "No goal. Use /goal <objective> to start one.";
   const base = [
     `Goal: ${goal.objective}`,
@@ -154,6 +154,10 @@ export function formatGoalStatus(goal: ActiveGoalState | undefined): string {
     `Failures: ${goal.failureCount}/${goal.limits.maxFailures}`,
   ];
   if (isRunnableGoalPhase(goal.phase)) return [...base, "Status: active", "Next: /goal-pause, /goal-stop, or /goal-step when planning."].join("\n");
+	const limitBlocker = now ? getGoalLimitBlocker(goal, now) : undefined;
+	if (isResumableGoalPhase(goal.phase) && limitBlocker) {
+		return [...base, `Status: limit exhausted (${limitBlocker})`, "Next: /goal-stop, then /goal <objective> if more work is needed."].join("\n");
+	}
   if (isResumableGoalPhase(goal.phase)) return [...base, "Status: resumable", "Next: /goal-resume or /goal-stop."].join("\n");
   return [...base, "Status: terminal", "Next: /goal <objective> to start a new goal."].join("\n");
 }

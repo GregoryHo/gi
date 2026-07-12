@@ -88,7 +88,7 @@ export function registerGoalReportTool(pi: GoalToolRegistry, runtime: GoalComman
     promptSnippet: "Inspect the current Goal Mode lifecycle state before deciding whether to start, resume, pause, cancel, or report",
     promptGuidelines: [
       "Use goal_status when the user asks about the current goal or says to continue/resume goal work.",
-      "If goal_status reports a paused or blocked goal, prefer goal_control(resume) over starting a duplicate goal.",
+			"If goal_status nextAllowedActions includes resume, prefer goal_control(resume) over starting a duplicate goal; limit-exhausted goals must be cancelled instead.",
       "goal_status is read-only and does not queue work or mutate goal state.",
     ],
     parameters: Type.Object({}),

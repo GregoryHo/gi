@@ -109,6 +109,18 @@ test("/goal-status reports no-goal, active, resumable, and terminal guidance", a
   assert.match(notifications.at(-1)?.message ?? "", /\/goal <objective>/);
 });
 
+test("/goal-status does not recommend resume when objective limits are exhausted", async () => {
+	const afterLimit = new Date(NOW.getTime() + 30 * 60 * 1000);
+	const { commands, notifications, runtime, ctx } = createHarness(() => afterLimit);
+	runtime.activeGoal = transitionGoalPhase(createGoalState({ objective: "Expired goal", now: NOW }), "blocked", NOW);
+
+	await commands.get("goal-status")!.handler("", ctx);
+
+	assert.match(notifications.at(-1)?.message ?? "", /limit exhausted/i);
+	assert.match(notifications.at(-1)?.message ?? "", /\/goal-stop/);
+	assert.doesNotMatch(notifications.at(-1)?.message ?? "", /\/goal-resume/);
+});
+
 test("/goal-pause pauses an active goal without aborting", async () => {
   const { commands, notifications, runtime, ctx } = createHarness(() => LATER);
   let abortCount = 0;
