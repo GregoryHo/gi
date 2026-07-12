@@ -42,4 +42,5 @@
 
 - Fixed cross-session current-plan leakage by adding canonical hashed session pointers under `sessions/` while preserving workspace-shared artifacts/history and a legacy `current.json` compatibility mirror.
 - Unified session startup, `/plan-current`, and `plan_get_current` around session-local current resolution, including pointer-only crash recovery, missing-artifact fail-closed behavior, ephemeral in-memory state, and terminal-plan restore.
-- Regression coverage reached 70 Plan Mode tests before final package/repo verification.
+- Regression coverage reached 70 Plan Mode tests. Final verification passed: Plan and Goal package tests/typechecks/pack dry-runs plus root workspace typecheck.
+- Isolated real-Pi JSON smoke passed with one shared artifact root and two session directories: session A called `plan_control -> plan_record`, session B called only `plan_get_current` and received `No current plan found`, workspace history retained the session A artifact, and the temporary fixture was deleted.
