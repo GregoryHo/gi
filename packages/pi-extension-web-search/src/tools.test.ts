@@ -196,6 +196,42 @@ test("web_research searches, fetches top sources, stores content, and returns ev
   });
 });
 
+test("web_research enforces a total output budget while retaining every source identity", async () => {
+  const tools: RegisteredTool[] = [];
+  const pi = { registerTool(tool: unknown) { tools.push(tool as RegisteredTool); } } as Parameters<typeof registerWebSearchTool>[0];
+  const sources = Array.from({ length: 3 }, (_, index) => ({
+	title: `Source ${index + 1}`,
+	url: `https://source-${index + 1}.example.com`,
+	snippet: "snippet",
+  }));
+
+  registerWebSearchTool(pi, {
+	search: async (options) => ({ query: options.query, authRoute: "openai-codex", answer: "a".repeat(20_000), sources }),
+	fetch: async (options) => ({
+	  url: options.url,
+	  finalUrl: options.url,
+	  title: options.url,
+	  contentType: "text/plain",
+	  content: "x".repeat(12_000),
+	  fullContent: "x".repeat(12_000),
+	  truncated: false,
+	}),
+  });
+
+  const result = await tools.find((tool) => tool.name === "web_research")!.execute("call-budget", {
+	question: "bounded research",
+	maxSources: 3,
+	maxCharsPerSource: 12_000,
+  }, undefined, undefined, undefined);
+  const text = result.content[0]?.text ?? "";
+
+  assert.ok(text.length <= 40_000);
+  assert.match(text, /Source 1/);
+  assert.match(text, /Source 2/);
+  assert.match(text, /Source 3/);
+  assert.match(text, /truncated/i);
+});
+
 test("web_research records fetch errors and continues with other sources", async () => {
   const tools: RegisteredTool[] = [];
   const pi = {

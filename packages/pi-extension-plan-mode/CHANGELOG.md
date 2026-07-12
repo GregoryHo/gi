@@ -8,6 +8,7 @@
 
 ### Changed
 
+- Changed Plan Mode tool gating to fail closed for unknown custom tools while retaining a reviewed allowlist for inspection, Plan, Web Search, and bounded read-only Subagent tools.
 - Added autocomplete-backed `/plan` subcommands for mode, status, artifact, execution, and lifecycle actions while retaining all existing slash-command aliases.
 - Limited the execution progress widget to five width-bounded step lines plus a remaining-count summary.
 

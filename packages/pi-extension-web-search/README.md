@@ -74,7 +74,7 @@ get_search_content({ responseId: "fc_1", offset: 12000, limit: 8000 })
 
 Use for natural-language research/read tasks where both search and source reading are likely needed.
 
-- Searches the web, fetches top public sources, stores fetched content session-locally, and returns a compact evidence bundle.
+- Searches the web, fetches top public sources, stores fetched content session-locally, and returns a compact evidence bundle capped at 40,000 characters while preserving full fetched content in session-local storage.
 - Prefer for online/public/remote source-code, GitHub repository, npm/pi.dev package, extension, library, implementation, and external-existence discovery unless the user explicitly asks for local/current-repo search.
 - Continues to use the same OpenAI/Codex search path and SSRF-guarded fetch path.
 - Does not perform browser rendering, cookie access, persistent storage, or hidden third-party extraction fallbacks.
@@ -92,7 +92,7 @@ Use for quick current public web information when snippets/citations are enough.
 
 Use to read a specific public HTTP/HTTPS URL or a source selected from `web_search`.
 
-- Blocks localhost/private/reserved IP targets and validates redirects.
+- Blocks URL credentials plus localhost/private/documentation/multicast/reserved IP targets, validates every redirect, and pins each validated DNS answer set into the actual HTTP/TLS connection to prevent DNS-rebinding gaps.
 - Converts HTML to cleaner markdown using local Defuddle extraction with simple fallback; returns text/json/markdown as text.
 - Enforces timeout, response byte limit, and extracted character limit.
 - Marks fetched web text as untrusted evidence/data, not instructions.

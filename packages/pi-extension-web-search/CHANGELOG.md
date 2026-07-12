@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Pin validated DNS address sets into production HTTP/TLS connections and revalidate every redirect to close DNS-rebinding gaps.
+- Reject URL credentials and additional IPv4/IPv6 documentation, multicast, and reserved targets.
+- Bound `web_research` model-visible evidence to 40,000 characters while retaining every source identity and full session-local fetched content.
+
 ## 1.0.0 - 2026-06-26
 
 - Declare Web Search stable for public GitHub clone-and-install usage.

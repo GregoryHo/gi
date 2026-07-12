@@ -19,7 +19,7 @@ test("registers plan command that toggles write tools", async () => {
   assert.ok(planCommand);
 
   await planCommand.handler("", harness.ctx);
-  assert.deepEqual(harness.activeTools, ["read", "custom_tool", "bash", "grep", "find", "ls"]);
+  assert.deepEqual(harness.activeTools, ["read", "bash", "grep", "find", "ls"]);
   assert.equal(harness.status["plan-mode"], "⏸ plan");
 
   await planCommand.handler("", harness.ctx);
@@ -35,7 +35,7 @@ test("registers ctrl+alt+p shortcut with the same Plan Mode toggle behavior", as
   assert.ok(shortcut);
 
   await shortcut.handler(harness.ctx);
-  assert.deepEqual(harness.activeTools, ["read", "custom_tool", "bash", "grep", "find", "ls"]);
+  assert.deepEqual(harness.activeTools, ["read", "bash", "grep", "find", "ls"]);
   assert.equal(harness.status["plan-mode"], "⏸ plan");
 
   await shortcut.handler(harness.ctx);

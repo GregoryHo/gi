@@ -27,6 +27,10 @@ interface GetSearchContentToolParams {
   limit?: number;
 }
 
+const MAX_WEB_RESEARCH_OUTPUT_CHARS = 40_000;
+const MAX_WEB_RESEARCH_ANSWER_CHARS = 8_000;
+const MAX_WEB_RESEARCH_EXCERPT_CHARS = 8_000;
+
 interface WebResearchToolParams {
   question: string;
   maxSources?: number;
@@ -329,7 +333,7 @@ function formatWebResearchText(input: {
     `searchResponseId: ${input.searchResponseId}`,
     "",
     "Search answer:",
-    input.searchAnswer || "(no synthesized search answer)",
+	truncateResearchText(input.searchAnswer || "(no synthesized search answer)", MAX_WEB_RESEARCH_ANSWER_CHARS, "Search answer"),
     "",
     "Sources read:",
   ];
@@ -345,11 +349,18 @@ function formatWebResearchText(input: {
       `   Chars: ${source.charCount} of ${source.fullCharCount}`,
       `   Truncated: ${source.truncated ? "yes" : "no"}`,
       "",
-      source.excerpt ?? "",
+	  truncateResearchText(source.excerpt ?? "", MAX_WEB_RESEARCH_EXCERPT_CHARS, "Source excerpt"),
     );
   }
 
-  return lines.join("\n");
+  const text = lines.join("\n");
+  return text.length <= MAX_WEB_RESEARCH_OUTPUT_CHARS
+	? text
+	: `${text.slice(0, MAX_WEB_RESEARCH_OUTPUT_CHARS - 38)}\n[Web research output truncated.]`;
+}
+
+function truncateResearchText(value: string, maxChars: number, label: string): string {
+  return value.length <= maxChars ? value : `${value.slice(0, maxChars)}\n[${label} truncated.]`;
 }
 
 function resolveFetchUrl(params: FetchContentToolParams, store: SearchResultStore): string {

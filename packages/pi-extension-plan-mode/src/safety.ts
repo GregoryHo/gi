@@ -1,5 +1,15 @@
 const PLAN_MODE_DEFAULT_TOOLS = ["read", "bash", "grep", "find", "ls"];
-const PLAN_MODE_DISABLED_TOOLS = new Set(["edit", "write"]);
+const PLAN_MODE_REVIEWED_TOOLS = new Set([
+  ...PLAN_MODE_DEFAULT_TOOLS,
+  "web_research",
+  "web_search",
+  "fetch_content",
+  "get_search_content",
+  "plan_control",
+  "plan_get_current",
+  "plan_record",
+  "subagent",
+]);
 
 const DANGEROUS_PATTERNS = [
   /(^|\s)(rm|rmdir|mv|cp|mkdir|touch|chmod|chown|chgrp|ln|tee|truncate|dd|shred)(\s|$)/i,
@@ -28,7 +38,7 @@ const READ_ONLY_PATTERNS = [
 ];
 
 export function getPlanModeToolNames(activeToolNames: readonly string[]): string[] {
-  return unique([...activeToolNames.filter((name) => !PLAN_MODE_DISABLED_TOOLS.has(name)), ...PLAN_MODE_DEFAULT_TOOLS]);
+  return unique([...activeToolNames.filter((name) => PLAN_MODE_REVIEWED_TOOLS.has(name)), ...PLAN_MODE_DEFAULT_TOOLS]);
 }
 
 export function isReadOnlyBashCommand(command: string): boolean {

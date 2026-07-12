@@ -3,14 +3,24 @@ import test from "node:test";
 
 import { getPlanModeToolNames, isReadOnlyBashCommand } from "./safety.ts";
 
-test("plan mode tools preserve unrelated tools while removing write tools", () => {
-  assert.deepEqual(getPlanModeToolNames(["read", "edit", "custom_tool", "write"]), [
-    "read",
-    "custom_tool",
-    "bash",
-    "grep",
-    "find",
-    "ls",
+test("plan mode tools fail closed for unknown tools while retaining reviewed read-only integrations", () => {
+  assert.deepEqual(getPlanModeToolNames([
+	"read",
+	"edit",
+	"custom_tool",
+	"write",
+	"web_research",
+	"fetch_content",
+	"plan_record",
+  ]), [
+	"read",
+	"web_research",
+	"fetch_content",
+	"plan_record",
+	"bash",
+	"grep",
+	"find",
+	"ls",
   ]);
 });
 

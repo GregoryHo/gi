@@ -1,5 +1,8 @@
 import { lookup as dnsLookup } from "node:dns/promises";
+import http from "node:http";
+import https from "node:https";
 import net from "node:net";
+import { Readable } from "node:stream";
 
 const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
 const DEFAULT_MAX_REDIRECTS = 5;
@@ -15,8 +18,11 @@ interface ValidateOptions {
   lookup?: Lookup;
 }
 
+type PinnedRequest = (url: URL, init: RequestInit, addresses: LookupAddress[]) => Promise<Response>;
+
 interface FetchPublicUrlOptions extends ValidateOptions {
   fetchImpl?: typeof fetch;
+  requestImpl?: PinnedRequest;
   init?: RequestInit;
   maxRedirects?: number;
 }
@@ -31,10 +37,15 @@ async function defaultLookup(hostname: string): Promise<LookupAddress[]> {
 }
 
 export async function validatePublicUrl(rawUrl: string | URL, options: ValidateOptions = {}): Promise<URL> {
+  return (await resolvePublicUrl(rawUrl, options)).url;
+}
+
+async function resolvePublicUrl(rawUrl: string | URL, options: ValidateOptions): Promise<{ url: URL; addresses: LookupAddress[] }> {
   const url = rawUrl instanceof URL ? rawUrl : new URL(rawUrl);
   if (url.protocol !== "http:" && url.protocol !== "https:") {
     throw new Error("Only HTTP and HTTPS URLs can be fetched remotely");
   }
+  if (url.username || url.password) throw new Error("URL credentials are not allowed");
 
   const hostname = normalizeHostname(url.hostname);
   if (!hostname) throw new Error("URL must include a hostname");
@@ -42,9 +53,10 @@ export async function validatePublicUrl(rawUrl: string | URL, options: ValidateO
     throw new Error(`Blocked internal hostname: ${hostname}`);
   }
 
-  if (net.isIP(hostname)) {
+  const ipVersion = net.isIP(hostname);
+  if (ipVersion) {
     assertPublicAddress(hostname, hostname);
-    return url;
+	return { url, addresses: [{ address: hostname, family: ipVersion }] };
   }
 
   let addresses: LookupAddress[];
@@ -56,20 +68,20 @@ export async function validatePublicUrl(rawUrl: string | URL, options: ValidateO
   }
 
   if (addresses.length === 0) throw new Error(`Failed to resolve ${hostname}: no addresses returned`);
-  for (const { address } of addresses) {
-    assertPublicAddress(address, hostname);
-  }
-  return url;
+  for (const { address } of addresses) assertPublicAddress(address, hostname);
+  return { url, addresses };
 }
 
 export async function fetchPublicUrl(rawUrl: string | URL, options: FetchPublicUrlOptions = {}): Promise<PublicFetchResult> {
   const fetchImpl = options.fetchImpl ?? fetch;
   const maxRedirects = options.maxRedirects ?? DEFAULT_MAX_REDIRECTS;
-  let current = await validatePublicUrl(rawUrl, options);
+  let resolved = await resolvePublicUrl(rawUrl, options);
+  let current = resolved.url;
   let init = options.init ?? {};
 
   for (let redirects = 0; redirects <= maxRedirects; redirects++) {
-    const response = await fetchImpl(current, { ...init, redirect: "manual" });
+	const request = options.requestImpl ?? (options.fetchImpl ? ((url: URL, requestInit: RequestInit) => fetchImpl(url, requestInit)) : fetchPinnedUrl);
+	const response = await request(current, { ...init, redirect: "manual" }, resolved.addresses);
     if (!REDIRECT_STATUSES.has(response.status)) {
       return { response, finalUrl: current.toString() };
     }
@@ -78,7 +90,8 @@ export async function fetchPublicUrl(rawUrl: string | URL, options: FetchPublicU
     if (!location) return { response, finalUrl: current.toString() };
     if (redirects === maxRedirects) throw new Error(`Too many redirects fetching ${current.toString()}`);
 
-    current = await validatePublicUrl(new URL(location, current), options);
+	resolved = await resolvePublicUrl(new URL(location, current), options);
+	current = resolved.url;
     if (response.status === 303 || ((response.status === 301 || response.status === 302) && init.method?.toUpperCase() === "POST")) {
       const { body: _body, ...nextInit } = init;
       init = { ...nextInit, method: "GET" };
@@ -86,6 +99,45 @@ export async function fetchPublicUrl(rawUrl: string | URL, options: FetchPublicU
   }
 
   throw new Error(`Too many redirects fetching ${current.toString()}`);
+}
+
+async function fetchPinnedUrl(url: URL, init: RequestInit, addresses: LookupAddress[]): Promise<Response> {
+  const selected = addresses[0];
+  if (!selected) throw new Error(`No validated address available for ${url.hostname}`);
+  const transport = url.protocol === "https:" ? https : http;
+  const headers = Object.fromEntries(new Headers(init.headers).entries());
+
+  return new Promise<Response>((resolve, reject) => {
+	const request = transport.request({
+	  protocol: url.protocol,
+	  hostname: url.hostname,
+	  port: url.port || undefined,
+	  path: `${url.pathname}${url.search}`,
+	  method: init.method ?? "GET",
+	  headers,
+	  signal: init.signal ?? undefined,
+	  lookup: (_hostname, lookupOptions, callback) => {
+		if (lookupOptions.all) callback(null, addresses);
+		else callback(null, selected.address, selected.family);
+	  },
+	}, (response) => {
+	  const responseHeaders = new Headers();
+	  for (let index = 0; index < response.rawHeaders.length; index += 2) {
+		responseHeaders.append(response.rawHeaders[index]!, response.rawHeaders[index + 1] ?? "");
+	  }
+	  const status = response.statusCode ?? 500;
+	  const body = status === 204 || status === 304 ? null : Readable.toWeb(response) as ReadableStream<Uint8Array>;
+	  resolve(new Response(body, { status, statusText: response.statusMessage, headers: responseHeaders }));
+	});
+	request.on("error", reject);
+	if (typeof init.body === "string" || init.body instanceof Uint8Array) request.write(init.body);
+	else if (init.body != null) {
+	  request.destroy();
+	  reject(new Error("Pinned public fetch supports string or byte request bodies only"));
+	  return;
+	}
+	request.end();
+  });
 }
 
 function normalizeHostname(hostname: string): string {
@@ -115,7 +167,9 @@ function isBlockedIPv4(address: string): boolean {
     (a === 169 && b === 254) ||
     (a === 172 && b >= 16 && b <= 31) ||
     (a === 192 && b === 168) ||
-    (a === 198 && (b === 18 || b === 19)) ||
+	(a === 192 && b === 0 && (parts[2] === 0 || parts[2] === 2)) ||
+	(a === 198 && (b === 18 || b === 19 || (b === 51 && parts[2] === 100))) ||
+	(a === 203 && b === 0 && parts[2] === 113) ||
     a >= 224;
 }
 
@@ -128,6 +182,8 @@ function isBlockedIPv6(address: string): boolean {
   if (groups.slice(0, 7).every((group) => group === 0) && groups[7] === 1) return true;
   if ((first & 0xfe00) === 0xfc00) return true;
   if ((first & 0xffc0) === 0xfe80) return true;
+  if ((first & 0xff00) === 0xff00) return true;
+  if (first === 0x2001 && groups[1] === 0x0db8) return true;
 
   const isMappedIPv4 = groups.slice(0, 5).every((group) => group === 0) && groups[5] === 0xffff;
   if (isMappedIPv4) {
