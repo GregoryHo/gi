@@ -8,7 +8,7 @@ M7 natural Plan Mode tool flow plus M3 Goal Mode integration support are impleme
 
 ## Features
 
-- `/plan` or `Ctrl+Alt+P` toggles read-only plan mode.
+- `/plan` or `Ctrl+Alt+P` toggles read-only plan mode; `/plan on|off|status|current|execute|history|switch|new|complete|abandon` provides the consolidated command surface with autocomplete.
 - `--plan` starts with plan mode active.
 - Built-in `edit` and `write` tools are disabled while planning.
 - `bash` is restricted to conservative read-only inspection commands while planning, including safe read-only `&&`/`;` command chains.
@@ -25,7 +25,7 @@ M7 natural Plan Mode tool flow plus M3 Goal Mode integration support are impleme
 - `sessions/<session-key>.json` stores the canonical current-plan pointer for each persisted session, preventing current plans from leaking across sessions in the same workspace.
 - `current.json` remains a compatibility mirror for older installations, but fresh-session current resolution does not use it.
 - `index.json` stores compact searchable workspace plan metadata, so history remains shared across sessions.
-- `/plan-history` and `/plan-history --session` list recent plans.
+- `/plan history` and `/plan history --session` list recent plans; `/plan-history` remains a compatibility alias.
 - `/plan-switch <id>` restores an existing plan.
 - `/plan-new` starts a new plan flow without silently replacing an active plan; unfinished work can be paused.
 - `/plan-complete` and `/plan-abandon` persist deterministic recap/status.

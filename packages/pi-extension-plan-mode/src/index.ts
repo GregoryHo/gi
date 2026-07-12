@@ -60,6 +60,7 @@ const PLAN_CAPTURE_CHOICES = [
 const PLAN_NEW_DISPOSITION_CHOICES = ["Complete current plan", "Abandon current plan", "Pause current plan", "Cancel"];
 const PLAN_WIDGET_MAX_STEPS = 5;
 const PLAN_WIDGET_MAX_WIDTH = 76;
+const PLAN_SUBCOMMANDS = ["on", "off", "status", "current", "execute", "history", "switch", "new", "complete", "abandon"] as const;
 
 export default function planModeExtension(pi: ExtensionAPI): void {
   let planModeEnabled = false;
@@ -159,8 +160,35 @@ export default function planModeExtension(pi: ExtensionAPI): void {
   }
 
   pi.registerCommand("plan", {
-    description: "Toggle read-only plan mode",
-    handler: async (_args, ctx) => togglePlanMode(ctx),
+	description: "Control Plan Mode: toggle, on, off, status, current, execute, history, switch, new, complete, or abandon",
+	getArgumentCompletions: (prefix) => commandCompletions(PLAN_SUBCOMMANDS, prefix),
+	handler: async (args, ctx) => {
+	  const [action = "", ...rest] = args.trim().split(/\s+/);
+	  const trailing = rest.join(" ");
+	  if (!action) return togglePlanMode(ctx);
+	  if (action === "on") {
+		if (!planModeEnabled) togglePlanMode(ctx);
+		else ctx.ui.notify("Plan mode is already enabled.", "info");
+		return;
+	  }
+	  if (action === "off") {
+		if (planModeEnabled) togglePlanMode(ctx);
+		else ctx.ui.notify("Plan mode is already disabled.", "info");
+		return;
+	  }
+	  if (action === "status") {
+		ctx.ui.notify(`Plan mode: ${planModeEnabled ? "enabled" : "disabled"}.`, "info");
+		return;
+	  }
+	  if (action === "current") return notifyCurrentPlan(ctx);
+	  if (action === "execute") return startExecution(ctx);
+	  if (action === "history") return showPlanHistory(trailing, ctx);
+	  if (action === "switch") return switchPlan(trailing, ctx);
+	  if (action === "new") return startNewPlanFlow(ctx);
+	  if (action === "complete") return finishActivePlan(ctx, "completed");
+	  if (action === "abandon") return finishActivePlan(ctx, "abandoned");
+	  ctx.ui.notify("Usage: /plan [on|off|status|current|execute|history|switch <id>|new|complete|abandon]", "warning");
+	},
   });
 
   pi.registerShortcut("ctrl+alt+p", {
@@ -629,6 +657,13 @@ interface PlanRecordParams {
   title: string;
   steps: Array<{ step: number; text: string }>;
   activePlanDisposition?: "complete" | "abandon" | "pause";
+}
+
+function commandCompletions(values: readonly string[], prefix: string): Array<{ value: string; label: string }> | null {
+  const query = prefix.trim();
+  if (query.includes(" ")) return null;
+  const matches = values.filter((value) => value.startsWith(query)).map((value) => ({ value, label: value }));
+  return matches.length > 0 ? matches : null;
 }
 
 function formatPlanProgressWidget(plan: CapturedPlan): string[] {

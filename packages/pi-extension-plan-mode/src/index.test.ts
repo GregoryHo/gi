@@ -43,6 +43,20 @@ test("registers ctrl+alt+p shortcut with the same Plan Mode toggle behavior", as
   assert.equal(harness.status["plan-mode"], undefined);
 });
 
+test("/plan routes consolidated current and on/off subcommands", async () => {
+  const harness = await createHarness({ activeTools: ["read", "edit", "write"], selectResults: ["Stay in plan mode"] });
+
+  planModeExtension(harness.pi as never);
+  assert.deepEqual(harness.commands.get("plan")?.getArgumentCompletions?.("cur")?.map((item) => item.value), ["current"]);
+  await harness.commands.get("plan")?.handler("on", harness.ctx);
+  await harness.event("agent_end")({ messages: [assistantMessage("Plan:\n1. Inspect code")] }, harness.ctx);
+  await harness.commands.get("plan")?.handler("current", harness.ctx);
+  assert.match(harness.notifications.at(-1)?.message ?? "", /1\. Inspect code/);
+
+  await harness.commands.get("plan")?.handler("off", harness.ctx);
+  assert.equal(harness.status["plan-mode"], undefined);
+});
+
 test("session_start honors --plan flag", async () => {
   const harness = await createHarness({ activeTools: ["read", "edit", "write"], flagPlan: true });
 
@@ -788,6 +802,7 @@ function assistantMessage(text: string): unknown {
 
 interface FakeCommand {
   handler: (args: string, ctx: FakeContext) => Promise<void> | void;
+  getArgumentCompletions?: (prefix: string) => Array<{ value: string }> | null;
 }
 
 interface FakeShortcut {

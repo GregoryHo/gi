@@ -24,6 +24,8 @@ M4 adds worker-assisted loop guidance: `goal_start` can carry an explicit `worke
 
 ## Commands
 
+The primary autocomplete-backed surface is `/goal <objective>` or `/goal start|status|pause|resume|stop|cancel|step`. Existing lifecycle command names remain compatibility aliases.
+
 - `/goal <objective>` — start a bounded goal loop for an objective.
 - `/goal-status` — show current goal state and next recommended command.
 - `/goal-pause` — pause a runnable goal loop without cancelling it or aborting the current turn by default.

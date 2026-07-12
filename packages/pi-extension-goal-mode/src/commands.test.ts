@@ -9,6 +9,7 @@ const LATER = new Date("2026-06-30T02:41:00.000Z");
 
 interface RegisteredCommand {
   description?: string;
+  getArgumentCompletions?: (prefix: string) => Array<{ value: string }> | null;
   handler(args: string, ctx: FakeCommandContext): Promise<void> | void;
 }
 
@@ -49,6 +50,23 @@ test("registerGoalCommands registers goal lifecycle commands", () => {
   const { commands } = createHarness();
 
   assert.deepEqual([...commands.keys()].sort(), ["goal", "goal-pause", "goal-resume", "goal-status", "goal-step", "goal-stop"]);
+});
+
+test("/goal routes lifecycle subcommands while preserving legacy aliases", async () => {
+  const { commands, notifications, runtime, ctx } = createHarness();
+  runtime.activeGoal = createGoalState({ objective: "Existing goal", now: NOW });
+
+  assert.deepEqual(commands.get("goal")?.getArgumentCompletions?.("res")?.map((item) => item.value), ["resume"]);
+  await commands.get("goal")!.handler("status", ctx);
+  assert.match(notifications.at(-1)?.message ?? "", /Existing goal/);
+
+  await commands.get("goal")!.handler("pause", ctx);
+  assert.equal(runtime.activeGoal.phase, "paused");
+
+  await commands.get("goal")!.handler("resume", ctx);
+  assert.equal(runtime.activeGoal.phase, "running_iteration");
+  assert.ok(commands.has("goal-status"));
+  assert.ok(commands.has("goal-pause"));
 });
 
 test("/goal rejects empty objectives", async () => {

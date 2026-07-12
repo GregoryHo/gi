@@ -4,7 +4,8 @@ import { createGoalState, getGoalLimitBlocker, isResumableGoalPhase, isRunnableG
 
 interface GoalCommandDefinition {
   description?: string;
-  handler(args: string, ctx: GoalCommandContext): Promise<void> | void;
+  getArgumentCompletions?: (prefix: string) => Array<{ value: string; label: string }> | null;
+  handler(args: string, ctx: GoalCommandContext): Promise<void>;
 }
 
 interface GoalCommandRegistry {
@@ -37,11 +38,32 @@ export function createGoalCommandRuntime(options: CreateGoalCommandRuntimeOption
   };
 }
 
+const GOAL_SUBCOMMANDS = ["start", "status", "pause", "resume", "stop", "cancel", "step"] as const;
+
 export function registerGoalCommands(pi: GoalCommandRegistry, runtime: GoalCommandRuntime = createGoalCommandRuntime()): void {
+  const lifecycleCommands = new Map<string, GoalCommandDefinition>();
+  const registerLifecycleCommand = (name: string, command: GoalCommandDefinition): void => {
+	lifecycleCommands.set(name, command);
+	pi.registerCommand(name, command);
+  };
+
   pi.registerCommand("goal", {
-    description: "Start a bounded goal loop for an objective.",
-    handler: async (args, ctx) => {
-      const objective = args.trim();
+	description: "Start or control a bounded goal loop: start, status, pause, resume, stop, cancel, or step.",
+	getArgumentCompletions: (prefix) => commandCompletions(GOAL_SUBCOMMANDS, prefix),
+	handler: async (args, ctx) => {
+	  const input = args.trim();
+	  const [verb = "", ...rest] = input.split(/\s+/);
+	  const aliases: Record<string, string> = {
+		status: "goal-status",
+		pause: "goal-pause",
+		resume: "goal-resume",
+		stop: "goal-stop",
+		cancel: "goal-stop",
+		step: "goal-step",
+	  };
+	  const legacyName = rest.length === 0 ? aliases[verb] : undefined;
+	  if (legacyName) return lifecycleCommands.get(legacyName)?.handler("", ctx);
+	  const objective = verb === "start" ? rest.join(" ").trim() : input;
       if (!objective) {
         ctx.ui.notify("Goal objective is required. Usage: /goal <objective>", "error");
         return;
@@ -59,14 +81,14 @@ export function registerGoalCommands(pi: GoalCommandRegistry, runtime: GoalComma
     },
   });
 
-  pi.registerCommand("goal-status", {
+  registerLifecycleCommand("goal-status", {
     description: "Show the active goal status.",
     handler: async (_args, ctx) => {
 			ctx.ui.notify(formatGoalStatus(runtime.activeGoal, runtime.now()), "info");
     },
   });
 
-  pi.registerCommand("goal-pause", {
+  registerLifecycleCommand("goal-pause", {
     description: "Pause the active goal loop without cancelling it.",
     handler: async (_args, ctx) => {
       if (!runtime.activeGoal || !isRunnableGoalPhase(runtime.activeGoal.phase)) {
@@ -79,7 +101,7 @@ export function registerGoalCommands(pi: GoalCommandRegistry, runtime: GoalComma
     },
   });
 
-  pi.registerCommand("goal-resume", {
+  registerLifecycleCommand("goal-resume", {
     description: "Resume a paused or blocked goal loop.",
     handler: async (_args, ctx) => {
       if (!runtime.activeGoal) {
@@ -103,7 +125,7 @@ export function registerGoalCommands(pi: GoalCommandRegistry, runtime: GoalComma
     },
   });
 
-  pi.registerCommand("goal-stop", {
+  registerLifecycleCommand("goal-stop", {
     description: "Cancel the active or resumable goal loop.",
     handler: async (_args, ctx) => {
       if (!runtime.activeGoal || isTerminalGoalPhase(runtime.activeGoal.phase)) {
@@ -121,7 +143,7 @@ export function registerGoalCommands(pi: GoalCommandRegistry, runtime: GoalComma
     },
   });
 
-  pi.registerCommand("goal-step", {
+  registerLifecycleCommand("goal-step", {
     description: "Queue one bounded iteration for the active goal.",
     handler: async (_args, ctx) => {
       if (!runtime.activeGoal || isTerminalGoalPhase(runtime.activeGoal.phase)) {
@@ -139,6 +161,13 @@ export function registerGoalCommands(pi: GoalCommandRegistry, runtime: GoalComma
       ctx.ui.notify(`Queued one goal iteration: ${runtime.activeGoal.objective}`, "info");
     },
   });
+}
+
+function commandCompletions(values: readonly string[], prefix: string): Array<{ value: string; label: string }> | null {
+  const query = prefix.trim();
+  if (query.includes(" ")) return null;
+  const matches = values.filter((value) => value.startsWith(query)).map((value) => ({ value, label: value }));
+  return matches.length > 0 ? matches : null;
 }
 
 export function notifyGoalChanged(runtime: GoalCommandRuntime): void {

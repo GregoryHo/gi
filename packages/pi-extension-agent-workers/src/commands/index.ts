@@ -17,6 +17,7 @@ import {
 
 const PACKAGE_KEY = "agent-workers";
 const DEFAULT_LOG_TAIL_LINES = 40;
+const WORKER_SUBCOMMANDS = ["run", "status", "history", "wait", "cancel", "log", "workspace", "workspace-pick", "config"] as const;
 
 export {
   parseWorkerHistoryArgs,
@@ -39,7 +40,13 @@ export function registerAgentWorkerCommands(
   service = new AgentWorkerService(),
   options: { configDir?: string } = {},
 ): void {
-  pi.registerCommand("agent-workers", {
+  const legacyCommands = new Map<string, Parameters<ExtensionAPI["registerCommand"]>[1]>();
+  const registerLegacyCommand = (name: string, command: Parameters<ExtensionAPI["registerCommand"]>[1]): void => {
+	legacyCommands.set(name, command);
+	pi.registerCommand(name, command);
+  };
+
+  registerLegacyCommand("agent-workers", {
     description: "Show agent worker extension status and commands",
     handler: async (_args, ctx) => {
       const runs = service.listRuns();
@@ -52,7 +59,7 @@ export function registerAgentWorkerCommands(
     },
   });
 
-  pi.registerCommand("worker-config", {
+  registerLegacyCommand("worker-config", {
     description: "Show or update workspace-scoped agent worker config",
     handler: async (args, ctx) => {
       const parts = args.trim().split(/\s+/).filter(Boolean);
@@ -77,14 +84,14 @@ export function registerAgentWorkerCommands(
     },
   });
 
-  pi.registerCommand("worker-workspace", {
+  registerLegacyCommand("worker-workspace", {
     description: "Show the current agent worker workspace",
     handler: async (_args, ctx) => {
       emitLines(pi, ctx, formatWorkspaceStatusLines(ctx.cwd), "Worker workspace");
     },
   });
 
-  pi.registerCommand("worker-workspace-pick", {
+  registerLegacyCommand("worker-workspace-pick", {
     description: "Pick the agent worker workspace using native pi UI",
     handler: async (_args, ctx) => {
       if (!ctx.hasUI || !ctx.ui.select) {
@@ -125,7 +132,7 @@ export function registerAgentWorkerCommands(
     },
   });
 
-  pi.registerCommand("worker-run", {
+  registerLegacyCommand("worker-run", {
     description: "Start one worker using demo, claude-code, or codex-cli adapter",
     handler: async (args, ctx) => {
       const parsed = parseWorkerRunArgs(args);
@@ -179,7 +186,7 @@ export function registerAgentWorkerCommands(
     },
   });
 
-  pi.registerCommand("worker-status", {
+  registerLegacyCommand("worker-status", {
     description: "Show worker status",
     handler: async (args, ctx) => {
       const id = args.trim();
@@ -198,7 +205,7 @@ export function registerAgentWorkerCommands(
     },
   });
 
-  pi.registerCommand("worker-history", {
+  registerLegacyCommand("worker-history", {
     description: "Show recent worker run history",
     handler: async (args, ctx) => {
       const parsed = parseWorkerHistoryArgs(args);
@@ -243,7 +250,7 @@ export function registerAgentWorkerCommands(
     },
   });
 
-  pi.registerCommand("worker-wait", {
+  registerLegacyCommand("worker-wait", {
     description: "Wait for a worker to finish",
     handler: async (args, ctx) => {
       const parsed = parseWorkerWaitArgs(args);
@@ -269,7 +276,7 @@ export function registerAgentWorkerCommands(
     },
   });
 
-  pi.registerCommand("worker-log", {
+  registerLegacyCommand("worker-log", {
     description: "Show a worker log tail",
     handler: async (args, ctx) => {
       const id = args.trim().split(/\s+/, 1)[0] ?? "";
@@ -293,7 +300,7 @@ export function registerAgentWorkerCommands(
     },
   });
 
-  pi.registerCommand("worker-kill", {
+  registerLegacyCommand("worker-kill", {
     description: "Cancel a running worker",
     handler: async (args, ctx) => {
       const id = args.trim();
@@ -311,9 +318,47 @@ export function registerAgentWorkerCommands(
     },
   });
 
+  pi.registerCommand("worker", {
+	description: "Control agent workers: run, status, history, wait, cancel, log, workspace, or config",
+	getArgumentCompletions: (prefix) => commandCompletions(WORKER_SUBCOMMANDS, prefix),
+	handler: async (args, ctx) => {
+	  const [action = "", ...rest] = args.trim().split(/\s+/);
+	  let trailing = rest.join(" ");
+	  const aliases: Record<string, string> = {
+		"": "agent-workers",
+		help: "agent-workers",
+		run: "worker-run",
+		status: "worker-status",
+		history: "worker-history",
+		wait: "worker-wait",
+		cancel: "worker-kill",
+		kill: "worker-kill",
+		log: "worker-log",
+		workspace: "worker-workspace",
+		"workspace-pick": "worker-workspace-pick",
+		config: "worker-config",
+	  };
+	  let legacyName = aliases[action];
+	  if (action === "workspace" && rest[0] === "pick") {
+		legacyName = "worker-workspace-pick";
+		trailing = rest.slice(1).join(" ");
+	  }
+	  const command = legacyName ? legacyCommands.get(legacyName) : undefined;
+	  if (command) return command.handler(trailing, ctx);
+	  emitLines(pi, ctx, ["Usage: /worker [run|status|history|wait|cancel|log|workspace|config]"], "Worker usage", "warning");
+	},
+  });
+
   pi.on("session_shutdown", async () => {
     service.cancelAll();
   });
+}
+
+function commandCompletions(values: readonly string[], prefix: string): Array<{ value: string; label: string }> | null {
+  const query = prefix.trim();
+  if (query.includes(" ")) return null;
+  const matches = values.filter((value) => value.startsWith(query)).map((value) => ({ value, label: value }));
+  return matches.length > 0 ? matches : null;
 }
 
 function formatWorkerConfigLines(config: WorkspaceAgentWorkerConfig): string[] {

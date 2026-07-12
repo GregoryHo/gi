@@ -148,6 +148,18 @@ test("registerAgentWorkerCommands keeps agent-workers as current status/help com
   assert.equal(commands.get("agent-workers")?.description, "Show agent worker extension status and commands");
 });
 
+test("/worker routes consolidated status while preserving legacy aliases", async () => {
+  const { pi, commands, messages } = createCommandRegistry();
+  registerAgentWorkerCommands(pi, new AgentWorkerService());
+
+  assert.ok(commands.has("worker"));
+  const workerCommand = commands.get("worker") as { getArgumentCompletions?: (prefix: string) => Array<{ value: string }> | null; handler: (args: string, ctx: any) => Promise<void> };
+  assert.deepEqual(workerCommand.getArgumentCompletions?.("hist")?.map((item) => item.value), ["history"]);
+  await workerCommand.handler("status", { cwd: process.cwd(), hasUI: false, ui: { notify: () => undefined } });
+  assert.match(messages.at(-1) ?? "", /No worker runs yet/);
+  assert.ok(commands.has("worker-status"));
+});
+
 test("formatWorkerRunLines shows reported usage and activity summaries", () => {
   const lines = formatWorkerRunLines({
     id: "run_usage",

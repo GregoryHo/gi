@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Changed
+
+- Added autocomplete-backed `/goal` lifecycle subcommands while retaining `/goal-status`, `/goal-pause`, `/goal-resume`, `/goal-stop`, and `/goal-step` compatibility aliases.
+
 - Hardened blocked lifecycle handling: paused/blocked goals reject `goal_report` until resumed, and both tool and slash-command resume paths reject exhausted objective limits.
 - Centralized objective-limit checks, exposed cancel-only next actions for limit-exhausted goals, and kept max elapsed time anchored to the original objective start.
 - Improved TUI feedback with compact blocked reasons and a single explicit notification when a goal reaches done.

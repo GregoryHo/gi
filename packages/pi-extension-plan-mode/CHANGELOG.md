@@ -8,6 +8,7 @@
 
 ### Changed
 
+- Added autocomplete-backed `/plan` subcommands for mode, status, artifact, execution, and lifecycle actions while retaining all existing slash-command aliases.
 - Limited the execution progress widget to five width-bounded step lines plus a remaining-count summary.
 
 - Made current-plan selection session-scoped with hashed `sessions/<session-key>.json` pointers while keeping workspace artifact history shared and retaining `current.json` as a compatibility mirror.

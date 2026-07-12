@@ -49,6 +49,8 @@ pi install ./packages/pi-extension-agent-workers
 
 Interactive sessions show an `agent-workers` widget with up to 3 compact cards, prioritizing running, queued, failed, and timed-out runs plus the latest completion. The widget uses narrower original-style cards, slot/run id titles, concrete started time, two-column layout on wide terminals, truncated task/reason fields, and a 5s refresh interval. Non-UI modes skip widget rendering.
 
+The primary autocomplete-backed command is `/worker run|status|history|wait|cancel|log|workspace|config`. Existing worker commands remain compatibility aliases.
+
 Worker commands:
 
 - `/agent-workers` — show extension help and run summary.

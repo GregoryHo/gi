@@ -11,6 +11,7 @@
 
 ### Changed
 
+- Added an autocomplete-backed `/worker` command router while retaining all existing worker command aliases.
 - Reduced the default worker widget to three cards and prioritized active/failed runs plus the latest completion to preserve editor space.
 - Single-run `agent_worker_status` and `agent_worker_wait` now include bounded model-visible final text with private artifact fallback for truncated results.
 - Pi SDK profile instructions now use the child session's actual system prompt instead of being embedded in user task text.
