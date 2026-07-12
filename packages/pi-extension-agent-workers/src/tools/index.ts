@@ -37,6 +37,8 @@ interface WorkerCancelToolParams {
   runId: string;
 }
 
+const MAX_MODEL_RESULT_CHARS = 8_000;
+
 interface ToolContextLike {
   cwd?: string;
   hasUI?: boolean;
@@ -127,7 +129,7 @@ export function registerAgentWorkerTools(pi: ExtensionAPI, service = new AgentWo
         const run = service.getRun(params.runId);
         if (!run) return toolResult(`Unknown worker run: ${params.runId}`, { runId: params.runId, found: false });
         const summary = workerRunSummary(run);
-        return toolResult(`Worker ${summary.runId} is ${summary.status}.`, { run: summary });
+		return toolResult(formatWorkerModelResult(`Worker ${summary.runId} is ${summary.status}.`, run), { run: summary });
       }
 
       const runs = service.listRuns().map(workerRunSummary);
@@ -181,10 +183,10 @@ export function registerAgentWorkerTools(pi: ExtensionAPI, service = new AgentWo
     async execute(_toolCallId, params: WorkerWaitToolParams) {
       const result = await service.waitForRun(params.runId, params.waitMs);
       const summary = workerRunSummary(result.run);
-      return toolResult(
-        result.completed ? `Worker ${summary.runId} completed with status ${summary.status}.` : `Worker ${summary.runId} is still ${summary.status}.`,
-        { run: summary, completed: result.completed },
-      );
+	  const statusText = result.completed
+		? `Worker ${summary.runId} completed with status ${summary.status}.`
+		: `Worker ${summary.runId} is still ${summary.status}.`;
+	  return toolResult(formatWorkerModelResult(statusText, result.run), { run: summary, completed: result.completed });
     },
   });
 
@@ -252,6 +254,7 @@ export function workerRunSummary(run: WorkerRun): Record<string, unknown> {
     usage: { ...run.usage },
     activity: [...(run.activity ?? [])],
     ...(run.finalTextPreview ? { finalText: run.finalTextPreview } : {}),
+	...(run.finalTextPath ? { finalTextPath: run.finalTextPath } : {}),
     logPath: run.logPath,
   };
 }
@@ -276,6 +279,15 @@ async function confirmWorkerStart(request: ResolvedWorkerRequest, ctx: ToolConte
       .filter((line): line is string => Boolean(line))
       .join("\n"),
   );
+}
+
+function formatWorkerModelResult(statusText: string, run: WorkerRun): string {
+  const finalText = run.finalText ?? run.finalTextPreview;
+  if (!finalText) return statusText;
+  const truncated = finalText.length > MAX_MODEL_RESULT_CHARS;
+  const visible = truncated ? finalText.slice(0, MAX_MODEL_RESULT_CHARS) : finalText;
+  const artifact = run.finalTextPath ? `\nFull result: ${run.finalTextPath}` : `\nLog: ${run.logPath}`;
+  return `${statusText}\n\nResult:\n${visible}${truncated ? "\n[Result truncated.]" : ""}${artifact}`;
 }
 
 function toolResult(content: string, details: Record<string, unknown>) {

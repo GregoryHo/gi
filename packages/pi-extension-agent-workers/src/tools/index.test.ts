@@ -100,6 +100,26 @@ test("agent_worker_start requires confirmation for real adapters and shows effec
   assert.equal(service.startCalls.length, 0);
 });
 
+test("agent_worker_status and wait expose bounded final results to the model", async () => {
+  const { pi, tools } = createToolRegistry();
+  const service = createFakeService({ finalText: "worker final result" });
+  registerAgentWorkerTools(pi, service);
+
+  const status = await executeTool(tools.get("agent_worker_status"), { runId: "run_tool" });
+  assert.match(status.content[0]?.text ?? "", /worker final result/);
+
+  const waited = await executeTool(tools.get("agent_worker_wait"), { runId: "run_tool", waitMs: 1000 });
+  assert.match(waited.content[0]?.text ?? "", /worker final result/);
+
+  const oversized = createFakeService({ finalText: "x".repeat(20_000), finalTextPath: "/private/full-result.txt" });
+  const oversizedRegistry = createToolRegistry();
+  registerAgentWorkerTools(oversizedRegistry.pi, oversized);
+  const bounded = await executeTool(oversizedRegistry.tools.get("agent_worker_wait"), { runId: "run_tool" });
+  assert.ok((bounded.content[0]?.text.length ?? 0) < 10_000);
+  assert.match(bounded.content[0]?.text ?? "", /truncated/i);
+  assert.match(bounded.content[0]?.text ?? "", /\/private\/full-result\.txt/);
+});
+
 test("agent_worker_status, agent_worker_wait, and agent_worker_cancel use the shared service", async () => {
   const { pi, tools } = createToolRegistry();
   const service = createFakeService();
@@ -192,7 +212,7 @@ function createToolRegistry(): { pi: ExtensionAPI; tools: Map<string, Registered
   };
 }
 
-function createFakeService(options: { requireConfirmation?: boolean; history?: Array<Record<string, unknown>>; resolvedFromConfig?: { adapter?: WorkerRequest["adapter"]; profile?: string; requireConfirmation?: boolean }; customProfiles?: Array<Record<string, unknown>> } = {}): AgentWorkerService & {
+function createFakeService(options: { requireConfirmation?: boolean; history?: Array<Record<string, unknown>>; resolvedFromConfig?: { adapter?: WorkerRequest["adapter"]; profile?: string; requireConfirmation?: boolean }; customProfiles?: Array<Record<string, unknown>>; finalText?: string; finalTextPath?: string } = {}): AgentWorkerService & {
   startCalls: WorkerRequest[];
   cancelCalls: string[];
   waitCalls: Array<{ id: string; waitMs?: number }>;
@@ -209,6 +229,8 @@ function createFakeService(options: { requireConfirmation?: boolean; history?: A
     logPath: "/tmp/log",
     usage: { source: "unknown" },
     activity: ["demo started"],
+	...(options.finalText ? { finalText: options.finalText, finalTextPreview: options.finalText.slice(0, 200) } : {}),
+	...(options.finalTextPath ? { finalTextPath: options.finalTextPath } : {}),
   };
   const startCalls: WorkerRequest[] = [];
   const cancelCalls: string[] = [];

@@ -17,8 +17,9 @@ M1 uses Agent Workers protocol v1 over `pi.events`; it does not import or instan
 - `calls[]` with a maximum of four entries;
 - built-in read-only `explorer`, `planner`, and `reviewer` definitions;
 - parallel start and foreground wait;
-- stable input-order results;
+- stable input-order results with bounded model-visible final text and private artifact pointers;
 - explicit confirmation before child execution;
+- parent abort propagation that cancels every started child run through protocol v1;
 - bounded timeout and turn defaults;
 - no nesting, inherited context, background sessions, writes, retries, or team semantics.
 
@@ -42,4 +43,4 @@ The tool accepts:
 }
 ```
 
-The batch requires one explicit confirmation, executes calls in parallel, waits in the foreground, and returns results in input order.
+The batch requires one explicit confirmation, executes calls in parallel, waits in the foreground, and returns bounded results in input order. Each call contributes at most 3,000 characters to a 12,000-character batch response; complete oversized results remain available through the returned private artifact path. Aborting the parent tool cancels all child runs that have already started.

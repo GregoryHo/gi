@@ -86,5 +86,7 @@ test("registered subagent tool integrates with the Agent Workers event protocol"
 	assert.equal(capturedStart?.readOnly, true);
 	assert.equal(capturedStart?.canModifyWorkspace, false);
 	assert.equal((result.details.results[0] as { finalText: string }).finalText, "integrated child result");
+	assert.match(result.content[0].text, /\[reviewer\]/);
+	assert.match(result.content[0].text, /integrated child result/);
 	dispose();
 });

@@ -40,7 +40,7 @@ test("subagent fails clearly when Agent Workers runtime is missing before confir
 test("subagent rejection starts no workers", async () => {
 	let requestCount = 0;
 	const protocol: SubagentProtocol = {
-		discover: async () => ({ versions: [1], operations: ["start", "wait"] }),
+		discover: async () => ({ versions: [1], operations: ["start", "wait", "cancel"] }),
 		request: async () => {
 			requestCount++;
 			return {};
@@ -56,11 +56,42 @@ test("subagent rejection starts no workers", async () => {
 	assert.equal(requestCount, 0);
 });
 
+test("subagent abort cancels every started run", async () => {
+	const controller = new AbortController();
+	const cancelled: string[] = [];
+	let started = 0;
+	const protocol: SubagentProtocol = {
+		discover: async () => ({ versions: [1], operations: ["start", "wait", "cancel"] }),
+		request: async (operation, payload) => {
+			if (operation === "start") return { runId: `run-${++started}` };
+			if (operation === "cancel") {
+				cancelled.push((payload as { runId: string }).runId);
+				return { runId: (payload as { runId: string }).runId, status: "cancelled" };
+			}
+			await new Promise((resolve) => setTimeout(resolve, 100));
+			return { completed: false, result: { runId: (payload as { runId: string }).runId, status: "running" } };
+		},
+	};
+
+	const execution = executeSubagentCalls({
+		calls: [
+			{ agent: "explorer", task: "first" },
+			{ agent: "reviewer", task: "second" },
+		],
+	}, { protocol, confirm: async () => true, signal: controller.signal });
+	await new Promise((resolve) => setTimeout(resolve, 5));
+	controller.abort();
+	const result = await execution;
+
+	assert.deepEqual(cancelled.sort(), ["run-1", "run-2"]);
+	assert.ok(result.results.every((item) => item.error?.includes("aborted")));
+});
+
 test("subagent starts calls in parallel, narrows authority, preserves order, and isolates failures", async () => {
 	const starts: Array<Record<string, unknown>> = [];
 	let startCount = 0;
 	const protocol: SubagentProtocol = {
-		discover: async () => ({ versions: [1], operations: ["start", "wait"] }),
+		discover: async () => ({ versions: [1], operations: ["start", "wait", "cancel"] }),
 		request: async (operation, payload) => {
 			if (operation === "start") {
 				starts.push(payload as Record<string, unknown>);

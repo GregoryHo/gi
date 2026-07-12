@@ -104,9 +104,9 @@ M2/M3 parser integration normalizes final text, activity summaries, and reported
 M5 registers tools for natural-language orchestration:
 
 - `agent_worker_start` — start one worker through a profile or explicit adapter.
-- `agent_worker_status` — inspect one in-memory run or all in-memory runs.
+- `agent_worker_status` — inspect one in-memory run or all in-memory runs; single-run status includes bounded model-visible final text when available.
 - `agent_worker_list_runs` — list recent run history, including historical-only informational summaries after restart; defaults to current workspace and accepts `scope: "all"`.
-- `agent_worker_wait` — wait for one in-memory worker to finish with an optional caller wait limit.
+- `agent_worker_wait` — wait for one in-memory worker to finish with an optional caller wait limit and return bounded model-visible final text when available.
 - `agent_worker_cancel` — cancel one worker run.
 - `agent_worker_list_profiles` — list built-in and workspace custom profiles with safety metadata such as `readOnly`, `canModifyWorkspace`, and `recommendedUse`.
 
@@ -138,7 +138,7 @@ Interpretation tips:
 - `statusReason`, `timeoutMs`, timestamps, and `elapsedMs` help distinguish completed, failed, cancelled, timed-out, and still-running work.
 - Historical runs from `/worker-history` / `agent_worker_list_runs` are informational when `controllable: false`; they cannot be waited on or cancelled after restart. Historical active runs left by interrupted/reloaded sessions are shown as stale failed history instead of indefinitely running.
 - `readOnly`, `canModifyWorkspace`, and `workspaceKey` explain concurrency safety decisions.
-- `activity` and `finalText` are compact summaries; raw logs remain local at `logPath` and may contain sensitive context.
+- `activity` and `finalText` are compact summaries; status/wait expose at most 8,000 final-result characters to the model and point to the private result/log artifact when truncated. Raw logs remain local at `logPath` and may contain sensitive context.
 
 ## Safety boundaries
 

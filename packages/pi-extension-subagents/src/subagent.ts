@@ -49,12 +49,17 @@ export function validateSubagentParams(params: SubagentParams): Array<SubagentCa
 
 export async function executeSubagentCalls(
 	params: SubagentParams,
-	dependencies: { protocol: SubagentProtocol; confirm(): Promise<boolean> },
+	dependencies: { protocol: SubagentProtocol; confirm(): Promise<boolean>; signal?: AbortSignal },
 ): Promise<SubagentExecutionResult> {
 	const calls = validateSubagentParams(params);
 	const capabilities = await dependencies.protocol.discover();
-	if (!capabilities.versions.includes(1) || !capabilities.operations.includes("start") || !capabilities.operations.includes("wait")) {
-		throw new Error("Agent Workers runtime does not support the required protocol v1 start/wait operations.");
+	if (
+		!capabilities.versions.includes(1) ||
+		!capabilities.operations.includes("start") ||
+		!capabilities.operations.includes("wait") ||
+		!capabilities.operations.includes("cancel")
+	) {
+		throw new Error("Agent Workers runtime does not support the required protocol v1 start/wait/cancel operations.");
 	}
 	if (!(await dependencies.confirm())) return { cancelled: true, results: [] };
 
@@ -77,10 +82,12 @@ export async function executeSubagentCalls(
 			}, { timeoutMs: 5000 }));
 			const runId = typeof started?.runId === "string" ? started.runId : undefined;
 			if (!runId) throw new Error("Agent Workers start response did not include runId.");
-			const waited = asRecord(await dependencies.protocol.request("wait", {
+			const waited = asRecord(await waitForSubagentRun(
+				dependencies.protocol,
 				runId,
-				waitMs: definition.timeoutMs + 5000,
-			}, { timeoutMs: definition.timeoutMs + 10_000 }));
+				definition.timeoutMs,
+				dependencies.signal,
+			));
 			const worker = asRecord(waited?.result);
 			return {
 				agent: definition.name,
@@ -101,6 +108,36 @@ export async function executeSubagentCalls(
 	}));
 
 	return { cancelled: false, results };
+}
+
+async function waitForSubagentRun(
+	protocol: SubagentProtocol,
+	runId: string,
+	timeoutMs: number,
+	signal?: AbortSignal,
+): Promise<AgentWorkerProtocolData | Record<string, unknown>> {
+	const wait = protocol.request("wait", {
+		runId,
+		waitMs: timeoutMs + 5000,
+	}, { timeoutMs: timeoutMs + 10_000 });
+	if (!signal) return wait;
+
+	let onAbort: (() => void) | undefined;
+	const aborted = new Promise<never>((_resolve, reject) => {
+		onAbort = () => {
+			void protocol.request("cancel", { runId }, { timeoutMs: 5000 }).finally(() => {
+				reject(new Error(`Subagent run ${runId} was aborted.`));
+			});
+		};
+		if (signal.aborted) onAbort();
+		else signal.addEventListener("abort", onAbort, { once: true });
+	});
+
+	try {
+		return await Promise.race([wait, aborted]);
+	} finally {
+		if (onAbort) signal.removeEventListener("abort", onAbort);
+	}
 }
 
 function asRecord(value: unknown): Record<string, unknown> | undefined {
