@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.0 - 2026-07-13
+
+- Added traceable `goal_report.verificationEvidence` records and require passed structured evidence before accepting `done`.
+- Added optional `goal_start.verificationPolicy.requireIndependentVerifier` gating without auto-starting or bypassing worker confirmation.
+- Added `goal_control({ action: "finalize" })` for API-driven hosts that need to advance a reported `verifying` goal without an `agent_end` event.
+
 ## 0.1.0 - 2026-07-12
 
 ### Changed

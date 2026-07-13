@@ -1,6 +1,6 @@
 import { StringEnum } from "@earendil-works/pi-ai";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { discoverAgentWorkerProtocol, requestAgentWorkerProtocol } from "@gregho/pi-extension-agent-workers/protocol";
+import { discoverAgentWorkerProtocol, requestAgentWorkerProtocol } from "./protocol.ts";
 import { Type } from "typebox";
 
 import { executeSubagentCalls, type SubagentParams } from "./subagent.ts";
@@ -33,13 +33,14 @@ export default function subagentsExtension(pi: ExtensionAPI): void {
 			}), { minItems: 1, maxItems: 4 }),
 			cwd: Type.Optional(Type.String({ description: "Common child working directory. Defaults to the current pi cwd." })),
 		}),
-		async execute(_toolCallId, params: SubagentParams, signal, _onUpdate, ctx: ToolContextLike) {
+		async execute(_toolCallId, params: SubagentParams, signal, onUpdate, ctx: ToolContextLike) {
 			try {
 				const result = await executeSubagentCalls({ ...params, cwd: params.cwd ?? ctx.cwd }, {
 					protocol: {
 						discover: () => discoverAgentWorkerProtocol(pi.events, { timeoutMs: 1000 }),
 						request: (operation, payload, options) => requestAgentWorkerProtocol(pi.events, operation, payload, options),
 					},
+					onProgress: (progress) => onUpdate?.(toolResult(formatSubagentProgress(progress), progress)),
 					confirm: async () => {
 						if (ctx.hasUI === false || !ctx.ui?.confirm) return false;
 						return ctx.ui.confirm(
@@ -52,14 +53,14 @@ export default function subagentsExtension(pi: ExtensionAPI): void {
 				if (result.cancelled) return toolResult("Canceled: subagent delegation was not confirmed.", result);
 				return toolResult(formatSubagentResults(result), result);
 			} catch (error) {
-				return toolResult(error instanceof Error ? error.message : String(error), {
-					cancelled: false,
-					results: [],
-					error: error instanceof Error ? error.message : String(error),
-				});
+				throw error instanceof Error ? error : new Error(String(error));
 			}
 		},
 	});
+}
+
+function formatSubagentProgress(progress: { phase: string; completed: number; total: number; agent: string }): string {
+	return `Subagents: ${progress.completed}/${progress.total} ${progress.phase} (${progress.agent}).`;
 }
 
 function formatSubagentResults(result: Awaited<ReturnType<typeof executeSubagentCalls>>): string {

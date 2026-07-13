@@ -1,7 +1,18 @@
 {
   "name": "@gregho/pi-extension-goal-mode",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "pi extension package for bounded autonomous goal loops.",
+	"license": "MIT",
+	"author": "GregoryHo",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/GregoryHo/gi.git",
+		"directory": "packages/pi-extension-goal-mode"
+	},
+	"bugs": {
+		"url": "https://github.com/GregoryHo/gi/issues"
+	},
+	"homepage": "https://github.com/GregoryHo/gi/tree/main/packages/pi-extension-goal-mode#readme",
   "type": "module",
   "main": "src/index.ts",
   "exports": {

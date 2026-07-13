@@ -14,10 +14,26 @@ export interface GoalApprovals {
   destructiveBashApproved: boolean;
 }
 
+export type VerificationEvidenceKind = "command" | "artifact" | "inspection" | "worker";
+export type VerificationEvidenceStatus = "passed" | "failed" | "blocked";
+
+export interface VerificationEvidence {
+	kind: VerificationEvidenceKind;
+	reference: string;
+	summary: string;
+	status: VerificationEvidenceStatus;
+	independent?: boolean;
+}
+
+export interface VerificationPolicy {
+	requireIndependentVerifier: boolean;
+}
+
 export interface GoalReport {
   status: GoalReportStatus;
   summary: string;
   verification: string[];
+	verificationEvidence?: VerificationEvidence[];
   completedCriteria: string[];
   remainingCriteria: string[];
   nextAction?: string;
@@ -61,6 +77,7 @@ export interface ActiveGoalState {
   approvals: GoalApprovals;
   sourcePlan?: SourcePlan;
   workerDelegation?: WorkerDelegationPolicy;
+	verificationPolicy?: VerificationPolicy;
   latestReport?: GoalReport;
 }
 
@@ -71,6 +88,7 @@ export interface CreateGoalStateOptions {
   limits?: Partial<GoalLimits>;
   sourcePlan?: SourcePlan;
   workerDelegation?: WorkerDelegationPolicy;
+	verificationPolicy?: VerificationPolicy;
 }
 
 export const DEFAULT_GOAL_LIMITS: GoalLimits = {
@@ -113,6 +131,7 @@ export function createGoalState(options: CreateGoalStateOptions): ActiveGoalStat
     },
     sourcePlan: options.sourcePlan ? copySourcePlan(options.sourcePlan) : undefined,
 		workerDelegation: options.workerDelegation ? copyWorkerDelegation(options.workerDelegation) : undefined,
+		verificationPolicy: options.verificationPolicy ? copyVerificationPolicy(options.verificationPolicy) : undefined,
   };
 }
 
@@ -132,6 +151,7 @@ export function transitionGoalPhase(goal: ActiveGoalState, nextPhase: GoalPhase,
     approvals: { ...goal.approvals },
     sourcePlan: goal.sourcePlan ? copySourcePlan(goal.sourcePlan) : undefined,
 		workerDelegation: goal.workerDelegation ? copyWorkerDelegation(goal.workerDelegation) : undefined,
+		verificationPolicy: goal.verificationPolicy ? copyVerificationPolicy(goal.verificationPolicy) : undefined,
     latestReport: goal.latestReport ? copyGoalReport(goal.latestReport) : undefined,
     phase: nextPhase,
     updatedAt: now.toISOString(),
@@ -179,6 +199,7 @@ export function normalizeGoalStateForRestore(goal: ActiveGoalState | (Omit<Activ
     approvals: { ...goal.approvals },
     sourcePlan: goal.sourcePlan ? copySourcePlan(goal.sourcePlan) : undefined,
 		workerDelegation: goal.workerDelegation ? copyWorkerDelegation(goal.workerDelegation) : undefined,
+		verificationPolicy: goal.verificationPolicy ? copyVerificationPolicy(goal.verificationPolicy) : undefined,
     latestReport: goal.latestReport ? copyGoalReport(goal.latestReport) : undefined,
   };
 }
@@ -217,10 +238,15 @@ function copyWorkerDelegation(workerDelegation: WorkerDelegationPolicy): WorkerD
 	};
 }
 
+function copyVerificationPolicy(policy: VerificationPolicy): VerificationPolicy {
+	return { ...policy };
+}
+
 function copyGoalReport(report: GoalReport): GoalReport {
   return {
     ...report,
     verification: [...report.verification],
+		...(report.verificationEvidence ? { verificationEvidence: report.verificationEvidence.map((evidence) => ({ ...evidence })) } : {}),
     completedCriteria: [...report.completedCriteria],
     remainingCriteria: [...report.remainingCriteria],
   };

@@ -1,8 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { AgentWorkerProtocolError } from "@gregho/pi-extension-agent-workers/protocol";
-
+import { AgentWorkerProtocolError } from "./protocol.ts";
 import { executeSubagentCalls, validateSubagentParams, type SubagentProtocol } from "./subagent.ts";
 
 test("subagent validation rejects invalid calls before delegation", () => {
@@ -85,6 +84,29 @@ test("subagent abort cancels every started run", async () => {
 
 	assert.deepEqual(cancelled.sort(), ["run-1", "run-2"]);
 	assert.ok(result.results.every((item) => item.error?.includes("aborted")));
+});
+
+test("subagent reports bounded foreground progress without changing result order", async () => {
+	const progress: Array<{ phase: string; completed: number; total: number; agent?: string }> = [];
+	const protocol: SubagentProtocol = {
+		discover: async () => ({ versions: [1], operations: ["start", "wait", "cancel"] }),
+		request: async (operation, payload) => {
+			if (operation === "start") return { runId: "run-1" };
+			return { completed: true, result: { runId: (payload as { runId: string }).runId, status: "completed", finalText: "complete" } };
+		},
+	};
+
+	const result = await executeSubagentCalls({ calls: [{ agent: "reviewer", task: "review" }] }, {
+		protocol,
+		confirm: async () => true,
+		onProgress: (update) => progress.push(update),
+	});
+
+	assert.equal(result.results[0]?.finalText, "complete");
+	assert.deepEqual(progress, [
+		{ phase: "started", completed: 0, total: 1, agent: "reviewer" },
+		{ phase: "completed", completed: 1, total: 1, agent: "reviewer" },
+	]);
 });
 
 test("subagent starts calls in parallel, narrows authority, preserves order, and isolates failures", async () => {

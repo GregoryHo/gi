@@ -16,20 +16,26 @@ M1 uses Agent Workers protocol v1 over `pi.events`; it does not import or instan
 - one foreground `subagent` tool;
 - `calls[]` with a maximum of four entries;
 - built-in read-only `explorer`, `planner`, and `reviewer` definitions;
-- parallel start and foreground wait;
+- parallel start and foreground wait with compact `started`/terminal progress updates;
 - stable input-order results with bounded model-visible final text and private artifact pointers;
 - explicit confirmation before child execution;
 - parent abort propagation that cancels every started child run through protocol v1;
 - bounded timeout and turn defaults;
 - no nesting, inherited context, background sessions, writes, retries, or team semantics.
 
-## Load
+## Install and load
 
-Load Agent Workers before Subagents so the protocol server is available:
+Subagents is independently installable, but it requires the separately installed Agent Workers runtime when the `subagent` tool is invoked. Install/load Agent Workers first so its protocol server is available:
 
 ```bash
+pi install ./packages/pi-extension-agent-workers
+pi install ./packages/pi-extension-subagents
+
+# Or load both for one development run:
 pi -e ./packages/pi-extension-agent-workers -e ./packages/pi-extension-subagents
 ```
+
+If Agent Workers is absent, Subagents loads successfully but `subagent` fails with an actionable tool error before confirmation or child execution.
 
 The tool accepts:
 
@@ -43,4 +49,4 @@ The tool accepts:
 }
 ```
 
-The batch requires one explicit confirmation, executes calls in parallel, waits in the foreground, and returns bounded results in input order. Each call contributes at most 3,000 characters to a 12,000-character batch response; complete oversized results remain available through the returned private artifact path. Aborting the parent tool cancels all child runs that have already started.
+The batch requires one explicit confirmation, executes calls in parallel, waits in the foreground, and emits compact partial updates as calls start or reach a terminal result. These updates do not create background work. Final results remain input-ordered: each call contributes at most 3,000 characters to a 12,000-character batch response, and complete oversized results remain available through the returned private artifact path. Aborting the parent tool cancels all child runs that have already started.

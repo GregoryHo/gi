@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.1 - 2026-07-13
+
+- Added public package release metadata and an MIT license.
+
 ## 1.1.0 - 2026-07-12
 
 - Pin validated DNS address sets into production HTTP/TLS connections and revalidate every redirect to close DNS-rebinding gaps.

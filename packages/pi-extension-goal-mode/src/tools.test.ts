@@ -166,6 +166,33 @@ test("goal_control rejects resume after the objective elapsed limit is exhausted
   assert.match(result.content[0]?.text ?? "", /cancel.*start/i);
 });
 
+test("goal_control finalizes an externally reported verifying goal", async () => {
+	const { tools, runtime, sentMessages } = createHarness(() => LATER);
+	runtime.activeGoal = {
+		...transitionGoalPhase(
+			transitionGoalPhase(createGoalState({ objective: "Finalize external report", now: NOW }), "running_iteration", NOW),
+			"verifying",
+			NOW,
+		),
+		latestReport: {
+			status: "continue",
+			summary: "Completed one bounded slice",
+			verification: ["npm test passed"],
+			verificationEvidence: [{ kind: "command", reference: "npm test", summary: "Tests passed", status: "passed" }],
+			completedCriteria: [],
+			remainingCriteria: ["next slice"],
+			nextAction: "Continue with the next slice",
+		},
+	};
+
+	const result = await tools.get("goal_control")!.execute("call_1", { action: "finalize" });
+
+	assert.equal(result.details?.accepted, true);
+	assert.equal(runtime.activeGoal.phase, "running_iteration");
+	assert.equal(sentMessages.length, 1);
+	assert.match(sentMessages[0]?.content ?? "", /Continue with the next slice/);
+});
+
 test("goal_control pauses runnable goals and cancels non-terminal goals", async () => {
   const { tools, runtime, sentMessages } = createHarness(() => LATER);
   runtime.activeGoal = transitionGoalPhase(createGoalState({ objective: "Control lifecycle", now: NOW }), "running_iteration", NOW);
@@ -345,6 +372,7 @@ test("goal_report records structured progress and moves the goal to verifying", 
     status: "continue",
     summary: "Implemented command adapter",
     verification: ["npm test --workspace @gregho/pi-extension-goal-mode passed"],
+		verificationEvidence: [{ kind: "command", reference: "npm test --workspace @gregho/pi-extension-goal-mode", summary: "Tests passed", status: "passed" }],
     completedCriteria: ["commands registered"],
     remainingCriteria: ["loop controller"],
     nextAction: "Implement loop controller",
@@ -356,6 +384,7 @@ test("goal_report records structured progress and moves the goal to verifying", 
     status: "continue",
     summary: "Implemented command adapter",
     verification: ["npm test --workspace @gregho/pi-extension-goal-mode passed"],
+		verificationEvidence: [{ kind: "command", reference: "npm test --workspace @gregho/pi-extension-goal-mode", summary: "Tests passed", status: "passed" }],
     completedCriteria: ["commands registered"],
     remainingCriteria: ["loop controller"],
     nextAction: "Implement loop controller",

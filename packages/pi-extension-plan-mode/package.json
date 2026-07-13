@@ -1,7 +1,18 @@
 {
   "name": "@gregho/pi-extension-plan-mode",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "pi extension package for safe read-only planning before execution.",
+	"license": "MIT",
+	"author": "GregoryHo",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/GregoryHo/gi.git",
+		"directory": "packages/pi-extension-plan-mode"
+	},
+	"bugs": {
+		"url": "https://github.com/GregoryHo/gi/issues"
+	},
+	"homepage": "https://github.com/GregoryHo/gi/tree/main/packages/pi-extension-plan-mode#readme",
   "type": "module",
   "main": "src/index.ts",
   "exports": {

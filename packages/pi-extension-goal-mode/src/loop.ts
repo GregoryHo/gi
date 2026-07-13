@@ -64,6 +64,7 @@ export function formatActiveGoalContext(goal: ActiveGoalState): string {
     `max failures: ${goal.limits.maxFailures}`,
     `max elapsed ms: ${goal.limits.maxElapsedMs}`,
     goal.acceptanceCriteria.length > 0 ? `acceptance criteria: ${goal.acceptanceCriteria.join("; ")}` : "acceptance criteria: not specified",
+		goal.verificationPolicy?.requireIndependentVerifier ? "verification policy: independent verifier evidence required for done" : "verification policy: traceable evidence required for done",
     ...formatSourcePlanContext(goal),
 		...formatWorkerDelegationContext(goal),
     "Loop contract: work on one bounded iteration, verify with concrete evidence, then call goal_report.",
@@ -140,11 +141,11 @@ export function handleGoalAgentEnd(runtime: GoalCommandRuntime, sender: GoalLoop
   }
 
   if (report.status === "done") {
-    if (!isGoalReportAcceptableForDone(report)) {
+		if (!isGoalReportAcceptableForDone(report, goal.verificationPolicy)) {
       const blockerReport: GoalReport = {
         ...report,
         status: "blocked",
-        blocker: buildMissingVerificationBlocker(),
+				blocker: buildMissingVerificationBlocker(goal.verificationPolicy),
       };
       runtime.activeGoal = transitionGoalPhaseFromVerifying(goal, "blocked", runtime.now(), blockerReport);
       notifyGoalChanged(runtime);
@@ -248,6 +249,7 @@ function copyGoalReport(report: GoalReport): GoalReport {
   return {
     ...report,
     verification: [...report.verification],
+		...(report.verificationEvidence ? { verificationEvidence: report.verificationEvidence.map((evidence) => ({ ...evidence })) } : {}),
     completedCriteria: [...report.completedCriteria],
     remainingCriteria: [...report.remainingCriteria],
   };

@@ -1,5 +1,4 @@
-import type { AgentWorkerProtocolCapabilities, AgentWorkerProtocolData, AgentWorkerProtocolOperation } from "@gregho/pi-extension-agent-workers/protocol";
-
+import type { AgentWorkerProtocolCapabilities } from "./protocol.ts";
 import { getSubagentDefinition, type SubagentName } from "./agents.ts";
 
 export interface SubagentCall {
@@ -27,9 +26,16 @@ export interface SubagentExecutionResult {
 	results: SubagentCallResult[];
 }
 
+export interface SubagentProgress {
+	phase: "started" | "completed" | "failed";
+	completed: number;
+	total: number;
+	agent: SubagentName;
+}
+
 export interface SubagentProtocol {
 	discover(): Promise<Pick<AgentWorkerProtocolCapabilities, "versions"> & { operations: readonly string[] }>;
-	request(operation: AgentWorkerProtocolOperation, payload: unknown, options?: { timeoutMs?: number }): Promise<AgentWorkerProtocolData | Record<string, unknown>>;
+	request(operation: "capabilities" | "start" | "status" | "wait" | "cancel" | "list_profiles", payload: unknown, options?: { timeoutMs?: number }): Promise<Record<string, unknown>>;
 }
 
 export function validateSubagentParams(params: SubagentParams): Array<SubagentCall & { agent: SubagentName }> {
@@ -49,7 +55,7 @@ export function validateSubagentParams(params: SubagentParams): Array<SubagentCa
 
 export async function executeSubagentCalls(
 	params: SubagentParams,
-	dependencies: { protocol: SubagentProtocol; confirm(): Promise<boolean>; signal?: AbortSignal },
+	dependencies: { protocol: SubagentProtocol; confirm(): Promise<boolean>; signal?: AbortSignal; onProgress?(progress: SubagentProgress): void },
 ): Promise<SubagentExecutionResult> {
 	const calls = validateSubagentParams(params);
 	const capabilities = await dependencies.protocol.discover();
@@ -63,6 +69,10 @@ export async function executeSubagentCalls(
 	}
 	if (!(await dependencies.confirm())) return { cancelled: true, results: [] };
 
+	let completed = 0;
+	const reportProgress = (phase: SubagentProgress["phase"], agent: SubagentName) => {
+		dependencies.onProgress?.({ phase, completed, total: calls.length, agent });
+	};
 	const results = await Promise.all(calls.map(async (call): Promise<SubagentCallResult> => {
 		const definition = getSubagentDefinition(call.agent)!;
 		try {
@@ -82,6 +92,7 @@ export async function executeSubagentCalls(
 			}, { timeoutMs: 5000 }));
 			const runId = typeof started?.runId === "string" ? started.runId : undefined;
 			if (!runId) throw new Error("Agent Workers start response did not include runId.");
+			reportProgress("started", definition.name);
 			const waited = asRecord(await waitForSubagentRun(
 				dependencies.protocol,
 				runId,
@@ -89,7 +100,7 @@ export async function executeSubagentCalls(
 				dependencies.signal,
 			));
 			const worker = asRecord(waited?.result);
-			return {
+			const result = {
 				agent: definition.name,
 				task: call.task,
 				runId,
@@ -98,7 +109,12 @@ export async function executeSubagentCalls(
 				...(typeof worker?.finalTextPath === "string" ? { finalTextPath: worker.finalTextPath } : {}),
 				...(!worker ? { error: "Agent Workers wait response did not include a result." } : {}),
 			};
+			completed += 1;
+			reportProgress(result.error || result.status === "failed" ? "failed" : "completed", definition.name);
+			return result;
 		} catch (error) {
+			completed += 1;
+			reportProgress("failed", definition.name);
 			return {
 				agent: definition.name,
 				task: call.task,
@@ -115,7 +131,7 @@ async function waitForSubagentRun(
 	runId: string,
 	timeoutMs: number,
 	signal?: AbortSignal,
-): Promise<AgentWorkerProtocolData | Record<string, unknown>> {
+): Promise<Record<string, unknown>> {
 	const wait = protocol.request("wait", {
 		runId,
 		waitMs: timeoutMs + 5000,

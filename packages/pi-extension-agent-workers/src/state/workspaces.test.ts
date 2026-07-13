@@ -70,6 +70,29 @@ test("discoverWorkspaceCandidates is bounded and includes current, git root, and
   assert.ok(paths.length <= 10);
 });
 
+test("validateWorkerWorkspace blocks write-capable workers in non-git workspaces without blocking read-only workers", async () => {
+	const root = await makeTempDir("workspace-write-policy");
+	const workspace = join(root, "scratch");
+	await mkdir(workspace, { recursive: true });
+
+	const readOnly = validateWorkerWorkspace(workspace);
+	const writeCapable = validateWorkerWorkspace(workspace, { canModifyWorkspace: true });
+
+	assert.deepEqual(readOnly.errors, []);
+	assert.ok(readOnly.warnings.some((warning) => warning.includes("not inside a git repository")));
+	assert.ok(writeCapable.errors.some((error) => error.includes("Write-capable workers require a git workspace")));
+});
+
+test("validateWorkerWorkspace marks warned write-capable workspaces for a second confirmation", async () => {
+	const root = await makeTempDir("workspace-write-confirm");
+	const repo = join(root, "gi-agent-workers");
+	await mkdir(join(repo, ".git"), { recursive: true });
+
+	const result = validateWorkerWorkspace(repo, { task: "Implement Jira issue WIN-2579", canModifyWorkspace: true });
+
+	assert.equal(result.requiresWriteConfirmation, true);
+});
+
 test("validateWorkerWorkspace warns when Jira-like tasks target the extension repo", async () => {
   const root = await makeTempDir("workspace-warning");
   const repo = join(root, "gi-agent-workers");

@@ -68,6 +68,7 @@ test("agent_worker_start uses workspace config defaults for confirmation plannin
   const { pi, tools } = createToolRegistry();
   const service = createFakeService({ resolvedFromConfig: { adapter: "claude-code", profile: "verifier", requireConfirmation: true } });
   const cwd = await makeTempDir("tool-config-confirm");
+	await mkdir(join(cwd, ".git"), { recursive: true });
   registerAgentWorkerTools(pi, service);
   const messages: string[] = [];
 
@@ -82,10 +83,31 @@ test("agent_worker_start uses workspace config defaults for confirmation plannin
   assert.equal(service.startCalls.length, 0);
 });
 
+test("agent_worker_start requires a second confirmation for warned write-capable workspaces", async () => {
+	const { pi, tools } = createToolRegistry();
+	const service = createFakeService({ requireConfirmation: true });
+	const root = await makeTempDir("tool-write-confirm");
+	const cwd = join(root, "gi-agent-workers");
+	await mkdir(join(cwd, ".git"), { recursive: true });
+	registerAgentWorkerTools(pi, service);
+	const titles: string[] = [];
+
+	const result = await executeTool(
+		tools.get("agent_worker_start"),
+		{ adapter: "claude-code", task: "Implement Jira issue WIN-2579", cwd },
+		{ hasUI: true, ui: { confirm: async (title: string) => { titles.push(title); return titles.length === 1; } } },
+	);
+
+	assert.equal(result.details.cancelled, true);
+	assert.deepEqual(titles, ["Start agent worker?", "Confirm write-capable workspace?"]);
+	assert.equal(service.startCalls.length, 0);
+});
+
 test("agent_worker_start requires confirmation for real adapters and shows effective cwd", async () => {
   const { pi, tools } = createToolRegistry();
   const service = createFakeService({ requireConfirmation: true });
   const cwd = await makeTempDir("tool-confirm");
+	await mkdir(join(cwd, ".git"), { recursive: true });
   registerAgentWorkerTools(pi, service);
   const messages: string[] = [];
 

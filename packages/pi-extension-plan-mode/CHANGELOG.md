@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.1 - 2026-07-13
+
+### Changed
+
+- Added public package release metadata and an MIT license.
+
 ## 0.2.0 - 2026-07-12
 
 ### Added

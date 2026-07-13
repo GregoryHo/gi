@@ -32,6 +32,7 @@ The primary autocomplete-backed surface is `/goal <objective>` or `/goal start|s
 - `/goal-resume` — resume a paused or recoverably blocked goal with a fresh run token and one bounded iteration; exhausted objective limits must be cancelled before starting a new goal.
 - `/goal-stop` — cancel the current/resumable goal, abort only a matching active Goal Mode iteration, and invalidate queued Goal Mode follow-ups without interrupting an unrelated busy turn.
 - `/goal-step` — queue one bounded iteration when the goal is in `planning`.
+- `goal_control({ action: "finalize" })` — advance an already reported `verifying` goal when an API-driven host does not emit the normal `agent_end` lifecycle event.
 
 ## Lifecycle semantics
 
@@ -55,7 +56,7 @@ The extension accepts queued follow-ups only when the token matches the current 
 
 - `goal_start` — LLM-callable bounded loop starter. Use only when the user explicitly asks for Goal Mode, bounded autonomous completion, or to use goal to complete work. Accepts optional `sourcePlan` and optional explicit `workerDelegation` policy.
 - `goal_status` — LLM-callable current-goal inspection tool. Includes compact `workerDelegation` details when present.
-- `goal_report` — LLM-callable structured progress report. Every goal iteration should end with this tool.
+- `goal_report` — LLM-callable structured progress report. Every goal iteration should end with this tool; a `done` report requires traceable `verificationEvidence`.
 
 When the user asks to use Goal Mode for the current plan, expected tool route is:
 
@@ -88,13 +89,16 @@ goal_start(workerDelegation) -> agent_worker_start -> agent_worker_wait/status -
 
 - `status`: `continue`, `blocked`, or `done`
 - `summary`
-- `verification`
+- `verification`: compact human-readable evidence summary
+- `verificationEvidence`: optional structured records with `kind` (`command`, `artifact`, `inspection`, or `worker`), `reference`, `summary`, `status`, and optional `independent`
 - `completedCriteria`
 - `remainingCriteria`
 - optional `nextAction`
 - optional `blocker`
 
-A `done` report without verification evidence is blocked rather than accepted as complete.
+A `done` report requires at least one passed, traceable `verificationEvidence` record as well as the compact `verification` summary. A goal may opt into `verificationPolicy: { requireIndependentVerifier: true }` at `goal_start`; it then additionally requires a passed `worker` evidence record with `independent: true`. This policy never starts workers automatically or bypasses Agent Workers confirmation.
+
+For ordinary interactive runs, Goal Mode finalizes reports at `agent_end`. API-driven hosts that call `goal_report` outside that lifecycle must call `goal_control({ action: "finalize" })` after the report to advance a `verifying` goal safely.
 
 For paused or blocked goals, `goal_report` is rejected with resume guidance so reports cannot be accepted while the state machine is non-runnable. Resume first, then report from the bounded iteration. For terminal `done` or `cancelled` goals, `goal_report` is rejected.
 

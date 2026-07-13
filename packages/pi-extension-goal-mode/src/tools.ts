@@ -3,7 +3,8 @@ import { Type } from "typebox";
 
 import { markGoalModeInternalMessage } from "./messages.ts";
 import { cancelActiveGoal, notifyGoalChanged, type GoalCommandRuntime } from "./commands.ts";
-import type { GoalReport, GoalReportStatus, SourcePlan, WorkerDelegationPolicy, WorkerDelegationProfile } from "./state.ts";
+import { handleGoalAgentEnd } from "./loop.ts";
+import type { GoalReport, GoalReportStatus, SourcePlan, VerificationEvidence, VerificationPolicy, WorkerDelegationPolicy, WorkerDelegationProfile } from "./state.ts";
 import { createGoalState, getGoalLimitBlocker, isResumableGoalPhase, isRunnableGoalPhase, isTerminalGoalPhase, renewGoalRun, transitionGoalPhase, type ActiveGoalState } from "./state.ts";
 
 type ToolDefinition = Parameters<ExtensionAPI["registerTool"]>[0];
@@ -28,6 +29,7 @@ interface GoalStartToolParams {
   acceptanceCriteria?: unknown;
   sourcePlan?: unknown;
   workerDelegation?: unknown;
+	verificationPolicy?: unknown;
 }
 
 interface GoalControlToolParams {
@@ -38,6 +40,7 @@ interface GoalReportToolParams {
   status?: unknown;
   summary?: unknown;
   verification?: unknown;
+	verificationEvidence?: unknown;
   completedCriteria?: unknown;
   remainingCriteria?: unknown;
   nextAction?: unknown;
@@ -64,21 +67,35 @@ const workerDelegationParameters = Type.Object({
 	purpose: Type.Optional(Type.String({ description: "Compact reason for worker delegation." })),
 });
 
+const verificationPolicyParameters = Type.Object({
+	requireIndependentVerifier: Type.Boolean({ description: "Require a passed independent verifier-worker evidence record before accepting done." }),
+});
+
+const verificationEvidenceParameters = Type.Object({
+	kind: Type.String({ description: "Evidence kind: command, artifact, inspection, or worker." }),
+	reference: Type.String({ description: "Traceable command, artifact path, inspection target, or worker run id." }),
+	summary: Type.String({ description: "Compact verification outcome." }),
+	status: Type.String({ description: "Evidence status: passed, failed, or blocked." }),
+	independent: Type.Optional(Type.Boolean({ description: "Whether this evidence came from an independent verifier." })),
+});
+
 const goalStartParameters = Type.Object({
   objective: Type.String({ description: "Goal objective to run as a bounded Goal Mode loop." }),
   acceptanceCriteria: Type.Optional(Type.Array(Type.String(), { description: "Goal-specific acceptance criteria." })),
   sourcePlan: Type.Optional(sourcePlanParameters),
 	workerDelegation: Type.Optional(workerDelegationParameters),
+	verificationPolicy: Type.Optional(verificationPolicyParameters),
 });
 
 const goalControlParameters = Type.Object({
-  action: Type.String({ description: "One of: pause, resume, cancel, step." }),
+	action: Type.String({ description: "One of: pause, resume, cancel, step, finalize." }),
 });
 
 const goalReportParameters = Type.Object({
   status: Type.String({ description: "One of: continue, blocked, done." }),
   summary: Type.String({ description: "Compact progress summary for this iteration." }),
-  verification: Type.Array(Type.String(), { description: "Verification evidence gathered this iteration." }),
+	verification: Type.Array(Type.String(), { description: "Human-readable verification summary gathered this iteration." }),
+	verificationEvidence: Type.Optional(Type.Array(verificationEvidenceParameters, { description: "Traceable structured verification evidence; required to accept done." })),
   completedCriteria: Type.Array(Type.String(), { description: "Acceptance criteria satisfied this iteration." }),
   remainingCriteria: Type.Array(Type.String(), { description: "Acceptance criteria still remaining." }),
   nextAction: Type.Optional(Type.String({ description: "Next bounded action if status is continue." })),
@@ -112,10 +129,11 @@ export function registerGoalReportTool(pi: GoalToolRegistry, runtime: GoalComman
   pi.registerTool({
     name: "goal_control",
     label: "Control Goal",
-    description: "Control the current Goal Mode lifecycle: pause, resume, cancel, or queue one step.",
+		description: "Control the current Goal Mode lifecycle: pause, resume, cancel, queue one step, or finalize an externally reported verifying goal.",
     promptSnippet: "Control an existing Goal Mode objective when the user asks to pause, resume, continue, cancel, or step it",
     promptGuidelines: [
-      "Use goal_control after goal_status when the user asks to continue, resume, pause, cancel, or step an existing goal.",
+			"Use goal_control after goal_status when the user asks to continue, resume, pause, cancel, step, or finalize an existing goal.",
+			"Use goal_control(finalize) only after goal_report when an API-driven host has not emitted the normal agent_end lifecycle event.",
       "Prefer goal_control(action: 'resume') for paused or blocked goals instead of starting a duplicate goal.",
       "goal_control(action: 'step') only queues work for planning goals; it must not bypass paused or blocked goals.",
     ],
@@ -168,6 +186,7 @@ export function registerGoalReportTool(pi: GoalToolRegistry, runtime: GoalComman
         acceptanceCriteria: startParams.acceptanceCriteria,
         sourcePlan: startParams.sourcePlan,
 				workerDelegation: startParams.workerDelegation,
+				verificationPolicy: startParams.verificationPolicy,
       });
       notifyGoalChanged(runtime);
       queueGoalStart(pi, runtime.activeGoal);
@@ -188,6 +207,7 @@ export function registerGoalReportTool(pi: GoalToolRegistry, runtime: GoalComman
       "Use goal_report at the end of every Goal Mode iteration.",
       "goal_report status must be continue, blocked, or done.",
       "goal_report verification must include concrete evidence or a clear blocker explaining why verification could not run.",
+			"A done goal_report requires passed traceable verificationEvidence; an independent verifier is required only when the goal verification policy says so.",
     ],
     parameters: goalReportParameters,
     async execute(_toolCallId, params): Promise<GoalToolResult> {
@@ -235,7 +255,7 @@ export function registerGoalReportTool(pi: GoalToolRegistry, runtime: GoalComman
   });
 }
 
-type GoalControlAction = "pause" | "resume" | "cancel" | "step";
+type GoalControlAction = "pause" | "resume" | "cancel" | "step" | "finalize";
 
 function controlGoal(pi: GoalToolRegistry, runtime: GoalCommandRuntime, goal: ActiveGoalState, action: GoalControlAction, ctx: GoalToolContext = {}): { accepted: boolean; message: string; details: Record<string, unknown> } {
   if (action === "pause") {
@@ -255,6 +275,13 @@ function controlGoal(pi: GoalToolRegistry, runtime: GoalCommandRuntime, goal: Ac
     queueGoalIteration(pi, runtime.activeGoal, "Resume the bounded goal loop with one iteration.");
     return acceptedControl(`Goal resumed: ${runtime.activeGoal.objective}`, runtime.activeGoal);
   }
+
+	if (action === "finalize") {
+		if (goal.phase !== "verifying") return rejectedControl(`Cannot finalize goal in ${goal.phase} phase.`, goal, "invalid_phase");
+		const finalized = handleGoalAgentEnd(runtime, pi);
+		if (finalized.action === "none") return rejectedControl(`Cannot finalize goal: ${finalized.reason ?? "no report"}.`, runtime.activeGoal!, "no_report");
+		return acceptedControl(`Goal finalized: ${runtime.activeGoal!.objective}`, runtime.activeGoal!);
+	}
 
   if (action === "cancel") {
     if (isTerminalGoalPhase(goal.phase)) return rejectedControl(`Goal is already ${goal.phase}.`, goal, "terminal_goal");
@@ -308,6 +335,7 @@ function goalStatusDetails(goal: ActiveGoalState, now: Date): Record<string, unk
     acceptanceCriteria: [...goal.acceptanceCriteria],
     sourcePlan: goal.sourcePlan ? copySourcePlan(goal.sourcePlan) : undefined,
 		workerDelegation: goal.workerDelegation ? copyWorkerDelegation(goal.workerDelegation) : undefined,
+		verificationPolicy: goal.verificationPolicy ? { ...goal.verificationPolicy } : undefined,
     latestReport: goal.latestReport ? copyGoalReport(goal.latestReport) : undefined,
     blocker: goal.latestReport?.blocker,
 		nextAllowedActions: nextAllowedActions(goal, now),
@@ -319,15 +347,17 @@ function nextAllowedActions(goal: ActiveGoalState, now?: Date): string[] {
 	if (isResumableGoalPhase(goal.phase) && now && getGoalLimitBlocker(goal, now)) return ["cancel"];
   if (isResumableGoalPhase(goal.phase)) return ["resume", "cancel"];
   if (goal.phase === "planning") return ["step", "pause", "cancel"];
+	if (goal.phase === "verifying") return ["finalize", "pause", "cancel"];
   return ["pause", "cancel"];
 }
 
-export function normalizeGoalStartParams(params: GoalStartToolParams): { objective: string; acceptanceCriteria?: string[]; sourcePlan?: SourcePlan; workerDelegation?: WorkerDelegationPolicy } {
+export function normalizeGoalStartParams(params: GoalStartToolParams): { objective: string; acceptanceCriteria?: string[]; sourcePlan?: SourcePlan; workerDelegation?: WorkerDelegationPolicy; verificationPolicy?: VerificationPolicy } {
   return {
     objective: nonEmptyString(params.objective, "objective"),
     acceptanceCriteria: params.acceptanceCriteria === undefined ? undefined : stringArray(params.acceptanceCriteria, "acceptanceCriteria"),
     sourcePlan: params.sourcePlan === undefined ? undefined : normalizeSourcePlan(params.sourcePlan),
 		workerDelegation: params.workerDelegation === undefined ? undefined : normalizeWorkerDelegation(params.workerDelegation),
+		verificationPolicy: params.verificationPolicy === undefined ? undefined : normalizeVerificationPolicy(params.verificationPolicy),
   };
 }
 
@@ -335,6 +365,7 @@ export function normalizeGoalReport(params: GoalReportToolParams): GoalReport {
   const status = normalizeStatus(params.status);
   const summary = nonEmptyString(params.summary, "summary");
   const verification = stringArray(params.verification, "verification");
+	const verificationEvidence = params.verificationEvidence === undefined ? undefined : normalizeVerificationEvidence(params.verificationEvidence);
   const completedCriteria = stringArray(params.completedCriteria, "completedCriteria");
   const remainingCriteria = stringArray(params.remainingCriteria, "remainingCriteria");
   const nextAction = optionalString(params.nextAction, "nextAction");
@@ -344,6 +375,7 @@ export function normalizeGoalReport(params: GoalReportToolParams): GoalReport {
     status,
     summary,
     verification,
+		...(verificationEvidence ? { verificationEvidence } : {}),
     completedCriteria,
     remainingCriteria,
     ...(nextAction ? { nextAction } : {}),
@@ -369,6 +401,7 @@ function copyGoalReport(report: GoalReport): GoalReport {
   return {
     ...report,
     verification: [...report.verification],
+		...(report.verificationEvidence ? { verificationEvidence: report.verificationEvidence.map((evidence) => ({ ...evidence })) } : {}),
     completedCriteria: [...report.completedCriteria],
     remainingCriteria: [...report.remainingCriteria],
   };
@@ -384,6 +417,33 @@ function normalizeSourcePlan(value: unknown): SourcePlan {
     ...(status ? { status } : {}),
     steps: normalizeSourcePlanSteps(source.steps),
   };
+}
+
+function normalizeVerificationPolicy(value: unknown): VerificationPolicy {
+	if (!value || typeof value !== "object") throw new Error("goal_start verificationPolicy must be an object.");
+	const source = value as { requireIndependentVerifier?: unknown };
+	if (typeof source.requireIndependentVerifier !== "boolean") throw new Error("goal_start verificationPolicy.requireIndependentVerifier must be a boolean.");
+	return { requireIndependentVerifier: source.requireIndependentVerifier };
+}
+
+function normalizeVerificationEvidence(value: unknown): VerificationEvidence[] {
+	if (!Array.isArray(value)) throw new Error("goal_report verificationEvidence must be an array.");
+	const kinds = new Set<VerificationEvidence["kind"]>(["command", "artifact", "inspection", "worker"]);
+	const statuses = new Set<VerificationEvidence["status"]>(["passed", "failed", "blocked"]);
+	return value.map((item, index) => {
+		if (!item || typeof item !== "object") throw new Error(`goal_report verificationEvidence[${index}] must be an object.`);
+		const evidence = item as { kind?: unknown; reference?: unknown; summary?: unknown; status?: unknown; independent?: unknown };
+		if (typeof evidence.kind !== "string" || !kinds.has(evidence.kind as VerificationEvidence["kind"])) throw new Error(`goal_report verificationEvidence[${index}].kind is invalid.`);
+		if (typeof evidence.status !== "string" || !statuses.has(evidence.status as VerificationEvidence["status"])) throw new Error(`goal_report verificationEvidence[${index}].status is invalid.`);
+		if (evidence.independent !== undefined && typeof evidence.independent !== "boolean") throw new Error(`goal_report verificationEvidence[${index}].independent must be a boolean.`);
+		return {
+			kind: evidence.kind as VerificationEvidence["kind"],
+			reference: nonEmptyString(evidence.reference, `verificationEvidence[${index}].reference`),
+			summary: nonEmptyString(evidence.summary, `verificationEvidence[${index}].summary`),
+			status: evidence.status as VerificationEvidence["status"],
+			...(evidence.independent === undefined ? {} : { independent: evidence.independent }),
+		};
+	});
 }
 
 function normalizeWorkerDelegation(value: unknown): WorkerDelegationPolicy {
@@ -445,8 +505,8 @@ function queueGoalIteration(pi: GoalToolRegistry, goal: { id: string; runId: str
 }
 
 function normalizeGoalControlAction(value: unknown): GoalControlAction {
-  if (value === "pause" || value === "resume" || value === "cancel" || value === "step") return value;
-  throw new Error("goal_control action must be one of: pause, resume, cancel, step.");
+	if (value === "pause" || value === "resume" || value === "cancel" || value === "step" || value === "finalize") return value;
+	throw new Error("goal_control action must be one of: pause, resume, cancel, step, finalize.");
 }
 
 function normalizeStatus(value: unknown): GoalReportStatus {

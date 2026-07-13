@@ -76,11 +76,6 @@ export function registerAgentWorkerTools(pi: ExtensionAPI, service = new AgentWo
     }),
     async execute(_toolCallId, params: WorkerStartToolParams, _signal, _onUpdate, ctx: ToolContextLike) {
       const effectiveCwd = service.resolveCwd(params.cwd, ctx.cwd);
-      const validation = validateWorkerWorkspace(effectiveCwd, { task: params.task });
-      if (validation.errors.length > 0) {
-        return toolResult("Worker workspace is invalid.", { cwd: effectiveCwd, errors: validation.errors });
-      }
-
       const request: WorkerRequest = {
         profile: params.profile,
         adapter: params.adapter,
@@ -93,6 +88,10 @@ export function registerAgentWorkerTools(pi: ExtensionAPI, service = new AgentWo
         requireConfirmation: params.requireConfirmation,
       };
       const resolved = await service.resolveRequestWithConfig(request);
+			const validation = validateWorkerWorkspace(effectiveCwd, { task: params.task, canModifyWorkspace: resolved.canModifyWorkspace });
+			if (validation.errors.length > 0) {
+				return toolResult("Worker workspace is invalid.", { cwd: effectiveCwd, errors: validation.errors });
+			}
       if (requiresConfirmation(resolved)) {
         const confirmed = await confirmWorkerStart(resolved, ctx);
         if (!confirmed) {
@@ -102,6 +101,16 @@ export function registerAgentWorkerTools(pi: ExtensionAPI, service = new AgentWo
           });
         }
       }
+
+			if (validation.requiresWriteConfirmation) {
+				const confirmed = await confirmWriteWorkspace(resolved, validation.warnings, ctx);
+				if (!confirmed) {
+					return toolResult(`Canceled: write-capable worker workspace was not confirmed.`, {
+						cancelled: true,
+						adapter: resolved.adapter,
+					});
+				}
+			}
 
       const run = await service.start(request);
       const summary = workerRunSummary(run);
@@ -279,6 +288,19 @@ async function confirmWorkerStart(request: ResolvedWorkerRequest, ctx: ToolConte
       .filter((line): line is string => Boolean(line))
       .join("\n"),
   );
+}
+
+async function confirmWriteWorkspace(request: ResolvedWorkerRequest, warnings: string[], ctx: ToolContextLike): Promise<boolean> {
+	if (!ctx.hasUI || !ctx.ui?.confirm) return false;
+	return ctx.ui.confirm(
+		"Confirm write-capable workspace?",
+		[
+			`Workspace: ${request.cwd}`,
+			...warnings.map((warning) => `Warning: ${warning}`),
+			"This worker can modify the selected workspace. Confirm that this is the intended repository.",
+			"Continue?",
+		].join("\n"),
+	);
 }
 
 function formatWorkerModelResult(statusText: string, run: WorkerRun): string {

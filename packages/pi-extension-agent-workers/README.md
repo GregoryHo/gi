@@ -4,7 +4,7 @@ pi package for supervising delegated AI agent worker CLI processes such as Claud
 
 ## Status
 
-v0.4.0 is the current local release. It adds the `pi-sdk` worker adapter for local pi SDK child sessions while preserving the existing demo, Claude Code, and Codex CLI adapters. Roadmap and milestone docs live in [`../../docs/pi-extension-agent-workers`](../../docs/pi-extension-agent-workers).
+v0.5.0 is the current local release. It adds bounded Pi SDK child results and the shared Agent Workers protocol while preserving the existing demo, Claude Code, and Codex CLI adapters. Roadmap and milestone docs live in [`../../docs/pi-extension-agent-workers`](../../docs/pi-extension-agent-workers).
 
 ## Goal
 
@@ -75,7 +75,7 @@ Worker commands:
 - `/worker-log <id>` — show the run log tail.
 - `/worker-kill <id>` — cancel a running worker.
 
-Real adapters (`claude-code`, `codex-cli`, and `pi-sdk`) require explicit confirmation in UI, or `--yes` in non-UI mode. Confirmation includes the effective worker workspace. Subprocess adapters use explicit argv with `shell: false`; `pi-sdk` runs in memory without a child process.
+Real adapters (`claude-code`, `codex-cli`, and `pi-sdk`) require explicit confirmation in UI, or `--yes` in non-UI mode. Confirmation includes the effective worker workspace. Write-capable runs require a git workspace; if preflight emits a workspace warning, UI surfaces require a second confirmation naming that repository. Subprocess adapters use explicit argv with `shell: false`; `pi-sdk` runs in memory without a child process.
 
 Workspace custom profiles can be added to the local workspace config JSON under `profiles`. Example:
 
@@ -146,12 +146,12 @@ Interpretation tips:
 
 - Do not default to dangerous permission or sandbox bypass modes for external CLIs.
 - `pi-sdk` child sessions use a minimal child resource loader in this MVP: no nested `agent-workers` tools, no project-local child extension discovery, no long-lived child sessions, and no cloud execution added by this package.
-- Validate the worker workspace before delegating product/Jira work; preflight warnings are advisory and do not hard-block.
+- Validate the worker workspace before delegating product/Jira work. Write-capable workers are hard-blocked outside a git workspace; read-only workers retain advisory non-git warnings.
 - Runtime artifacts must live in ignored local directories or under `~/.pi/agent/agent-workers/`.
 - Token and cost metrics must be marked as reported, estimated, or unknown; missing usage is shown as unknown, not zero.
 - Up to 6 workers may run concurrently when safety rules allow it.
 - Read-only workers may share a workspace. Write-capable workers are blocked from sharing the same git root/workspace while another write-capable worker is active.
-- Write-capable or destructive worker modes require explicit user confirmation.
+- Write-capable or destructive worker modes require explicit user confirmation; warned write-capable UI runs require a second repository-target confirmation.
 - `pi-sdk` read-only runs expose only `read`, `grep`, `find`, and `ls`; write-capable `pi-sdk` runs expose `bash`, `edit`, and `write` only after the same confirmation and workspace-collision safety rules apply.
 
 ## Development verification

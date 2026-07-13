@@ -1,7 +1,18 @@
 {
 	"name": "@gregho/pi-extension-subagents",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"description": "Foreground read-only subagent delegation facade for pi.",
+	"license": "MIT",
+	"author": "GregoryHo",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/GregoryHo/gi.git",
+		"directory": "packages/pi-extension-subagents"
+	},
+	"bugs": {
+		"url": "https://github.com/GregoryHo/gi/issues"
+	},
+	"homepage": "https://github.com/GregoryHo/gi/tree/main/packages/pi-extension-subagents#readme",
 	"type": "module",
 	"main": "src/index.ts",
 	"exports": {
@@ -19,6 +30,7 @@
 	"files": [
 		"src/agents.ts",
 		"src/index.ts",
+		"src/protocol.ts",
 		"src/subagent.ts",
 		"README.md",
 		"CHANGELOG.md"
@@ -36,7 +48,6 @@
 	"peerDependencies": {
 		"@earendil-works/pi-ai": "*",
 		"@earendil-works/pi-coding-agent": "*",
-		"@gregho/pi-extension-agent-workers": "*",
 		"typebox": "*"
 	},
 	"devDependencies": {

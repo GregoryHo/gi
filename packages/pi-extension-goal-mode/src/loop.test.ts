@@ -164,6 +164,7 @@ test("handleGoalAgentEnd finalizes reported verifying goals without an active it
 			status: "done",
 			summary: "Fixture deleted",
 			verification: ["rollback command reported success"],
+			verificationEvidence: [{ kind: "command", reference: "git restore fixture", summary: "Rollback succeeded", status: "passed" }],
 			completedCriteria: ["rolled back"],
 			remainingCriteria: [],
 		},

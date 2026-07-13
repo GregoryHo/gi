@@ -11,6 +11,7 @@ export interface WorkspaceValidationResult {
   cwd: string;
   errors: string[];
   warnings: string[];
+	requiresWriteConfirmation?: boolean;
   gitRoot?: string;
 }
 
@@ -42,7 +43,7 @@ export function resolveWorkspaceScope(cwd: string): WorkspaceScope {
   };
 }
 
-export function validateWorkerWorkspace(cwd: string, options: { task?: string } = {}): WorkspaceValidationResult {
+export function validateWorkerWorkspace(cwd: string, options: { task?: string; canModifyWorkspace?: boolean } = {}): WorkspaceValidationResult {
   const normalized = normalizeWorkspacePath(cwd);
   const errors: string[] = [];
   const warnings: string[] = [];
@@ -57,7 +58,10 @@ export function validateWorkerWorkspace(cwd: string, options: { task?: string } 
   }
 
   const gitRoot = findGitRoot(normalized);
-  if (!gitRoot) warnings.push(`Workspace is not inside a git repository: ${normalized}`);
+	if (!gitRoot) {
+		warnings.push(`Workspace is not inside a git repository: ${normalized}`);
+		if (options.canModifyWorkspace) errors.push(`Write-capable workers require a git workspace: ${normalized}`);
+	}
 
   if (looksLikeProductTask(options.task) && looksLikeAgentWorkersRepo(normalized, gitRoot)) {
     warnings.push(
@@ -65,7 +69,13 @@ export function validateWorkerWorkspace(cwd: string, options: { task?: string } 
     );
   }
 
-  return { cwd: normalized, errors, warnings, ...(gitRoot ? { gitRoot } : {}) };
+	return {
+		cwd: normalized,
+		errors,
+		warnings,
+		...(options.canModifyWorkspace && warnings.length > 0 ? { requiresWriteConfirmation: true } : {}),
+		...(gitRoot ? { gitRoot } : {}),
+	};
 }
 
 export function discoverWorkspaceCandidates(options: {

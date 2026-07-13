@@ -58,7 +58,7 @@ export class AgentWorkerService {
 
   async start(request: WorkerRequest): Promise<WorkerRun> {
     const resolved = await this.resolveRequestWithConfig(request);
-    const validation = validateWorkerWorkspace(resolved.cwd, { task: request.task });
+		const validation = validateWorkerWorkspace(resolved.cwd, { task: request.task, canModifyWorkspace: resolved.canModifyWorkspace });
     if (validation.errors.length > 0) throw new Error(validation.errors.join("\n"));
     const scope = resolveWorkspaceScope(resolved.cwd);
     return this.manager.startRun({

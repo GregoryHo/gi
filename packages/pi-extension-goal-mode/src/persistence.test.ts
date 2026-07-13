@@ -162,6 +162,7 @@ test("registerGoalPersistenceAndUi settles restored verifying done reports and c
 			status: "done" as const,
 			summary: "Finished",
 			verification: ["tests passed"],
+			verificationEvidence: [{ kind: "command", reference: "npm test", summary: "Tests passed", status: "passed" }],
 			completedCriteria: ["all done"],
 			remainingCriteria: [],
 		},

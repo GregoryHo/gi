@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.0 - 2026-07-13
+
+### Changed
+
+- Write-capable workers now require a git workspace, and warned write-capable UI runs require a second explicit repository-target confirmation.
+
 ## 0.5.0 - 2026-07-12
 
 ### Added

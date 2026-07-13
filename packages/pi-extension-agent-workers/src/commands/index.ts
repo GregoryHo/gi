@@ -148,12 +148,6 @@ export function registerAgentWorkerCommands(
           return;
         }
         const effectiveCwd = service.resolveCwd(parsed.cwd ?? pickedCwd, ctx.cwd);
-        const validation = validateWorkerWorkspace(effectiveCwd, { task: parsed.task });
-        if (validation.errors.length > 0) {
-          emitLines(pi, ctx, validation.errors, "Worker workspace invalid", "error");
-          return;
-        }
-
         const resolved = await service.resolveRequestWithConfig({
           adapter: parsed.adapter,
           profile: parsed.profile,
@@ -162,6 +156,11 @@ export function registerAgentWorkerCommands(
           durationMs: parsed.durationMs,
           timeoutMs: parsed.timeoutMs,
         });
+				const validation = validateWorkerWorkspace(effectiveCwd, { task: parsed.task, canModifyWorkspace: resolved.canModifyWorkspace });
+				if (validation.errors.length > 0) {
+					emitLines(pi, ctx, validation.errors, "Worker workspace invalid", "error");
+					return;
+				}
         if (resolved.requireConfirmation && !parsed.confirmedRealWorker) {
           const confirmed = await confirmRealWorkerRun(resolved, ctx);
           if (!confirmed) {
@@ -169,6 +168,14 @@ export function registerAgentWorkerCommands(
             return;
           }
         }
+
+				if (validation.requiresWriteConfirmation) {
+					const confirmed = await confirmWriteWorkspace(resolved, validation.warnings, ctx);
+					if (!confirmed) {
+						emitLines(pi, ctx, ["Canceled: write-capable worker workspace was not confirmed."], "Worker start canceled", "warning");
+						return;
+					}
+				}
 
         const run = await service.start({
           adapter: parsed.adapter,
@@ -416,6 +423,23 @@ async function confirmRealWorkerRun(
       "Continue?",
     ].join("\n"),
   );
+}
+
+async function confirmWriteWorkspace(
+	request: ResolvedWorkerRequest,
+	warnings: string[],
+	ctx: { hasUI: boolean; ui: { confirm?(title: string, message: string): Promise<boolean> } },
+): Promise<boolean> {
+	if (!ctx.hasUI || !ctx.ui.confirm) return false;
+	return ctx.ui.confirm(
+		"Confirm write-capable workspace?",
+		[
+			`Workspace: ${request.cwd}`,
+			...warnings.map((warning) => `Warning: ${warning}`),
+			"This worker can modify the selected workspace. Confirm that this is the intended repository.",
+			"Continue?",
+		].join("\n"),
+	);
 }
 
 function emitLines(
